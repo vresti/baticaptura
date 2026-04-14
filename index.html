@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BatiCaptura v3</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+
+  :root {
+    --bg:      #050d14;
+    --panel:   #0a1a28;
+    --border:  #0e3a5c;
+    --amber:   #e8a020;
+    --amber2:  #ffd060;
+    --green:   #00e5a0;
+    --red:     #ff4455;
+    --blue:    #1a8fe8;
+    --dim:     #2a4a6a;
+    --text:    #c8dcea;
+    --textdim: #4a7a9a;
+    --marea:   #c084fc;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Exo 2', sans-serif; min-height: 100vh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(14,58,92,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(14,58,92,0.07) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 14px; }
+
+  /* HEADER */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 14px;
+  }
+  .logo-title {
+    font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 900;
+    letter-spacing: 4px; color: var(--amber);
+  }
+  .logo-sub { font-size: 9px; color: var(--textdim); letter-spacing: 2px; margin-top: 2px; }
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 12px;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); transition: all 0.3s; }
+  .dot.on  { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+  /* GPS CONTROLES */
+  .btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .btn {
+    flex: 1; padding: 9px; border-radius: 6px;
+    font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 1px; cursor: pointer; border: 1px solid; transition: all 0.2s;
+  }
+  .btn-connect    { background: rgba(0,229,160,0.08); border-color: var(--green); color: var(--green); }
+  .btn-disconnect { background: rgba(255,68,85,0.08); border-color: var(--red); color: var(--red); }
+  .btn-export     { background: rgba(232,160,32,0.08); border-color: var(--amber); color: var(--amber); }
+  .btn-clear      { background: rgba(42,74,106,0.3); border-color: var(--dim); color: var(--textdim); }
+  .btn:hover { filter: brightness(1.3); }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; filter: none; }
+
+  .serial-config {
+    display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .serial-config select {
+    background: var(--panel); border: 1px solid var(--border);
+    color: var(--text); border-radius: 4px; padding: 5px 8px;
+    font-size: 11px; font-family: 'Share Tech Mono', monospace;
+  }
+  .serial-config label { font-size: 9px; color: var(--textdim); letter-spacing: 1px; }
+  .nmea-debug {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--textdim);
+    background: #020a12; border: 1px solid var(--border); border-radius: 4px;
+    padding: 5px 10px; margin-bottom: 10px; overflow: hidden;
+    white-space: nowrap; text-overflow: ellipsis; min-height: 22px;
+  }
+
+  /* INSTRUMENTOS GPS */
+  .instruments {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;
+  }
+  .instr {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 12px; position: relative; overflow: hidden;
+  }
+  .instr::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  }
+  .instr-label { font-size: 9px; letter-spacing: 3px; color: var(--textdim); text-transform: uppercase; margin-bottom: 3px; }
+  .instr-value {
+    font-family: 'Share Tech Mono', monospace; font-size: 19px;
+    color: var(--amber2); min-height: 24px; transition: color 0.3s;
+  }
+  .instr-value.fresh { color: var(--green); }
+  .instr-unit { font-size: 9px; color: var(--textdim); letter-spacing: 1px; margin-top: 2px; }
+
+  /* ══════════════════════════════════════════════════
+     CORRECCIONES — bloque central de la v3
+  ══════════════════════════════════════════════════ */
+  .correcciones {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;
+  }
+
+  /* Offset ecosonda */
+  .corr-box {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; position: relative;
+  }
+  .corr-box::before {
+    content: attr(data-label);
+    position: absolute; top: -8px; left: 12px;
+    background: var(--panel); font-size: 9px;
+    letter-spacing: 3px; padding: 0 6px;
+  }
+  .corr-box.ecosonda::before { color: var(--blue); }
+  .corr-box.marea::before    { color: var(--marea); }
+
+  .corr-input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .sign-btn {
+    width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--border);
+    background: #020a12; color: var(--amber2); font-size: 20px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace; transition: all 0.2s; flex-shrink: 0;
+  }
+  .sign-btn:hover { border-color: var(--amber); background: rgba(232,160,32,0.1); }
+  .corr-num {
+    flex: 1; background: #020a12; border: 1px solid var(--border);
+    border-radius: 6px; color: var(--amber2);
+    font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 700;
+    text-align: center; padding: 5px 8px; outline: none;
+    -moz-appearance: textfield;
+  }
+  .corr-num::-webkit-inner-spin-button { display: none; }
+  .corr-num:focus { border-color: var(--amber); }
+  .corr-unit { font-size: 12px; color: var(--textdim); letter-spacing: 1px; flex-shrink: 0; }
+
+  .corr-display {
+    font-size: 10px; color: var(--textdim); letter-spacing: 1px;
+    padding: 4px 8px; background: #020a12; border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .corr-display.positive { color: var(--green); }
+  .corr-display.negative { color: var(--red); }
+
+  /* Botón actualizar marea — destacado */
+  .btn-update-marea {
+    width: 100%; margin-top: 8px;
+    background: rgba(192,132,252,0.1); border: 1px solid var(--marea);
+    border-radius: 6px; color: var(--marea);
+    font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 2px; padding: 7px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-update-marea:hover { background: rgba(192,132,252,0.2); box-shadow: 0 0 12px rgba(192,132,252,0.2); }
+
+  /* Último cambio de marea */
+  .marea-log-last {
+    font-size: 9px; color: var(--marea); letter-spacing: 1px;
+    margin-top: 6px; text-align: center; opacity: 0.7;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  /* ══════════════════════════════════════════════════
+     CALCULADORA — muestra la suma en tiempo real
+  ══════════════════════════════════════════════════ */
+  .calculadora {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 0;
+  }
+  .calc-term {
+    flex: 1; text-align: center;
+  }
+  .calc-label { font-size: 8px; letter-spacing: 2px; color: var(--textdim); margin-bottom: 3px; }
+  .calc-val {
+    font-family: 'Orbitron', monospace; font-size: 20px; font-weight: 700;
+  }
+  .calc-val.eco  { color: var(--amber2); }
+  .calc-val.off  { color: var(--blue); font-size: 16px; }
+  .calc-val.mar  { color: var(--marea); font-size: 16px; }
+  .calc-val.final { color: var(--green); font-size: 26px; }
+  .calc-op {
+    font-family: 'Share Tech Mono', monospace; font-size: 22px;
+    color: var(--dim); padding: 0 6px; flex-shrink: 0;
+  }
+  .calc-eq { color: var(--amber); }
+
+  /* ODÓMETRO */
+  .odometro {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 10px;
+  }
+  .odometro-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+  }
+  .odometro-label { font-size: 9px; letter-spacing: 3px; color: var(--textdim); }
+  .threshold-ctrl { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--textdim); }
+  .threshold-ctrl input {
+    width: 50px; background: #020a12; border: 1px solid var(--border);
+    color: var(--amber2); border-radius: 4px; padding: 3px 6px;
+    font-family: 'Share Tech Mono', monospace; font-size: 13px;
+    text-align: center; outline: none;
+  }
+  .dist-bar-wrap {
+    height: 8px; background: #020a12; border-radius: 4px;
+    overflow: hidden; margin-bottom: 8px; border: 1px solid var(--border);
+  }
+  .dist-bar {
+    height: 100%; width: 0%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--blue), var(--green));
+    transition: width 0.4s ease;
+  }
+  .dist-bar.ready { background: var(--green); }
+  .dist-display { display: flex; justify-content: space-between; align-items: baseline; }
+  .dist-value {
+    font-family: 'Orbitron', monospace; font-size: 26px; font-weight: 700; color: var(--dim);
+    transition: color 0.3s;
+  }
+  .dist-value.moving { color: var(--blue); }
+  .dist-value.ready  { color: var(--green); animation: glow 1s ease infinite alternate; }
+  @keyframes glow { from{text-shadow:0 0 8px var(--green)} to{text-shadow:0 0 20px var(--green),0 0 40px var(--green)} }
+  .dist-unit { font-size: 11px; color: var(--textdim); letter-spacing: 2px; }
+  .dist-estado {
+    font-size: 11px; letter-spacing: 2px; padding: 3px 10px; border-radius: 10px;
+    background: rgba(42,74,106,0.4); color: var(--textdim); border: 1px solid var(--dim);
+    transition: all 0.3s;
+  }
+  .dist-estado.ready { background: rgba(0,229,160,0.1); color: var(--green); border-color: var(--green); }
+
+  /* CAPTURA */
+  .capture-box {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; position: relative;
+  }
+  .capture-box::before {
+    content: 'LECTURA ECOSONDA';
+    position: absolute; top: -8px; left: 14px;
+    background: var(--panel); font-size: 9px; letter-spacing: 3px; color: var(--blue); padding: 0 6px;
+  }
+  .depth-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .depth-label { font-size: 10px; letter-spacing: 2px; color: var(--textdim); white-space: nowrap; }
+  .depth-input {
+    flex: 1; background: #020a12; border: 2px solid var(--dim);
+    border-radius: 6px; color: var(--amber2);
+    font-family: 'Orbitron', monospace; font-size: 38px; font-weight: 700;
+    text-align: center; padding: 8px 12px; outline: none; width: 100%;
+    transition: border-color 0.3s, box-shadow 0.3s; -moz-appearance: textfield;
+  }
+  .depth-input::-webkit-inner-spin-button { display: none; }
+  .depth-input:focus { border-color: var(--amber); box-shadow: 0 0 16px rgba(232,160,32,0.15); }
+  .depth-input:focus + .depth-unit { color: var(--amber2); }
+  .depth-unit { font-family: 'Share Tech Mono', monospace; font-size: 16px; color: var(--textdim); white-space: nowrap; transition: color 0.3s; }
+
+  /* BOTÓN GRABAR */
+  .btn-grabar {
+    width: 100%; border-radius: 8px;
+    font-family: 'Orbitron', monospace; font-size: 15px; font-weight: 700;
+    letter-spacing: 4px; padding: 16px; cursor: pointer;
+    transition: all 0.25s; text-transform: uppercase; border: 2px solid; position: relative;
+  }
+  .btn-grabar.locked   { background: rgba(42,74,106,0.2); border-color: var(--dim); color: var(--dim); cursor: not-allowed; }
+  .btn-grabar.unlocked { background: linear-gradient(135deg,rgba(0,229,160,0.15),rgba(26,143,232,0.15)); border-color: var(--green); color: var(--green); box-shadow: 0 0 20px rgba(0,229,160,0.2); animation: btnPulse 1.5s ease infinite; }
+  @keyframes btnPulse { 0%,100%{box-shadow:0 0 20px rgba(0,229,160,0.2)} 50%{box-shadow:0 0 35px rgba(0,229,160,0.45)} }
+  .btn-grabar.unlocked:active { transform: scale(0.98); }
+  .btn-grabar.grabbed  { background: rgba(42,74,106,0.15); border-color: var(--dim); color: var(--textdim); cursor: not-allowed; }
+  .btn-grabar.no-gps  { background: rgba(42,74,106,0.1); border-color: var(--dim); color: var(--dim); cursor: not-allowed; }
+
+  /* GAS */
+  .gas-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .gas-input {
+    flex: 1; background: var(--panel); border: 1px solid var(--border);
+    color: var(--textdim); border-radius: 4px; padding: 6px 10px;
+    font-size: 11px; font-family: 'Share Tech Mono', monospace;
+  }
+  .gas-label { font-size: 9px; color: var(--textdim); letter-spacing: 2px; white-space: nowrap; }
+
+  /* TABLA */
+  .log-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .log-title { font-size: 9px; letter-spacing: 3px; color: var(--blue); }
+  .counter { font-family: 'Orbitron', monospace; font-size: 20px; color: var(--amber); font-weight: 700; }
+  .counter span { font-size: 10px; color: var(--textdim); margin-left: 4px; }
+  .table-wrap {
+    background: #020a12; border: 1px solid var(--border);
+    border-radius: 6px; overflow: hidden; max-height: 240px; overflow-y: auto;
+  }
+  .table-wrap::-webkit-scrollbar { width: 4px; }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+  table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; }
+  th {
+    font-size: 9px; letter-spacing: 2px; color: var(--textdim);
+    padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--border);
+    background: var(--panel); position: sticky; top: 0;
+  }
+  td { font-size: 11px; padding: 5px 8px; border-bottom: 1px solid rgba(14,58,92,0.4); }
+  tr:last-child td { border-bottom: none; }
+  tr.new-row td { animation: rowIn 0.6s ease; }
+  @keyframes rowIn { from{background:rgba(0,229,160,0.1)} to{background:transparent} }
+  td.final { color: var(--green); font-weight: bold; font-size: 14px; }
+  td.eco   { color: var(--amber2); }
+  td.lat, td.lon { color: var(--blue); font-size: 10px; }
+  td.marea-cell { color: var(--marea); }
+  .del-btn { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 12px; padding: 2px 5px; border-radius: 3px; transition: all 0.2s; }
+  .del-btn:hover { color: var(--red); background: rgba(255,68,85,0.1); }
+
+  /* LOG MAREA (mini) */
+  .marea-log-mini {
+    background: rgba(192,132,252,0.05); border: 1px solid rgba(192,132,252,0.2);
+    border-radius: 4px; padding: 5px 10px; margin-bottom: 10px;
+    font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--marea);
+    max-height: 60px; overflow-y: auto;
+  }
+
+  /* Flash + Toast */
+  .flash { position: fixed; inset: 0; background: rgba(0,229,160,0.07); pointer-events: none; opacity: 0; transition: opacity 0.08s; z-index: 999; }
+  .flash.show { opacity: 1; }
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--panel); border: 1px solid var(--green); border-radius: 8px; padding: 9px 14px; font-size: 12px; color: var(--green); font-family: 'Share Tech Mono', monospace; transform: translateY(60px); opacity: 0; transition: all 0.3s; z-index: 1000; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.err  { border-color: var(--red); color: var(--red); }
+  .toast.marea-toast { border-color: var(--marea); color: var(--marea); }
+</style>
+</head>
+<body>
+
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast"></div>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-title">⚓ BatiCaptura v3</div>
+      <div class="logo-sub">RELEVAMIENTO BATIMÉTRICO — DELTA DEL TIGRE</div>
+    </div>
+    <div class="status-pill">
+      <div class="dot" id="gps-dot"></div>
+      <span id="gps-status-txt">SIN GPS</span>
+    </div>
+  </header>
+
+  <!-- GPS -->
+  <div class="btn-row">
+    <button class="btn btn-connect"    id="btn-connect"    onclick="connectGPS()">▶ CONECTAR GPS</button>
+    <button class="btn btn-disconnect" id="btn-disconnect" onclick="disconnectGPS()" disabled>■ DESCONECTAR</button>
+  </div>
+  <div class="serial-config">
+    <label>BAUD</label>
+    <select id="baudRate">
+      <option value="4800" selected>4800</option>
+      <option value="9600">9600</option>
+      <option value="38400">38400</option>
+    </select>
+    <label style="margin-left:8px">SENTENCIA</label>
+    <select id="nmeaSentence">
+      <option value="GPGGA">$GPGGA</option>
+      <option value="GPRMC">$GPRMC</option>
+    </select>
+    <button class="btn btn-clear" style="flex:none;padding:5px 12px;font-size:10px" onclick="demoGPS()">DEMO</button>
+  </div>
+  <div class="nmea-debug" id="nmea-raw">— sin datos NMEA —</div>
+
+  <!-- INSTRUMENTOS GPS -->
+  <div class="instruments">
+    <div class="instr">
+      <div class="instr-label">LATITUD</div>
+      <div class="instr-value" id="disp-lat">—</div>
+      <div class="instr-unit">S decimal</div>
+    </div>
+    <div class="instr">
+      <div class="instr-label">LONGITUD</div>
+      <div class="instr-value" id="disp-lon">—</div>
+      <div class="instr-unit">O decimal</div>
+    </div>
+    <div class="instr">
+      <div class="instr-label">SATS / HDOP</div>
+      <div class="instr-value" id="disp-hdop">—</div>
+      <div class="instr-unit">precisión</div>
+    </div>
+  </div>
+
+  <!-- ═══ CORRECCIONES ═══ -->
+  <div class="correcciones">
+
+    <!-- Offset ecosonda -->
+    <div class="corr-box ecosonda" data-label="OFFSET ECOSONDA">
+      <div class="corr-input-row">
+        <button class="sign-btn" id="eco-sign-btn" onclick="toggleSign('eco')">+</button>
+        <input  class="corr-num" id="eco-val" type="number" value="0.00"
+                step="0.01" min="0" max="9.99" oninput="updateCalc()" />
+        <span class="corr-unit">m</span>
+      </div>
+      <div class="corr-display" id="eco-display">Sin corrección</div>
+      <div style="font-size:9px;color:var(--textdim);margin-top:6px;letter-spacing:1px">
+        Medí con escangallo al inicio de sesión
+      </div>
+    </div>
+
+    <!-- Corrección marea -->
+    <div class="corr-box marea" data-label="CORRECCIÓN MAREA">
+      <div class="corr-input-row">
+        <button class="sign-btn" id="marea-sign-btn" onclick="toggleSign('marea')">+</button>
+        <input  class="corr-num" id="marea-val" type="number" value="0.00"
+                step="0.01" min="0" max="9.99" oninput="updateCalc()" />
+        <span class="corr-unit">m</span>
+      </div>
+      <div class="corr-display" id="marea-display">Sin corrección</div>
+      <button class="btn-update-marea" onclick="registrarMarea()">
+        ↺ ACTUALIZAR CORRECCIÓN
+      </button>
+      <div class="marea-log-last" id="marea-log-last">—</div>
+    </div>
+
+  </div>
+
+  <!-- Log de actualizaciones de marea -->
+  <div class="marea-log-mini" id="marea-log-mini">
+    Sin actualizaciones de marea en esta sesión
+  </div>
+
+  <!-- ═══ CALCULADORA EN TIEMPO REAL ═══ -->
+  <div class="calculadora">
+    <div class="calc-term">
+      <div class="calc-label">ECOSONDA</div>
+      <div class="calc-val eco" id="calc-eco">—</div>
+    </div>
+    <div class="calc-op">+</div>
+    <div class="calc-term">
+      <div class="calc-label">OFFSET</div>
+      <div class="calc-val off" id="calc-off">0.00</div>
+    </div>
+    <div class="calc-op">+</div>
+    <div class="calc-term">
+      <div class="calc-label">MAREA</div>
+      <div class="calc-val mar" id="calc-mar">0.00</div>
+    </div>
+    <div class="calc-op calc-eq">=</div>
+    <div class="calc-term">
+      <div class="calc-label">PROF. FINAL</div>
+      <div class="calc-val final" id="calc-final">—</div>
+    </div>
+  </div>
+
+  <!-- ODÓMETRO -->
+  <div class="odometro">
+    <div class="odometro-header">
+      <div class="odometro-label">▸ DISTANCIA DESDE ÚLTIMO PUNTO</div>
+      <div class="threshold-ctrl">
+        <span>UMBRAL</span>
+        <input type="number" id="threshold" value="10" min="1" max="200" step="1" onchange="updateThreshold()" />
+        <span>m</span>
+      </div>
+    </div>
+    <div class="dist-bar-wrap"><div class="dist-bar" id="dist-bar"></div></div>
+    <div class="dist-display">
+      <div>
+        <div class="dist-value" id="dist-value">0.0</div>
+        <div class="dist-unit">METROS</div>
+      </div>
+      <div class="dist-estado" id="dist-estado">GRABÁ EL PRIMER PUNTO</div>
+    </div>
+  </div>
+
+  <!-- CAPTURA -->
+  <div class="capture-box">
+    <div class="depth-row">
+      <div class="depth-label">ECOSONDA</div>
+      <input type="number" class="depth-input" id="depth-input"
+             placeholder="0.0" step="0.1" min="0" max="99"
+             onkeydown="handleKey(event)" oninput="updateCalcFromInput()" inputmode="decimal" />
+      <div class="depth-unit">m</div>
+    </div>
+    <button class="btn-grabar no-gps" id="btn-grabar" onclick="grabarPunto()">
+      <span id="lock-icon">🔒</span>
+      <span id="btn-grabar-txt"> ESPERANDO GPS</span>
+    </button>
+  </div>
+
+  <!-- GAS -->
+  <div class="gas-row">
+    <span class="gas-label">GAS URL</span>
+    <input class="gas-input" id="gas-url" type="text"
+           placeholder="https://script.google.com/macros/s/xxxx/exec" />
+    <button class="btn btn-export" style="flex:none;padding:6px 12px;font-size:11px" onclick="testGAS()">TEST</button>
+  </div>
+
+  <!-- LOG PUNTOS -->
+  <div class="log-header">
+    <div class="log-title">▸ PUNTOS RELEVADOS</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-export" style="padding:5px 12px;font-size:11px" onclick="exportCSV()">↓ CSV</button>
+      <button class="btn btn-clear"  style="padding:5px 12px;font-size:11px" onclick="clearAll()">✕ LIMPIAR</button>
+      <div class="counter"><span id="punto-count">0</span><span>pts</span></div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>LAT</th>
+          <th>LON</th>
+          <th>ECO</th>
+          <th>OFF</th>
+          <th>MAR</th>
+          <th>FINAL</th>
+          <th>HORA</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="puntos-tbody"></tbody>
+    </table>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ─── Estado global ────────────────────────────────────────────────────────────
+let port = null, reader = null, buffer = '';
+let currentLat = null, currentLon = null, currentHdop = '--', currentSats = '--';
+let lastGrabbedLat = null, lastGrabbedLon = null;
+let hasGPS = false, firstPoint = true, canGrab = false;
+let puntos = [], mareaLog = [];
+let threshold = 10;
+let freshTimer = null, demoInterval = null;
+
+// Correcciones
+let ecoSign   = +1;  // +1 o -1
+let mareaSign = +1;
+
+// ─── Correcciones — UI ───────────────────────────────────────────────────────
+function toggleSign(tipo) {
+  if (tipo === 'eco') {
+    ecoSign *= -1;
+    document.getElementById('eco-sign-btn').textContent = ecoSign > 0 ? '+' : '−';
+  } else {
+    mareaSign *= -1;
+    document.getElementById('marea-sign-btn').textContent = mareaSign > 0 ? '+' : '−';
+  }
+  updateCalc();
+}
+
+function getEcoOffset() {
+  return ecoSign * (parseFloat(document.getElementById('eco-val').value) || 0);
+}
+
+function getMareaCorr() {
+  return mareaSign * (parseFloat(document.getElementById('marea-val').value) || 0);
+}
+
+function updateCalc() {
+  const off  = getEcoOffset();
+  const mar  = getMareaCorr();
+  const eco  = parseFloat(document.getElementById('depth-input').value);
+  const final = isNaN(eco) ? null : eco + off + mar;
+
+  // Displays de corrección
+  const ecoDisp = document.getElementById('eco-display');
+  ecoDisp.textContent = off === 0 ? 'Sin corrección' : (off > 0 ? '+' : '') + off.toFixed(2) + ' m';
+  ecoDisp.className = 'corr-display' + (off > 0 ? ' positive' : off < 0 ? ' negative' : '');
+
+  const marDisp = document.getElementById('marea-display');
+  marDisp.textContent = mar === 0 ? 'Sin corrección' : (mar > 0 ? '+' : '') + mar.toFixed(2) + ' m';
+  marDisp.className = 'corr-display' + (mar > 0 ? ' positive' : mar < 0 ? ' negative' : '');
+
+  // Calculadora
+  document.getElementById('calc-off').textContent  = (off >= 0 ? '+' : '') + off.toFixed(2);
+  document.getElementById('calc-mar').textContent  = (mar >= 0 ? '+' : '') + mar.toFixed(2);
+
+  if (!isNaN(eco)) {
+    document.getElementById('calc-eco').textContent   = eco.toFixed(2);
+    document.getElementById('calc-final').textContent = final.toFixed(2);
+  } else {
+    document.getElementById('calc-eco').textContent   = '—';
+    document.getElementById('calc-final').textContent = '—';
+  }
+}
+
+function updateCalcFromInput() { updateCalc(); }
+
+// Registrar actualización de marea con timestamp
+function registrarMarea() {
+  const mar = getMareaCorr();
+  const off = getEcoOffset();
+  const now = new Date();
+  const hora = now.toTimeString().substring(0, 8);
+  const signo = mar >= 0 ? '+' : '';
+  const entrada = `${hora}  MAREA ${signo}${mar.toFixed(2)}m`;
+  mareaLog.push({ hora, mar, off });
+
+  const log = document.getElementById('marea-log-mini');
+  if (log.textContent.includes('Sin actualizaciones')) log.textContent = '';
+  log.textContent = entrada + '\n' + log.textContent;
+
+  document.getElementById('marea-log-last').textContent = 'Últ. actualización: ' + hora;
+  showToast('↺ Marea actualizada: ' + signo + mar.toFixed(2) + 'm', false, true);
+  beep(440, 0.1); // tono diferente al de punto nuevo
+}
+
+// ─── Haversine ────────────────────────────────────────────────────────────────
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000, r = d => d * Math.PI / 180;
+  const dLat = r(lat2-lat1), dLon = r(lon2-lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(dLon/2)**2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+function getCurrentDist() {
+  if (!lastGrabbedLat || !currentLat) return 0;
+  return haversine(lastGrabbedLat, lastGrabbedLon, currentLat, currentLon);
+}
+
+function updateThreshold() {
+  threshold = parseInt(document.getElementById('threshold').value) || 10;
+  updateOdometro();
+}
+
+// ─── Odómetro ────────────────────────────────────────────────────────────────
+function updateOdometro() {
+  if (!hasGPS) return;
+  if (firstPoint) {
+    setGrabarState('unlocked');
+    document.getElementById('dist-value').textContent = '—';
+    document.getElementById('dist-estado').textContent = 'PRIMER PUNTO';
+    document.getElementById('dist-estado').className = 'dist-estado ready';
+    document.getElementById('dist-bar').style.width = '100%';
+    document.getElementById('dist-bar').className = 'dist-bar ready';
+    return;
+  }
+  if (!lastGrabbedLat) return;
+
+  const dist = haversine(lastGrabbedLat, lastGrabbedLon, currentLat, currentLon);
+  const pct  = Math.min(dist / threshold, 1) * 100;
+  const bar  = document.getElementById('dist-bar');
+
+  document.getElementById('dist-value').textContent = dist.toFixed(1);
+  bar.style.width = pct + '%';
+
+  if (dist >= threshold) {
+    bar.className = 'dist-bar ready';
+    document.getElementById('dist-value').className = 'dist-value ready';
+    document.getElementById('dist-estado').textContent = '✓ LISTO';
+    document.getElementById('dist-estado').className = 'dist-estado ready';
+    if (!canGrab) beep(880, 0.4); // doble beep al cruzar umbral
+    canGrab = true;
+    setGrabarState('unlocked');
+  } else {
+    bar.className = 'dist-bar';
+    document.getElementById('dist-value').className = 'dist-value' + (dist > 0.5 ? ' moving' : '');
+    document.getElementById('dist-estado').textContent = 'FALTAN ' + (threshold - dist).toFixed(1) + 'm';
+    document.getElementById('dist-estado').className = 'dist-estado';
+    canGrab = false;
+    setGrabarState('locked');
+  }
+}
+
+// ─── Estado botón ─────────────────────────────────────────────────────────────
+function setGrabarState(state) {
+  const btn  = document.getElementById('btn-grabar');
+  const icon = document.getElementById('lock-icon');
+  const txt  = document.getElementById('btn-grabar-txt');
+  btn.className = 'btn-grabar ' + state;
+  switch(state) {
+    case 'unlocked': icon.textContent=' ↵'; txt.textContent=' GRABAR SONDAJE';  btn.disabled=false; break;
+    case 'locked':   icon.textContent=' 🔒'; txt.textContent=' DESPLAZATE ' + (threshold-getCurrentDist()).toFixed(0)+'m MÁS'; btn.disabled=true; break;
+    case 'grabbed':  icon.textContent=' ✓'; txt.textContent=' GRABADO — DESPLAZATE'; btn.disabled=true; break;
+    case 'no-gps':   icon.textContent=' 🔒'; txt.textContent=' ESPERANDO GPS'; btn.disabled=true; break;
+  }
+}
+
+// ─── Web Serial ───────────────────────────────────────────────────────────────
+async function connectGPS() {
+  if (!('serial' in navigator)) { showToast('Usá Chrome o Edge', true); return; }
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: parseInt(document.getElementById('baudRate').value) });
+    setGPSStatus('Conectado', true);
+    document.getElementById('btn-connect').disabled = true;
+    document.getElementById('btn-disconnect').disabled = false;
+    readSerial();
+  } catch(e) { showToast('Error: ' + e.message, true); }
+}
+
+async function disconnectGPS() {
+  try { if (reader) { await reader.cancel(); reader = null; } } catch(e) {}
+  try { if (port)   { await port.close();   port = null;   } } catch(e) {}
+  hasGPS = false; setGPSStatus('Desconectado', false); setGrabarState('no-gps');
+  document.getElementById('btn-connect').disabled = false;
+  document.getElementById('btn-disconnect').disabled = true;
+}
+
+async function readSerial() {
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  reader = decoder.readable.getReader();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      let lines = buffer.split('\n'); buffer = lines.pop();
+      lines.forEach(processNMEA);
+    }
+  } catch(e) { if (port) showToast('GPS desconectado', true); }
+}
+
+function processNMEA(line) {
+  line = line.trim();
+  if (!line.startsWith('$')) return;
+  document.getElementById('nmea-raw').textContent = line;
+  const p = line.split(','), type = p[0].substring(1);
+  if ((type==='GPGGA'||type==='GNGGA') && p[6] && p[6]!=='0') {
+    updateCoords(nmeaCoord(p[2],p[3]), nmeaCoord(p[4],p[5]), p[8], p[7]);
+  }
+  if ((type==='GPRMC'||type==='GNRMC') && p[2]==='A') {
+    updateCoords(nmeaCoord(p[3],p[4]), nmeaCoord(p[5],p[6]), currentHdop, currentSats);
+  }
+}
+
+function nmeaCoord(raw, dir) {
+  if (!raw || raw.length < 4) return null;
+  const d = raw.indexOf('.'), deg = parseFloat(raw.substring(0,d-2)), min = parseFloat(raw.substring(d-2));
+  let dec = deg + min/60;
+  if (dir==='S'||dir==='W') dec = -dec;
+  return dec;
+}
+
+function updateCoords(lat, lon, hdop, sats) {
+  if (lat===null||lon===null) return;
+  currentLat=lat; currentLon=lon; currentHdop=hdop||'--'; currentSats=sats||'--'; hasGPS=true;
+  document.getElementById('disp-lat').textContent  = lat.toFixed(6);
+  document.getElementById('disp-lon').textContent  = Math.abs(lon).toFixed(6);
+  document.getElementById('disp-hdop').textContent = currentSats + ' / ' + currentHdop;
+  ['disp-lat','disp-lon','disp-hdop'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.add('fresh');
+    clearTimeout(freshTimer);
+    freshTimer = setTimeout(() => el.classList.remove('fresh'), 800);
+  });
+  updateOdometro();
+}
+
+function setGPSStatus(txt, on) {
+  document.getElementById('gps-status-txt').textContent = txt;
+  document.getElementById('gps-dot').className = 'dot' + (on?' on':'');
+}
+
+// ─── Captura ──────────────────────────────────────────────────────────────────
+function handleKey(e) { if (e.key==='Enter') grabarPunto(); }
+
+function grabarPunto() {
+  if (!canGrab && !firstPoint) return;
+  if (!hasGPS) { showToast('Sin GPS', true); return; }
+
+  const ecoRaw = parseFloat(document.getElementById('depth-input').value);
+  if (isNaN(ecoRaw) || ecoRaw < 0) {
+    showToast('Ingresá la lectura del ecosonda', true);
+    document.getElementById('depth-input').focus();
+    return;
+  }
+
+  const off   = getEcoOffset();
+  const mar   = getMareaCorr();
+  const final = ecoRaw + off + mar;
+  const distAnterior = lastGrabbedLat !== null
+    ? haversine(lastGrabbedLat, lastGrabbedLon, currentLat, currentLon).toFixed(1)
+    : '—';
+  const now  = new Date();
+  const hora = now.toTimeString().substring(0,8);
+
+  const punto = {
+    n     : puntos.length + 1,
+    lat   : currentLat.toFixed(7),
+    lon   : currentLon.toFixed(7),
+    eco   : ecoRaw.toFixed(2),
+    off   : off.toFixed(2),
+    mar   : mar.toFixed(2),
+    final : final.toFixed(2),
+    dist  : distAnterior,
+    hora  : hora,
+    hdop  : currentHdop
+  };
+  puntos.push(punto);
+
+  lastGrabbedLat = currentLat; lastGrabbedLon = currentLon;
+  firstPoint = false; canGrab = false;
+
+  addRow(punto);
+  sendToGAS(punto);
+
+  document.getElementById('flash').classList.add('show');
+  setTimeout(() => document.getElementById('flash').classList.remove('show'), 120);
+
+  document.getElementById('depth-input').value = '';
+  document.getElementById('calc-eco').textContent = '—';
+  document.getElementById('calc-final').textContent = '—';
+  document.getElementById('depth-input').focus();
+  setGrabarState('grabbed');
+
+  // Reset odómetro
+  document.getElementById('dist-value').textContent = '0.0';
+  document.getElementById('dist-value').className = 'dist-value';
+  document.getElementById('dist-bar').style.width = '0%';
+  document.getElementById('dist-bar').className = 'dist-bar';
+  document.getElementById('dist-estado').textContent = 'DESPLAZATE ' + threshold + 'm';
+  document.getElementById('dist-estado').className = 'dist-estado';
+
+  showToast(`✓ #${punto.n}  ECO ${ecoRaw.toFixed(1)}m → FINAL ${final.toFixed(2)}m`);
+}
+
+function addRow(p) {
+  const tbody = document.getElementById('puntos-tbody');
+  const tr = document.createElement('tr');
+  tr.className = 'new-row'; tr.id = 'row-'+p.n;
+  tr.innerHTML = `
+    <td>${p.n}</td>
+    <td class="lat">${p.lat}</td>
+    <td class="lon">${p.lon}</td>
+    <td class="eco">${p.eco}</td>
+    <td style="color:var(--blue)">${p.off}</td>
+    <td class="marea-cell">${p.mar}</td>
+    <td class="final">${p.final}</td>
+    <td>${p.hora}</td>
+    <td><button class="del-btn" onclick="deletePunto(${p.n})">✕</button></td>
+  `;
+  tbody.insertBefore(tr, tbody.firstChild);
+  document.getElementById('punto-count').textContent = puntos.length;
+  document.querySelector('.table-wrap').scrollTop = 0;
+}
+
+function deletePunto(n) {
+  puntos = puntos.filter(p => p.n !== n);
+  const row = document.getElementById('row-'+n);
+  if (row) row.remove();
+  document.getElementById('punto-count').textContent = puntos.length;
+}
+
+function clearAll() {
+  if (!confirm('¿Borrar todos los puntos?')) return;
+  puntos=[]; mareaLog=[]; firstPoint=true; lastGrabbedLat=null; lastGrabbedLon=null; canGrab=false;
+  document.getElementById('puntos-tbody').innerHTML='';
+  document.getElementById('punto-count').textContent='0';
+  document.getElementById('marea-log-mini').textContent='Sin actualizaciones de marea en esta sesión';
+  document.getElementById('marea-log-last').textContent='—';
+  if (hasGPS) updateOdometro();
+}
+
+// ─── Audio ────────────────────────────────────────────────────────────────────
+function beep(freq, vol) {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    [0, 0.18].forEach(d => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq || 880; o.type = 'sine';
+      g.gain.setValueAtTime(vol||0.35, ctx.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+d+0.12);
+      o.start(ctx.currentTime+d); o.stop(ctx.currentTime+d+0.15);
+    });
+  } catch(e) {}
+}
+
+// ─── GAS ──────────────────────────────────────────────────────────────────────
+async function sendToGAS(punto) {
+  const url = document.getElementById('gas-url').value.trim();
+  if (!url) return;
+  try {
+    await fetch(url, { method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'sondaje', ...punto }) });
+  } catch(e) {}
+}
+
+async function testGAS() {
+  const url = document.getElementById('gas-url').value.trim();
+  if (!url) { showToast('Ingresá URL del GAS', true); return; }
+  try {
+    await fetch(url, { method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'ping'}) });
+    showToast('✓ GAS alcanzado');
+  } catch(e) { showToast('Error: '+e.message, true); }
+}
+
+function exportCSV() {
+  if (!puntos.length) { showToast('Sin puntos', true); return; }
+  const hdr  = 'N,LATITUD,LONGITUD,ECO_M,OFFSET_M,MAREA_M,FINAL_M,DIST_M,HORA,HDOP\n';
+  const rows = puntos.map(p =>
+    `${p.n},${p.lat},${p.lon},${p.eco},${p.off},${p.mar},${p.final},${p.dist},${p.hora},${p.hdop}`
+  ).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([hdr+rows],{type:'text/csv'}));
+  a.download = `batimetria_${new Date().toISOString().substring(0,10)}.csv`;
+  a.click();
+  showToast(`✓ CSV — ${puntos.length} puntos exportados`);
+}
+
+// ─── Demo GPS ────────────────────────────────────────────────────────────────
+let demoLat = -34.41720, demoLon = -58.50830;
+function demoGPS() {
+  if (demoInterval) { clearInterval(demoInterval); demoInterval=null; showToast('Demo detenido'); return; }
+  showToast('▶ Demo activo');
+  setGPSStatus('DEMO', true);
+  demoInterval = setInterval(() => {
+    demoLat += (Math.random()-0.4)*0.00003;
+    demoLon += (Math.random()-0.4)*0.00003;
+    updateCoords(demoLat, demoLon, (0.8+Math.random()*0.5).toFixed(1), Math.floor(7+Math.random()*4));
+    document.getElementById('nmea-raw').textContent = '[DEMO] lat='+demoLat.toFixed(6)+' lon='+demoLon.toFixed(6);
+  }, 800);
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, err=false, esMarea=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (err?' err':'') + (esMarea?' marea-toast':'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className='toast', 3200);
+}
+
+// Init
+updateCalc();
+document.getElementById('depth-input').focus();
+</script>
+</body>
+</html>
