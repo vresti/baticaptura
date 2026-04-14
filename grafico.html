@@ -7,1069 +7,634 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
-
   :root {
-    --bg:      #f0ece4;
-    --paper:   #faf7f0;
-    --navy:    #1a237e;
-    --navy2:   #283593;
-    --gold:    #c9a227;
-    --border:  #b8b0a0;
-    --text:    #1a1a2e;
-    --textdim: #6a6a7a;
-    --panel:   #eee8dc;
+    --bg:#f0ece4;--paper:#faf7f0;--navy:#1a237e;--navy2:#283593;
+    --gold:#c9a227;--border:#b8b0a0;--text:#1a1a2e;--dim:#6a6a7a;--panel:#eee8dc;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Exo 2', sans-serif;
-    min-height: 100vh;
-  }
-
-  /* Textura sutil de carta náutica */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(26,35,126,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(26,35,126,0.03) 1px, transparent 1px);
-    background-size: 30px 30px;
-    pointer-events: none; z-index: 0;
-  }
-
-  .layout {
-    position: relative; z-index: 1;
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    grid-template-rows: auto 1fr;
-    min-height: 100vh;
-  }
-
-  /* HEADER */
-  header {
-    grid-column: 1 / -1;
-    background: var(--navy);
-    color: white;
-    padding: 12px 20px;
-    display: flex; align-items: center; justify-content: space-between;
-    border-bottom: 3px solid var(--gold);
-  }
-  .logo-title {
-    font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 900;
-    letter-spacing: 4px; color: var(--gold);
-  }
-  .logo-sub { font-size: 9px; color: rgba(255,255,255,0.5); letter-spacing: 2px; margin-top: 2px; }
-  .header-info {
-    font-family: 'Share Tech Mono', monospace; font-size: 10px;
-    color: rgba(255,255,255,0.4); letter-spacing: 1px; text-align: right;
-  }
-
-  /* PANEL IZQUIERDO */
-  .sidebar {
-    background: var(--paper);
-    border-right: 1px solid var(--border);
-    padding: 16px;
-    display: flex; flex-direction: column; gap: 14px;
-    overflow-y: auto;
-  }
-
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 12px;
-    position: relative;
-  }
-  .panel-title {
-    font-size: 8px; letter-spacing: 3px; color: var(--navy);
-    text-transform: uppercase; margin-bottom: 10px; font-weight: 600;
-    border-bottom: 1px solid var(--border); padding-bottom: 6px;
-  }
-
-  /* Upload */
-  .upload-area {
-    border: 2px dashed var(--border); border-radius: 6px;
-    padding: 20px; text-align: center; cursor: pointer;
-    transition: all 0.2s; background: white;
-  }
-  .upload-area:hover { border-color: var(--navy); background: rgba(26,35,126,0.03); }
-  .upload-area.drag { border-color: var(--gold); background: rgba(201,162,39,0.05); }
-  .upload-icon { font-size: 28px; margin-bottom: 8px; }
-  .upload-text { font-size: 11px; color: var(--textdim); letter-spacing: 1px; }
-  .upload-sub  { font-size: 10px; color: var(--border); margin-top: 4px; }
-  #file-input  { display: none; }
-
-  /* Archivos cargados */
-  .file-list { display: flex; flex-direction: column; gap: 4px; }
-  .file-item {
-    display: flex; align-items: center; justify-content: space-between;
-    background: white; border: 1px solid var(--border); border-radius: 4px;
-    padding: 6px 10px; font-size: 11px; font-family: 'Share Tech Mono', monospace;
-  }
-  .file-item .fname { color: var(--navy); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .file-item .fcount { color: var(--textdim); font-size: 10px; margin: 0 8px; }
-  .file-del { background: none; border: none; color: var(--border); cursor: pointer; font-size: 14px; transition: color 0.2s; }
-  .file-del:hover { color: #e53935; }
-
-  /* Controles */
-  .ctrl-row { display: flex; flex-direction: column; gap: 6px; }
-  .ctrl-label { font-size: 9px; letter-spacing: 2px; color: var(--textdim); }
-  .ctrl-row select, .ctrl-row input[type=range] {
-    width: 100%; background: white; border: 1px solid var(--border);
-    border-radius: 4px; padding: 5px 8px; font-size: 12px;
-    font-family: 'Share Tech Mono', monospace; color: var(--text); outline: none;
-  }
-  .ctrl-row select:focus { border-color: var(--navy); }
-  input[type=range] { padding: 4px 0; accent-color: var(--navy); cursor: pointer; }
-  .range-val {
-    font-family: 'Share Tech Mono', monospace; font-size: 12px;
-    color: var(--navy); text-align: right;
-  }
-
-  /* Botones */
-  .btn-primary {
-    width: 100%; padding: 10px;
-    background: var(--navy); color: white; border: none;
-    border-radius: 6px; font-family: 'Orbitron', monospace;
-    font-size: 11px; letter-spacing: 3px; cursor: pointer;
-    transition: all 0.2s; text-transform: uppercase;
-  }
-  .btn-primary:hover { background: var(--navy2); transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-  .btn-secondary {
-    width: 100%; padding: 8px;
-    background: white; color: var(--navy);
-    border: 1px solid var(--navy); border-radius: 6px;
-    font-size: 11px; letter-spacing: 1px; cursor: pointer;
-    transition: all 0.2s; font-family: 'Exo 2', sans-serif; font-weight: 600;
-  }
-  .btn-secondary:hover { background: rgba(26,35,126,0.05); }
-
-  /* Leyenda de profundidades */
-  .legend { display: flex; flex-direction: column; gap: 3px; }
-  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; }
-  .legend-swatch { width: 24px; height: 14px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
-  .legend-label { color: var(--text); font-family: 'Share Tech Mono', monospace; font-size: 10px; }
-
-  /* Stats */
-  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .stat-box {
-    background: white; border: 1px solid var(--border); border-radius: 4px;
-    padding: 8px; text-align: center;
-  }
-  .stat-val { font-family: 'Orbitron', monospace; font-size: 16px; color: var(--navy); font-weight: 700; }
-  .stat-lbl { font-size: 8px; letter-spacing: 2px; color: var(--textdim); margin-top: 2px; }
-
-  /* MAPA */
-  .map-area {
-    background: var(--paper);
-    display: flex; flex-direction: column;
-    position: relative; overflow: hidden;
-  }
-
-  .map-toolbar {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 16px; background: white;
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-  }
-  .toolbar-label { font-size: 9px; letter-spacing: 2px; color: var(--textdim); }
-  .toolbar-btn {
-    padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;
-    font-weight: 600; letter-spacing: 1px; transition: all 0.2s; border: 1px solid;
-    font-family: 'Exo 2', sans-serif;
-  }
-  .tbtn-active   { background: var(--navy); color: white; border-color: var(--navy); }
-  .tbtn-inactive { background: white; color: var(--textdim); border-color: var(--border); }
-  .tbtn-inactive:hover { border-color: var(--navy); color: var(--navy); }
-
-  #map-svg-wrap {
-    flex: 1; display: flex; align-items: center; justify-content: center;
-    padding: 20px; overflow: hidden;
-  }
-
-  #map-svg {
-    max-width: 100%; max-height: 100%;
-    filter: drop-shadow(0 4px 20px rgba(26,35,126,0.15));
-  }
-
-  /* SVG interno */
-  .contour-line { fill: none; stroke: rgba(0,0,0,0.25); stroke-width: 0.5; }
-  .contour-line.major { stroke: rgba(0,0,0,0.45); stroke-width: 0.9; }
-  .sounding-pt { fill: rgba(0,0,0,0.6); stroke: white; stroke-width: 0.8; cursor: pointer; transition: r 0.1s; }
-  .sounding-pt:hover { fill: var(--gold); }
-  .sounding-label { font-family: 'Share Tech Mono', monospace; font-size: 5px; fill: rgba(0,0,0,0.7); text-anchor: middle; pointer-events: none; }
-  .grid-line { stroke: rgba(26,35,126,0.12); stroke-width: 0.4; }
-  .axis-label { font-family: 'Share Tech Mono', monospace; font-size: 6px; fill: rgba(26,35,126,0.6); }
-  .map-border { fill: none; stroke: var(--navy); stroke-width: 1.5; }
-  .map-title { font-family: 'Orbitron', monospace; font-size: 9px; fill: var(--navy); font-weight: 700; letter-spacing: 2px; }
-  .map-subtitle { font-family: 'Share Tech Mono', monospace; font-size: 6px; fill: var(--textdim); }
-
-  /* Tooltip */
-  .tooltip {
-    position: fixed; background: var(--navy); color: white;
-    padding: 7px 12px; border-radius: 5px; font-size: 11px;
-    font-family: 'Share Tech Mono', monospace; pointer-events: none;
-    opacity: 0; transition: opacity 0.15s; z-index: 100;
-    border: 1px solid var(--gold); white-space: nowrap;
-  }
-  .tooltip.show { opacity: 1; }
-
-  /* Empty state */
-  .empty-state {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; flex: 1; gap: 12px; color: var(--textdim);
-    text-align: center; padding: 40px;
-  }
-  .empty-icon { font-size: 60px; opacity: 0.3; }
-  .empty-title { font-family: 'Orbitron', monospace; font-size: 14px; color: var(--navy); opacity: 0.4; letter-spacing: 3px; }
-  .empty-sub { font-size: 12px; max-width: 280px; line-height: 1.6; }
-
-  /* Progress */
-  .progress-bar {
-    position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: var(--gold); transform-origin: left;
-    transform: scaleX(0); transition: transform 0.3s;
-    z-index: 10;
-  }
-
-  /* Toast */
-  .toast {
-    position: fixed; bottom: 20px; right: 20px;
-    background: var(--navy); color: white; border: 1px solid var(--gold);
-    border-radius: 6px; padding: 9px 14px; font-size: 12px;
-    font-family: 'Share Tech Mono', monospace;
-    transform: translateY(60px); opacity: 0; transition: all 0.3s; z-index: 1000;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.err  { border-color: #ef5350; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;
+    background-image:linear-gradient(rgba(26,35,126,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(26,35,126,0.03) 1px,transparent 1px);
+    background-size:30px 30px;pointer-events:none;z-index:0;}
+  .layout{position:relative;z-index:1;display:grid;grid-template-columns:280px 1fr;
+    grid-template-rows:auto 1fr;min-height:100vh;}
+  header{grid-column:1/-1;background:var(--navy);color:white;padding:12px 20px;
+    display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);}
+  .logo-title{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;letter-spacing:4px;color:var(--gold);}
+  .logo-sub{font-size:9px;color:rgba(255,255,255,0.5);letter-spacing:2px;margin-top:2px;}
+  .header-info{font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:1px;text-align:right;}
+  .sidebar{background:var(--paper);border-right:1px solid var(--border);padding:16px;
+    display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px;position:relative;}
+  .panel-title{font-size:8px;letter-spacing:3px;color:var(--navy);text-transform:uppercase;
+    margin-bottom:10px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:6px;}
+  .upload-area{border:2px dashed var(--border);border-radius:6px;padding:20px;text-align:center;
+    cursor:pointer;transition:all 0.2s;background:white;}
+  .upload-area:hover,.upload-area.drag{border-color:var(--navy);background:rgba(26,35,126,0.03);}
+  .upload-icon{font-size:28px;margin-bottom:8px;}
+  .upload-text{font-size:11px;color:var(--dim);letter-spacing:1px;}
+  .upload-sub{font-size:10px;color:var(--border);margin-top:4px;}
+  #file-input{display:none;}
+  .file-list{display:flex;flex-direction:column;gap:4px;}
+  .file-item{display:flex;align-items:center;justify-content:space-between;background:white;
+    border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:11px;
+    font-family:'Share Tech Mono',monospace;}
+  .fname{color:var(--navy);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fcount{color:var(--dim);font-size:10px;margin:0 8px;}
+  .file-del{background:none;border:none;color:var(--border);cursor:pointer;font-size:14px;}
+  .file-del:hover{color:#e53935;}
+  .ctrl-row{display:flex;flex-direction:column;gap:5px;margin-bottom:8px;}
+  .ctrl-label{font-size:9px;letter-spacing:2px;color:var(--dim);}
+  .ctrl-row select,.ctrl-row input[type=text]{width:100%;background:white;border:1px solid var(--border);
+    border-radius:4px;padding:5px 8px;font-size:12px;font-family:'Share Tech Mono',monospace;
+    color:var(--text);outline:none;}
+  input[type=range]{width:100%;accent-color:var(--navy);cursor:pointer;margin-top:2px;}
+  .btn-primary{width:100%;padding:10px;background:var(--navy);color:white;border:none;
+    border-radius:6px;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;
+    cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+  .btn-primary:hover{background:var(--navy2);}
+  .btn-primary:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn-sec{width:100%;padding:8px;margin-bottom:5px;background:white;color:var(--navy);
+    border:1px solid var(--navy);border-radius:6px;font-size:11px;letter-spacing:1px;
+    cursor:pointer;transition:all 0.2s;font-family:'Exo 2',sans-serif;font-weight:600;}
+  .btn-sec:hover{background:rgba(26,35,126,0.05);}
+  .legend{display:flex;flex-direction:column;gap:3px;}
+  .legend-item{display:flex;align-items:center;gap:8px;}
+  .legend-swatch{width:24px;height:14px;border-radius:2px;border:1px solid rgba(0,0,0,0.1);flex-shrink:0;}
+  .legend-label{color:var(--text);font-family:'Share Tech Mono',monospace;font-size:10px;}
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .stat-box{background:white;border:1px solid var(--border);border-radius:4px;padding:8px;text-align:center;}
+  .stat-val{font-family:'Orbitron',monospace;font-size:16px;color:var(--navy);font-weight:700;}
+  .stat-lbl{font-size:8px;letter-spacing:2px;color:var(--dim);margin-top:2px;}
+  .map-area{background:var(--paper);display:flex;flex-direction:column;position:relative;overflow:hidden;}
+  .map-toolbar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:white;
+    border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .toolbar-label{font-size:9px;letter-spacing:2px;color:var(--dim);}
+  .tbtn{padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;
+    letter-spacing:1px;transition:all 0.2s;border:1px solid;font-family:'Exo 2',sans-serif;}
+  .tbtn.on{background:var(--navy);color:white;border-color:var(--navy);}
+  .tbtn.off{background:white;color:var(--dim);border-color:var(--border);}
+  #map-svg-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;}
+  #map-svg{filter:drop-shadow(0 4px 20px rgba(26,35,126,0.15));}
+  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    flex:1;gap:12px;color:var(--dim);text-align:center;padding:40px;}
+  .empty-icon{font-size:60px;opacity:0.3;}
+  .empty-title{font-family:'Orbitron',monospace;font-size:14px;color:var(--navy);opacity:0.4;letter-spacing:3px;}
+  .empty-sub{font-size:12px;max-width:280px;line-height:1.6;}
+  .progress-bar{position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold);
+    transform-origin:left;transform:scaleX(0);transition:transform 0.3s;z-index:10;}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:white;
+    border:1px solid var(--gold);border-radius:6px;padding:9px 14px;font-size:12px;
+    font-family:'Share Tech Mono',monospace;transform:translateY(60px);opacity:0;
+    transition:all 0.3s;z-index:1000;}
+  .toast.show{transform:translateY(0);opacity:1;}
+  .toast.err{border-color:#ef5350;}
+  .tooltip{position:fixed;background:var(--navy);color:white;padding:6px 12px;border-radius:5px;
+    font-size:11px;font-family:'Share Tech Mono',monospace;pointer-events:none;opacity:0;
+    transition:opacity 0.15s;z-index:100;border:1px solid var(--gold);white-space:nowrap;}
+  .tooltip.show{opacity:1;}
 </style>
 </head>
 <body>
-
 <div class="tooltip" id="tooltip"></div>
 <div class="toast"   id="toast"></div>
-
 <div class="layout">
-
-  <!-- HEADER -->
   <header>
-    <div class="logo">
-      <div class="logo-title">⚓ BatiGráfico</div>
+    <div>
+      <div class="logo-title">⚓ BatiGráfico v2</div>
       <div class="logo-sub">VISUALIZACIÓN BATIMÉTRICA — DELTA DEL TIGRE</div>
     </div>
-    <div class="header-info" id="header-info">Sin datos cargados</div>
+    <div class="header-info" id="hinfo">Sin datos cargados</div>
   </header>
 
-  <!-- SIDEBAR -->
   <aside class="sidebar">
-
-    <!-- Upload -->
     <div class="panel">
       <div class="panel-title">▸ Datos de entrada</div>
       <div class="upload-area" id="upload-area"
            onclick="document.getElementById('file-input').click()"
-           ondragover="handleDragOver(event)"
-           ondragleave="handleDragLeave(event)"
-           ondrop="handleDrop(event)">
+           ondragover="dov(event)" ondragleave="dlv(event)" ondrop="ddp(event)">
         <div class="upload-icon">🗂</div>
         <div class="upload-text">CARGAR CSV(s)</div>
-        <div class="upload-sub">De BatiCaptura o cualquier<br>archivo con LAT, LON, FINAL_M</div>
+        <div class="upload-sub">BatiCaptura o CSV con<br>LAT, LON, FINAL_M</div>
       </div>
-      <input type="file" id="file-input" multiple accept=".csv"
-             onchange="loadFiles(this.files)" />
+      <input type="file" id="file-input" multiple accept=".csv" onchange="loadFiles(this.files)"/>
       <div class="file-list" id="file-list" style="margin-top:8px"></div>
     </div>
 
-    <!-- Configuración -->
     <div class="panel">
       <div class="panel-title">▸ Configuración</div>
       <div class="ctrl-row">
         <div class="ctrl-label">Intervalo de curvas</div>
-        <select id="contour-interval">
-          <option value="0.25">0.25 m</option>
-          <option value="0.5" selected>0.50 m</option>
-          <option value="1.0">1.00 m</option>
-          <option value="2.0">2.00 m</option>
-        </select>
+        <select id="ci"><option value="0.25">0.25 m</option><option value="0.5" selected>0.50 m</option><option value="1.0">1.00 m</option><option value="2.0">2.00 m</option></select>
       </div>
-      <div class="ctrl-row" style="margin-top:8px">
+      <div class="ctrl-row">
         <div class="ctrl-label">Resolución de grilla</div>
-        <select id="grid-res">
-          <option value="100">Rápida (100×100)</option>
-          <option value="200" selected>Normal (200×200)</option>
-          <option value="300">Alta (300×300)</option>
-        </select>
+        <select id="gr"><option value="80">Rápida (80×80)</option><option value="150" selected>Normal (150×150)</option><option value="250">Alta (250×250)</option></select>
       </div>
-      <div class="ctrl-row" style="margin-top:8px">
-        <div class="ctrl-label">Potencia IDW: <span id="idw-val">2.0</span></div>
-        <input type="range" id="idw-power" min="1" max="4" step="0.5" value="2"
-               oninput="document.getElementById('idw-val').textContent=this.value" />
+      <div class="ctrl-row">
+        <div class="ctrl-label">Potencia IDW: <span id="ipv">2</span></div>
+        <input type="range" id="ip" min="1" max="4" step="0.5" value="2" oninput="document.getElementById('ipv').textContent=this.value"/>
       </div>
-      <div class="ctrl-row" style="margin-top:8px">
-        <div class="ctrl-label">Título del mapa</div>
-        <input type="text" id="map-title-input" placeholder="RELEVAMIENTO SANTA MÓNICA"
-               style="width:100%;background:white;border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:11px;outline:none;font-family:'Share Tech Mono',monospace" />
+      <div class="ctrl-row">
+        <div class="ctrl-label">Título</div>
+        <input type="text" id="mt" placeholder="RELEVAMIENTO BATIMÉTRICO"/>
       </div>
     </div>
 
-    <!-- Botón generar -->
-    <button class="btn-primary" id="btn-generar" onclick="generarMapa()" disabled>
-      ▶ GENERAR MAPA
-    </button>
+    <button class="btn-primary" id="btn-gen" onclick="generarMapa()" disabled>▶ GENERAR MAPA</button>
 
-    <!-- Leyenda -->
-    <div class="panel" id="legend-panel" style="display:none">
+    <div class="panel" id="lp" style="display:none">
       <div class="panel-title">▸ Profundidad (m)</div>
-      <div class="legend" id="legend-items"></div>
+      <div class="legend" id="li"></div>
     </div>
 
-    <!-- Estadísticas -->
-    <div class="panel" id="stats-panel" style="display:none">
+    <div class="panel" id="sp" style="display:none">
       <div class="panel-title">▸ Estadísticas</div>
-      <div class="stats-grid" id="stats-grid"></div>
+      <div class="stats-grid" id="sg"></div>
     </div>
 
-    <!-- Exportar -->
-    <div class="panel" id="export-panel" style="display:none">
+    <div class="panel" id="ep" style="display:none">
       <div class="panel-title">▸ Exportar</div>
-      <button class="btn-secondary" onclick="exportPNG()" style="margin-bottom:6px">↓ PNG (alta resolución)</button>
-      <button class="btn-secondary" onclick="exportSVG()">↓ SVG (vectorial)</button>
+      <button class="btn-sec" onclick="expPNG()">↓ PNG alta resolución</button>
+      <button class="btn-sec" onclick="expSVG()">↓ SVG vectorial</button>
     </div>
-
   </aside>
 
-  <!-- MAPA -->
-  <main class="map-area" id="map-area">
-    <div class="progress-bar" id="progress-bar"></div>
-
-    <!-- Toolbar -->
-    <div class="map-toolbar" id="map-toolbar" style="display:none">
+  <main class="map-area">
+    <div class="progress-bar" id="pb"></div>
+    <div class="map-toolbar" id="mtb" style="display:none">
       <span class="toolbar-label">CAPAS:</span>
-      <button class="toolbar-btn tbtn-active" id="tbtn-fill"    onclick="toggleLayer('fill')">Relleno</button>
-      <button class="toolbar-btn tbtn-active" id="tbtn-contour" onclick="toggleLayer('contour')">Curvas</button>
-      <button class="toolbar-btn tbtn-active" id="tbtn-points"  onclick="toggleLayer('points')">Sondajes</button>
-      <button class="toolbar-btn tbtn-active" id="tbtn-labels"  onclick="toggleLayer('labels')">Etiquetas</button>
-      <button class="toolbar-btn tbtn-active" id="tbtn-grid"    onclick="toggleLayer('grid')">Grilla</button>
+      <button class="tbtn on" id="tbtn-fill"    onclick="togL('fill')">Relleno</button>
+      <button class="tbtn on" id="tbtn-contour" onclick="togL('contour')">Curvas</button>
+      <button class="tbtn on" id="tbtn-points"  onclick="togL('points')">Sondajes</button>
+      <button class="tbtn on" id="tbtn-labels"  onclick="togL('labels')">Etiquetas</button>
+      <button class="tbtn on" id="tbtn-grid"    onclick="togL('grid')">Grilla</button>
     </div>
-
-    <!-- SVG wrap -->
     <div id="map-svg-wrap">
-      <div class="empty-state" id="empty-state">
+      <div class="empty-state" id="es">
         <div class="empty-icon">🌊</div>
         <div class="empty-title">SIN DATOS</div>
-        <div class="empty-sub">Cargá uno o más archivos CSV de BatiCaptura y presioná GENERAR MAPA</div>
+        <div class="empty-sub">Cargá uno o más archivos CSV y presioná GENERAR MAPA</div>
       </div>
     </div>
   </main>
-
-</div><!-- /layout -->
+</div>
 
 <script>
 // ─── Estado ───────────────────────────────────────────────────────────────────
-let datasets = [];   // [{name, points:[{lat,lon,z}]}]
-let allPoints = [];  // puntos combinados en coordenadas métricas {x,y,z,lat,lon,sector}
-let layers = { fill: true, contour: true, points: true, labels: true, grid: true };
-let currentSVG = null;
+let datasets=[], allPoints=[];
+let layers={fill:true,contour:true,points:true,labels:true,grid:true};
+let svgEl=null;
 
-// ─── Paleta náutica de profundidades ─────────────────────────────────────────
-const DEPTH_COLORS = [
-  { max: 0,   color: '#e8f4f8' },   // tierra / 0
-  { max: 0.5, color: '#c8e6f4' },   // muy somero
-  { max: 1.0, color: '#a8d5ec' },
-  { max: 1.5, color: '#80bfe0' },
-  { max: 2.0, color: '#5aaad4' },
-  { max: 2.5, color: '#3a94c8' },
-  { max: 3.0, color: '#2878b4' },
-  { max: 4.0, color: '#1a5e9e' },
-  { max: 5.0, color: '#104480' },
-  { max: 6.0, color: '#082e60' },
-  { max: 7.0, color: '#041c45' },
-  { max: 999, color: '#020e2a' },
+// ─── Paleta náutica: verde agua → azul marino ─────────────────────────────────
+const PAL=[
+  [210,240,215],[150,220,210],[90,190,225],[50,150,210],
+  [25,110,190],[10,70,160],[4,40,120],[1,18,70]
 ];
-
-function depthColor(z) {
-  for (const band of DEPTH_COLORS) { if (z <= band.max) return band.color; }
-  return DEPTH_COLORS[DEPTH_COLORS.length-1].color;
+function palRGB(t){
+  t=Math.max(0,Math.min(1,t));
+  const n=PAL.length-1, i=Math.floor(t*n), f=t*n-i;
+  const a=PAL[Math.min(i,n)], b=PAL[Math.min(i+1,n)];
+  return [Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)];
 }
+function palCSS(t){const[r,g,b]=palRGB(t);return `rgb(${r},${g},${b})`;}
 
-function colorScale(zMin, zMax) {
-  return d3.scaleSequential()
-    .domain([zMin, zMax])
-    .interpolator(d3.interpolateRgbBasis([
-      '#e8f4f8','#a8d5ec','#5aaad4','#2878b4','#1a5e9e','#082e60','#020e2a'
-    ]));
-}
+// ─── Drag & drop ──────────────────────────────────────────────────────────────
+function dov(e){e.preventDefault();document.getElementById('upload-area').classList.add('drag');}
+function dlv(e){document.getElementById('upload-area').classList.remove('drag');}
+function ddp(e){e.preventDefault();dlv(e);loadFiles(e.dataTransfer.files);}
 
-// ─── Carga de archivos ────────────────────────────────────────────────────────
-function handleDragOver(e)  { e.preventDefault(); document.getElementById('upload-area').classList.add('drag'); }
-function handleDragLeave(e) { document.getElementById('upload-area').classList.remove('drag'); }
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('upload-area').classList.remove('drag');
-  loadFiles(e.dataTransfer.files);
-}
-
-function loadFiles(files) {
-  Array.from(files).forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => parseCSV(file.name, e.target.result);
-    reader.readAsText(file);
+// ─── Carga ────────────────────────────────────────────────────────────────────
+function loadFiles(files){
+  Array.from(files).forEach(file=>{
+    const r=new FileReader();
+    r.onload=e=>parseCSV(file.name,e.target.result);
+    r.readAsText(file);
   });
 }
 
-function parseCSV(filename, text) {
-  try {
-    const rows = d3.csvParse(text);
-
-    // Detectar columnas automáticamente
-    const cols = rows.columns.map(c => c.trim().toUpperCase());
-    const findCol = (...names) => {
-      for (const n of names) {
-        const idx = cols.findIndex(c => c === n);
-        if (idx >= 0) return rows.columns[idx];
-      }
-      return null;
-    };
-
-    const latCol   = findCol('LATITUD','LAT','LATITUDE','Y');
-    const lonCol   = findCol('LONGITUD','LON','LONGITUDE','X');
-    const profCol  = findCol('FINAL_M','PROF_M','FINAL','PROF','Z','DEPTH','PROFUNDIDAD');
-    const sectCol  = findCol('SECTOR','NOMBRE','NAME','SECTOR_NOMBRE');
-
-    if (!latCol || !lonCol || !profCol) {
-      showToast(`${filename}: no se encontraron columnas LAT/LON/PROF`, true);
-      return;
-    }
-
-    const points = [];
-    rows.forEach(row => {
-      const lat = parseFloat(row[latCol]);
-      const lon = parseFloat(row[lonCol]);
-      const z   = parseFloat(row[profCol]);
-      if (isNaN(lat) || isNaN(lon) || isNaN(z)) return;
-      points.push({ lat, lon, z, sector: row[sectCol] || filename });
+function parseCSV(filename,text){
+  try{
+    const rows=d3.csvParse(text);
+    const UC=rows.columns.map(c=>c.trim().toUpperCase());
+    const fc=(...ns)=>{for(const n of ns){const i=UC.findIndex(c=>c===n||c.includes(n));if(i>=0)return rows.columns[i];}return null;};
+    const latC=fc('LATITUD','LAT','LATITUDE');
+    const lonC=fc('LONGITUD','LON','LONGITUDE');
+    const prC =fc('FINAL_M','FINAL','PROF_M','PROF','PROFUNDIDAD','DEPTH','Z');
+    const seC =fc('SECTOR','NOMBRE','NAME');
+    if(!latC||!lonC||!prC){showToast(`${filename}: no encuentro LAT/LON/PROF`,true);return;}
+    const pts=[];
+    rows.forEach(row=>{
+      const lat=parseFloat(row[latC]),lon=parseFloat(row[lonC]),z=parseFloat(row[prC]);
+      if(isNaN(lat)||isNaN(lon)||isNaN(z))return;
+      pts.push({lat,lon,z,sector:row[seC]||filename});
     });
-
-    if (points.length === 0) { showToast(`${filename}: sin puntos válidos`, true); return; }
-
-    // Evitar duplicados
-    const existing = datasets.findIndex(d => d.name === filename);
-    if (existing >= 0) datasets.splice(existing, 1);
-    datasets.push({ name: filename, points });
-
-    renderFileList();
-    rebuildAllPoints();
-    showToast(`✓ ${filename} — ${points.length} puntos cargados`);
-  } catch(e) {
-    showToast(`Error en ${filename}: ${e.message}`, true);
-  }
+    if(!pts.length){showToast(`${filename}: sin puntos válidos`,true);return;}
+    const ix=datasets.findIndex(d=>d.name===filename);
+    if(ix>=0)datasets.splice(ix,1);
+    datasets.push({name:filename,points:pts});
+    rebuild();
+    showToast(`✓ ${filename} — ${pts.length} puntos`);
+  }catch(e){showToast(`Error: ${e.message}`,true);}
 }
 
-function renderFileList() {
-  const list = document.getElementById('file-list');
-  list.innerHTML = '';
-  datasets.forEach(ds => {
-    const div = document.createElement('div');
-    div.className = 'file-item';
-    const shortName = ds.name.length > 22 ? ds.name.substring(0,20)+'…' : ds.name;
-    div.innerHTML = `
-      <span class="fname" title="${ds.name}">${shortName}</span>
+function rebuild(){
+  allPoints=datasets.flatMap(d=>d.points);
+  // File list
+  const fl=document.getElementById('file-list');fl.innerHTML='';
+  datasets.forEach(ds=>{
+    const div=document.createElement('div');div.className='file-item';
+    const s=ds.name.length>24?ds.name.substring(0,22)+'…':ds.name;
+    div.innerHTML=`<span class="fname" title="${ds.name}">${s}</span>
       <span class="fcount">${ds.points.length}pt</span>
-      <button class="file-del" onclick="removeDataset('${ds.name}')">✕</button>
-    `;
-    list.appendChild(div);
+      <button class="file-del" onclick="rmDS('${ds.name}')">✕</button>`;
+    fl.appendChild(div);
   });
-  document.getElementById('btn-generar').disabled = datasets.length === 0;
-}
-
-function removeDataset(name) {
-  datasets = datasets.filter(d => d.name !== name);
-  renderFileList();
-  rebuildAllPoints();
-}
-
-function rebuildAllPoints() {
-  allPoints = datasets.flatMap(ds => ds.points);
-  updateHeaderInfo();
-}
-
-function updateHeaderInfo() {
-  const n = allPoints.length;
-  if (n === 0) { document.getElementById('header-info').textContent = 'Sin datos cargados'; return; }
-  const zMin = d3.min(allPoints, p => p.z).toFixed(2);
-  const zMax = d3.max(allPoints, p => p.z).toFixed(2);
-  document.getElementById('header-info').textContent =
-    `${n} SONDAJES  |  PROF: ${zMin}m — ${zMax}m  |  ${datasets.length} SECTOR(ES)`;
-}
-
-// ─── IDW Interpolation ────────────────────────────────────────────────────────
-function idw(points, x, y, power) {
-  let sumW = 0, sumWZ = 0;
-  for (const p of points) {
-    const d2 = (p.x - x)**2 + (p.y - y)**2;
-    if (d2 < 0.001) return p.z;
-    const w = 1 / Math.pow(d2, power / 2);
-    sumW += w; sumWZ += w * p.z;
+  document.getElementById('btn-gen').disabled=allPoints.length<4;
+  if(allPoints.length){
+    const mn=d3.min(allPoints,p=>p.z).toFixed(2);
+    const mx=d3.max(allPoints,p=>p.z).toFixed(2);
+    document.getElementById('hinfo').textContent=
+      `${allPoints.length} SONDAJES  |  ${mn}m — ${mx}m  |  ${datasets.length} SECTOR(ES)`;
   }
-  return sumWZ / sumW;
+}
+function rmDS(n){datasets=datasets.filter(d=>d.name!==n);rebuild();}
+
+// ─── Proyección métrica ───────────────────────────────────────────────────────
+function toM(lat,lon,lat0,lon0){
+  const R=6371000;
+  return{x:(lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180,y:(lat-lat0)*R*Math.PI/180};
 }
 
-// ─── Proyección métrica simple ────────────────────────────────────────────────
-function toMetric(lat, lon, lat0, lon0) {
-  const R = 6371000;
-  const x = (lon - lon0) * Math.cos(lat0 * Math.PI/180) * R * Math.PI/180;
-  const y = (lat - lat0) * R * Math.PI/180;
-  return { x, y };
+// ─── IDW ──────────────────────────────────────────────────────────────────────
+function idw(pts,x,y,pow){
+  let sw=0,swz=0;
+  for(const p of pts){
+    const d2=(p.x-x)**2+(p.y-y)**2;
+    if(d2<0.01)return p.z;
+    const w=1/Math.pow(d2,pow/2);sw+=w;swz+=w*p.z;
+  }
+  return swz/sw;
 }
 
-// ─── Generar mapa ─────────────────────────────────────────────────────────────
-async function generarMapa() {
-  if (allPoints.length < 4) { showToast('Necesitás al menos 4 puntos', true); return; }
+// ─── GENERAR MAPA ─────────────────────────────────────────────────────────────
+async function generarMapa(){
+  if(allPoints.length<4)return;
+  prog(0.05);
+  document.getElementById('btn-gen').disabled=true;
+  document.getElementById('es').style.display='none';
+  await sl(30);
 
-  setProgress(0.1);
-  document.getElementById('btn-generar').disabled = true;
+  const intv=parseFloat(document.getElementById('ci').value);
+  const gN=parseInt(document.getElementById('gr').value);
+  const idwP=parseFloat(document.getElementById('ip').value);
+  const title=document.getElementById('mt').value.trim()||'RELEVAMIENTO BATIMÉTRICO';
 
-  await sleep(30); // dejar que el DOM respire
+  const lat0=d3.mean(allPoints,p=>p.lat), lon0=d3.mean(allPoints,p=>p.lon);
 
-  const interval  = parseFloat(document.getElementById('contour-interval').value);
-  const gridN     = parseInt(document.getElementById('grid-res').value);
-  const idwPower  = parseFloat(document.getElementById('idw-power').value);
-  const titleText = document.getElementById('map-title-input').value.trim() || 'RELEVAMIENTO BATIMÉTRICO';
+  const pts=allPoints.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,z:p.z,lat:p.lat,lon:p.lon,sector:p.sector};});
 
-  // Referencia central
-  const lat0 = d3.mean(allPoints, p => p.lat);
-  const lon0 = d3.mean(allPoints, p => p.lon);
+  prog(0.10);
 
-  // Convertir a coordenadas métricas
-  const pts = allPoints.map(p => {
-    const m = toMetric(p.lat, p.lon, lat0, lon0);
-    return { x: m.x, y: m.y, z: p.z, lat: p.lat, lon: p.lon, sector: p.sector };
-  });
+  // Bounding box
+  const xMn=d3.min(pts,p=>p.x),xMx=d3.max(pts,p=>p.x);
+  const yMn=d3.min(pts,p=>p.y),yMx=d3.max(pts,p=>p.y);
+  const xP=(xMx-xMn)*0.10+5, yP=(yMx-yMn)*0.10+5;
+  const x0=xMn-xP,x1=xMx+xP,y0=yMn-yP,y1=yMx+yP;
+  const W=x1-x0, H=y1-y0;
 
-  setProgress(0.2);
-  await sleep(10);
+  const gW=gN, gH=Math.max(4,Math.round(gN*H/W));
+  const vals=new Float32Array(gW*gH);
 
-  // Bounding box con padding 10%
-  const xMin = d3.min(pts, p => p.x), xMax = d3.max(pts, p => p.x);
-  const yMin = d3.min(pts, p => p.y), yMax = d3.max(pts, p => p.y);
-  const xPad = (xMax - xMin) * 0.08 + 10;
-  const yPad = (yMax - yMin) * 0.08 + 10;
-  const x0 = xMin - xPad, x1 = xMax + xPad;
-  const y0 = yMin - yPad, y1 = yMax + yPad;
-  const W = x1 - x0, H = y1 - y0;
-
-  // Grilla IDW
-  const gridW = gridN, gridH = Math.round(gridN * H / W);
-  const values = new Float32Array(gridW * gridH);
-
-  setProgress(0.3);
-  await sleep(10);
-
-  // IDW por chunks para no bloquear
-  const chunkSize = Math.ceil(gridH / 10);
-  for (let chunk = 0; chunk < 10; chunk++) {
-    const rowStart = chunk * chunkSize;
-    const rowEnd   = Math.min(rowStart + chunkSize, gridH);
-    for (let row = rowStart; row < rowEnd; row++) {
-      for (let col = 0; col < gridW; col++) {
-        const mx = x0 + (col / (gridW-1)) * W;
-        const my = y0 + (row / (gridH-1)) * H;
-        values[row * gridW + col] = idw(pts, mx, my, idwPower);
+  // IDW chunks
+  for(let c=0;c<8;c++){
+    const r0=Math.round(c*gH/8),r1=Math.round((c+1)*gH/8);
+    for(let row=r0;row<r1;row++)
+      for(let col=0;col<gW;col++){
+        vals[row*gW+col]=idw(pts,x0+(col/(gW-1))*W,y0+(row/(gH-1))*H,idwP);
       }
-    }
-    setProgress(0.3 + chunk * 0.05);
-    await sleep(0);
+    prog(0.10+c*0.09); await sl(0);
   }
+  prog(0.84);
 
-  setProgress(0.85);
-  await sleep(10);
+  const zMn=d3.min(vals), zMx=d3.max(vals), zR=zMx-zMn||1;
 
-  const zMin = d3.min(values), zMax = d3.max(values);
+  // SVG dimensions
+  const SVW=900,SVH=620,ML=65,MR=50,MT=55,MB=55;
+  const PW=SVW-ML-MR, PH=SVH-MT-MB;
+  const aspect=W/H;
+  let pW=PW,pH=PH;
+  if(aspect>PW/PH)pH=Math.round(PW/aspect);else pW=Math.round(PH*aspect);
+  const ox=(PW-pW)/2, oy=(PH-pH)/2;
 
-  // Thresholds para curvas
-  const tMin = Math.floor(zMin / interval) * interval;
-  const tMax = Math.ceil(zMax / interval) * interval;
-  const thresholds = d3.range(tMin, tMax + interval, interval);
+  // ── Canvas IDW → imagen ──────────────────────────────────────────────────
+  const fc=document.createElement('canvas');fc.width=gW;fc.height=gH;
+  const fctx=fc.getContext('2d');
+  const imd=fctx.createImageData(gW,gH);
+  for(let row=0;row<gH;row++){
+    for(let col=0;col<gW;col++){
+      const z=vals[row*gW+col];
+      const t=(z-zMn)/zR;
+      const[r,g,b]=palRGB(t);
+      // flip Y: row 0 = sur = abajo del mapa
+      const px=((gH-1-row)*gW+col)*4;
+      imd.data[px]=r;imd.data[px+1]=g;imd.data[px+2]=b;imd.data[px+3]=255;
+    }
+  }
+  fctx.putImageData(imd,0,0);
+  const fillURL=fc.toDataURL('image/png');
+  prog(0.90);
 
-  // Contornos
-  const contourGen = d3.contours().size([gridW, gridH]).thresholds(thresholds).smooth(true);
-  const contours = contourGen(values);
+  // ── Contornos ────────────────────────────────────────────────────────────
+  const tMn=Math.floor(zMn/intv)*intv, tMx=Math.ceil(zMx/intv)*intv;
+  const thresholds=d3.range(tMn,tMx+intv/2,intv);
+  const contours=d3.contours().size([gW,gH]).thresholds(thresholds).smooth(true)(vals);
 
-  setProgress(0.92);
-  await sleep(10);
+  // coord transform: grid [col,row] → SVG [x,y]
+  const gx=col=>ox+(col/gW)*pW;
+  const gy=row=>oy+pH-(row/gH)*pH; // flip Y
 
-  // ── SVG ──────────────────────────────────────────────────────────────────
+  const cPath=d3.geoPath().projection(d3.geoTransform({
+    point:function(px,py){this.stream.point(gx(px),gy(py));}
+  }));
 
-  // Dimensiones del SVG (carta náutica A3 landscape)
-  const SVG_W = 900, SVG_H = 620;
-  const MARGIN = { top: 55, right: 30, bottom: 55, left: 60 };
-  const PLOT_W = SVG_W - MARGIN.left - MARGIN.right;
-  const PLOT_H = SVG_H - MARGIN.top - MARGIN.bottom;
+  // ── Construir SVG ─────────────────────────────────────────────────────────
+  const wrap=document.getElementById('map-svg-wrap');
+  wrap.innerHTML='';
 
-  // Escalas pantalla
-  const aspect = W / H;
-  let plotW = PLOT_W, plotH = PLOT_H;
-  if (aspect > PLOT_W / PLOT_H) { plotH = Math.round(PLOT_W / aspect); }
-  else { plotW = Math.round(PLOT_H * aspect); }
-  const offsetX = (PLOT_W - plotW) / 2;
-  const offsetY = (PLOT_H - plotH) / 2;
-
-  const scX = d3.scaleLinear().domain([0, gridW]).range([0, plotW]);
-  const scY = d3.scaleLinear().domain([0, gridH]).range([plotH, 0]); // Y invertido
-  const metToSvgX = mx => offsetX + (mx - x0) / W * plotW;
-  const metToSvgY = my => offsetY + (1 - (my - y0) / H) * plotH;
-
-  const colorSc = colorScale(zMin, zMax);
-
-  // Limpiar SVG anterior
-  const wrap = document.getElementById('map-svg-wrap');
-  wrap.innerHTML = '';
-  document.getElementById('empty-state') && (document.getElementById('empty-state').style.display = 'none');
-
-  const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svgEl.setAttribute('id', 'map-svg');
-  svgEl.setAttribute('width', SVG_W);
-  svgEl.setAttribute('height', SVG_H);
-  svgEl.setAttribute('viewBox', `0 0 ${SVG_W} ${SVG_H}`);
-  svgEl.style.background = '#faf7f0';
+  svgEl=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svgEl.setAttribute('width',SVW);svgEl.setAttribute('height',SVH);
+  svgEl.setAttribute('viewBox',`0 0 ${SVW} ${SVH}`);
+  svgEl.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  svgEl.style.background='#faf7f0';
   wrap.appendChild(svgEl);
 
-  const svg = d3.select(svgEl);
-  const g = svg.append('g')
-    .attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
+  const svg=d3.select(svgEl);
 
-  // Clip path
-  svg.append('defs').append('clipPath').attr('id', 'plot-clip')
-    .append('rect').attr('x', offsetX).attr('y', offsetY)
-    .attr('width', plotW).attr('height', plotH);
+  // Clip
+  svg.append('defs').append('clipPath').attr('id','pc')
+    .append('rect').attr('x',ML+ox).attr('y',MT+oy).attr('width',pW).attr('height',pH);
 
-  // Fondo del mapa
-  g.append('rect').attr('x', offsetX).attr('y', offsetY)
-    .attr('width', plotW).attr('height', plotH)
-    .attr('fill', '#e8f4f8').attr('stroke', 'none');
+  const g=svg.append('g').attr('transform',`translate(${ML},${MT})`);
 
-  // ── Capa relleno (fill) ──
-  const gFill = g.append('g').attr('id', 'layer-fill').attr('clip-path', 'url(#plot-clip)');
+  // Fondo
+  g.append('rect').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH)
+    .attr('fill','#d8eef8').attr('stroke','none');
 
-  const contourPath = d3.geoPath()
-    .projection(d3.geoTransform({
-      point: function(px, py) {
-        this.stream.point(
-          offsetX + scX(px),
-          offsetY + scY(py)
-        );
-      }
-    }));
+  // Capa fill (imagen canvas)
+  g.append('g').attr('id','layer-fill').attr('clip-path','url(#pc)')
+    .append('image')
+    .attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH)
+    .attr('href',fillURL).attr('preserveAspectRatio','none');
 
-  // Relleno de zonas
-  contours.forEach((c, i) => {
-    const z = c.value;
-    gFill.append('path')
-      .datum(c)
-      .attr('d', contourPath)
-      .attr('fill', colorSc(z))
-      .attr('stroke', 'none');
+  // Capa grilla
+  const gGrid=g.append('g').attr('id','layer-grid').attr('clip-path','url(#pc)');
+  const latMn=d3.min(pts,p=>p.lat),latMx=d3.max(pts,p=>p.lat);
+  const lonMn=d3.min(pts,p=>p.lon),lonMx=d3.max(pts,p=>p.lon);
+  const laSt=nSt(latMx-latMn,4), loSt=nSt(lonMx-lonMn,4);
+
+  d3.range(Math.ceil(latMn/laSt)*laSt,latMx+laSt,laSt).forEach(lat=>{
+    const m=toM(lat,lon0,lat0,lon0);
+    const sy=oy+pH-(m.y-y0)/H*pH;
+    if(sy<oy||sy>oy+pH)return;
+    gGrid.append('line').attr('x1',ox).attr('x2',ox+pW).attr('y1',sy).attr('y2',sy)
+      .attr('stroke','rgba(26,35,126,0.18)').attr('stroke-width',0.5).attr('stroke-dasharray','3,4');
+    g.append('text').attr('x',ox-4).attr('y',sy+2.5).attr('text-anchor','end')
+      .attr('font-family','monospace').attr('font-size','7px').attr('fill','#1a237e')
+      .text(dms(lat,'lat'));
+  });
+  d3.range(Math.ceil(lonMn/loSt)*loSt,lonMx+loSt,loSt).forEach(lon=>{
+    const m=toM(lat0,lon,lat0,lon0);
+    const sx=ox+(m.x-x0)/W*pW;
+    if(sx<ox||sx>ox+pW)return;
+    gGrid.append('line').attr('x1',sx).attr('x2',sx).attr('y1',oy).attr('y2',oy+pH)
+      .attr('stroke','rgba(26,35,126,0.18)').attr('stroke-width',0.5).attr('stroke-dasharray','3,4');
+    g.append('text').attr('x',sx).attr('y',oy+pH+12).attr('text-anchor','middle')
+      .attr('font-family','monospace').attr('font-size','7px').attr('fill','#1a237e')
+      .text(dms(lon,'lon'));
   });
 
-  // ── Grilla de coordenadas ──
-  const gGrid = g.append('g').attr('id', 'layer-grid').attr('clip-path', 'url(#plot-clip)');
-
-  // Calcular ticks de lat/lon
-  const latMin = d3.min(pts, p => p.lat), latMax = d3.max(pts, p => p.lat);
-  const lonMin = d3.min(pts, p => p.lon), lonMax = d3.max(pts, p => p.lon);
-  const latStep = niceStep(latMax - latMin, 5);
-  const lonStep = niceStep(lonMax - lonMin, 5);
-
-  const latTicks = d3.range(Math.ceil(latMin/latStep)*latStep, latMax + latStep, latStep);
-  const lonTicks = d3.range(Math.ceil(lonMin/lonStep)*lonStep, lonMax + lonStep, lonStep);
-
-  latTicks.forEach(lat => {
-    const m = toMetric(lat, lon0, lat0, lon0);
-    const sy = metToSvgY(m.y);
-    if (sy < offsetY || sy > offsetY + plotH) return;
-    gGrid.append('line')
-      .attr('x1', offsetX).attr('x2', offsetX + plotW)
-      .attr('y1', sy).attr('y2', sy)
-      .attr('class', 'grid-line');
-    g.append('text')
-      .attr('x', offsetX - 4).attr('y', sy + 2)
-      .attr('text-anchor', 'end')
-      .attr('class', 'axis-label')
-      .text(formatDMS(lat, 'lat'));
+  // Capa curvas
+  const gCont=g.append('g').attr('id','layer-contour').attr('clip-path','url(#pc)');
+  contours.forEach(c=>{
+    const major=Math.round(c.value/intv)%4===0;
+    gCont.append('path').datum(c).attr('d',cPath).attr('fill','none')
+      .attr('stroke',major?'rgba(0,0,60,0.6)':'rgba(0,0,60,0.22)')
+      .attr('stroke-width',major?1.1:0.5);
   });
 
-  lonTicks.forEach(lon => {
-    const m = toMetric(lat0, lon, lat0, lon0);
-    const sx = metToSvgX(m.x);
-    if (sx < offsetX || sx > offsetX + plotW) return;
-    gGrid.append('line')
-      .attr('x1', sx).attr('x2', sx)
-      .attr('y1', offsetY).attr('y2', offsetY + plotH)
-      .attr('class', 'grid-line');
-    g.append('text')
-      .attr('x', sx).attr('y', offsetY + plotH + 12)
-      .attr('text-anchor', 'middle')
-      .attr('class', 'axis-label')
-      .text(formatDMS(lon, 'lon'));
-  });
-
-  // ── Curvas de nivel ──
-  const gContour = g.append('g').attr('id', 'layer-contour').attr('clip-path', 'url(#plot-clip)');
-
-  contours.forEach((c, i) => {
-    const isMajor = Math.abs(c.value % (interval * 4)) < 0.001;
-    gContour.append('path')
-      .datum(c)
-      .attr('d', contourPath)
-      .attr('class', 'contour-line' + (isMajor ? ' major' : ''));
-  });
-
-  // ── Etiquetas de curvas ──
-  const gLabels = g.append('g').attr('id', 'layer-labels').attr('clip-path', 'url(#plot-clip)');
-
-  // Etiquetas en curvas mayores
-  const majorContours = contours.filter(c => Math.abs(c.value % (interval * 2)) < 0.001);
-  const pathElems = gContour.selectAll('path.major').nodes();
-  pathElems.forEach((pathNode, i) => {
-    try {
-      const len = pathNode.getTotalLength();
-      if (len < 40) return;
-      const pt = pathNode.getPointAtLength(len * 0.3);
-      const c = contours.find(c => Math.abs(c.value % (interval*4)) < 0.001);
-      // Simplificado: buscar valor del contorno
-    } catch(e) {}
-  });
-
-  // Etiquetas sobre cada curva mayor
-  majorContours.forEach(c => {
-    const coords = extractFirstRingCoords(c);
-    if (!coords || coords.length < 10) return;
-    const mid = coords[Math.floor(coords.length * 0.3)];
-    const sx = offsetX + scX(mid[0]);
-    const sy = offsetY + scY(mid[1]);
-    if (sx < offsetX+5||sx>offsetX+plotW-5||sy<offsetY+5||sy>offsetY+plotH-5) return;
-    gLabels.append('rect')
-      .attr('x', sx-8).attr('y', sy-5)
-      .attr('width', 16).attr('height', 8)
-      .attr('fill', 'rgba(250,247,240,0.75)').attr('rx', 2);
-    gLabels.append('text')
-      .attr('x', sx).attr('y', sy+3)
-      .attr('class', 'sounding-label')
-      .attr('font-size', '5.5px')
-      .attr('fill', 'rgba(0,0,80,0.8)')
+  // Capa etiquetas de curvas
+  const gLab=g.append('g').attr('id','layer-labels').attr('clip-path','url(#pc)');
+  contours.filter(c=>Math.round(c.value/intv)%4===0).forEach(c=>{
+    const ring=fr(c);if(!ring||ring.length<6)return;
+    const mid=ring[Math.floor(ring.length*0.25)];
+    const sx=gx(mid[0]),sy=gy(mid[1]);
+    if(sx<ox+5||sx>ox+pW-5||sy<oy+5||sy>oy+pH-5)return;
+    gLab.append('rect').attr('x',sx-10).attr('y',sy-5).attr('width',20).attr('height',10)
+      .attr('fill','rgba(250,247,240,0.82)').attr('rx',2);
+    gLab.append('text').attr('x',sx).attr('y',sy+3.5).attr('text-anchor','middle')
+      .attr('font-family','monospace').attr('font-size','6.5px').attr('fill','rgba(0,0,80,0.9)')
       .text(c.value.toFixed(1));
   });
 
-  // ── Puntos de sondaje ──
-  const gPoints = g.append('g').attr('id', 'layer-points').attr('clip-path', 'url(#plot-clip)');
-
-  pts.forEach(p => {
-    const sx = metToSvgX(p.x), sy = metToSvgY(p.y);
-    if (sx < offsetX-2||sx > offsetX+plotW+2||sy < offsetY-2||sy > offsetY+plotH+2) return;
-    gPoints.append('circle')
-      .attr('cx', sx).attr('cy', sy).attr('r', 1.8)
-      .attr('class', 'sounding-pt')
-      .attr('data-z', p.z.toFixed(2))
-      .attr('data-lat', p.lat.toFixed(6))
-      .attr('data-lon', p.lon.toFixed(6))
-      .attr('data-sec', p.sector || '')
-      .on('mousemove', function(event) {
-        const tt = document.getElementById('tooltip');
-        tt.innerHTML = `<b>${parseFloat(this.dataset.z).toFixed(2)} m</b><br>` +
-          `${this.dataset.lat}S  ${this.dataset.lon}O<br>` +
-          `<span style="color:rgba(255,255,255,0.5);font-size:9px">${this.dataset.sec}</span>`;
-        tt.style.left = (event.clientX+14)+'px';
-        tt.style.top  = (event.clientY-10)+'px';
-        tt.className = 'tooltip show';
-      })
-      .on('mouseleave', () => document.getElementById('tooltip').className = 'tooltip');
-
-    gPoints.append('text')
-      .attr('x', sx).attr('y', sy - 3)
-      .attr('class', 'sounding-label')
+  // Capa puntos
+  const gPts=g.append('g').attr('id','layer-points').attr('clip-path','url(#pc)');
+  pts.forEach(p=>{
+    const sx=ox+(p.x-x0)/W*pW, sy=oy+pH-(p.y-y0)/H*pH;
+    if(sx<ox-2||sx>ox+pW+2||sy<oy-2||sy>oy+pH+2)return;
+    gPts.append('circle').attr('cx',sx).attr('cy',sy).attr('r',2)
+      .attr('fill','rgba(0,0,0,0.5)').attr('stroke','rgba(255,255,255,0.9)').attr('stroke-width',0.8)
+      .style('cursor','pointer')
+      .on('mousemove',function(event){
+        const tt=document.getElementById('tooltip');
+        tt.innerHTML=`<b>${p.z.toFixed(2)} m</b>  ${p.lat.toFixed(5)}S  ${Math.abs(p.lon).toFixed(5)}O`;
+        tt.style.left=(event.clientX+14)+'px';tt.style.top=(event.clientY-10)+'px';
+        tt.className='tooltip show';
+      }).on('mouseleave',()=>document.getElementById('tooltip').className='tooltip');
+    gPts.append('text').attr('class','pt-lbl').attr('x',sx).attr('y',sy-4)
+      .attr('text-anchor','middle').attr('font-family','monospace')
+      .attr('font-size','5.5px').attr('fill','rgba(0,0,0,0.7)')
       .text(p.z.toFixed(1));
   });
 
-  // ── Borde del mapa ──
-  g.append('rect')
-    .attr('x', offsetX).attr('y', offsetY)
-    .attr('width', plotW).attr('height', plotH)
-    .attr('class', 'map-border');
+  // Borde
+  g.append('rect').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH)
+    .attr('fill','none').attr('stroke','#1a237e').attr('stroke-width',1.5);
 
-  // ── Título ──
-  svg.append('text')
-    .attr('x', SVG_W / 2).attr('y', 20)
-    .attr('text-anchor', 'middle')
-    .attr('class', 'map-title')
-    .text(titleText);
+  // Título
+  svg.append('text').attr('x',SVW/2).attr('y',20).attr('text-anchor','middle')
+    .attr('font-family','monospace').attr('font-size','11px').attr('font-weight','bold')
+    .attr('fill','#1a237e').attr('letter-spacing','3').text(title);
+  svg.append('text').attr('x',SVW/2).attr('y',35).attr('text-anchor','middle')
+    .attr('font-family','monospace').attr('font-size','7px').attr('fill','#6a6a7a')
+    .text(`SONDAJES AL CERO HIDROMÉTRICO  |  ${pts.length} PTS  |  IDW P=${idwP}  |  CURVAS c/${intv}m`);
 
-  svg.append('text')
-    .attr('x', SVG_W / 2).attr('y', 33)
-    .attr('text-anchor', 'middle')
-    .attr('class', 'map-subtitle')
-    .text(`SONDAJES AL CERO HIDROMÉTRICO  |  ${pts.length} PUNTOS  |  IDW P=${idwPower}  |  CURVAS c/${interval}m`);
+  // Rosa de los vientos
+  northArrow(svg,ML+ox+pW-28,MT+oy+28);
+  // Escala
+  scaleBar(svg,ML+ox,MT+oy+pH+28,W,pW);
+  // Leyenda colores en SVG
+  colorLegend(svg,ML+ox+pW+8,MT+oy,pH,zMn,zMx,intv);
 
-  // ── Rosa de los vientos ──
-  drawNorthArrow(svg, SVG_W - MARGIN.right - 40, MARGIN.top + offsetY + 30);
+  // Panels
+  buildLegend(zMn,zMx,intv);
+  buildStats(pts,zMn,zMx,W,H);
+  ['lp','sp','ep'].forEach(id=>document.getElementById(id).style.display='');
+  document.getElementById('mtb').style.display='';
+  document.getElementById('btn-gen').disabled=false;
 
-  // ── Escala de distancias ──
-  drawScaleBar(svg, MARGIN.left + offsetX, MARGIN.top + offsetY + plotH + 22, W, plotW);
-
-  // ── Leyenda de profundidades ──
-  drawLegendSVG(svg, SVG_W - MARGIN.right - 30, MARGIN.top + offsetY + 80, zMin, zMax, colorSc, interval);
-
-  currentSVG = svgEl;
-  setProgress(1);
-
-  // Panels laterales
-  buildLegendPanel(zMin, zMax, interval, colorSc);
-  buildStatsPanel(pts, zMin, zMax, W, H);
-  document.getElementById('legend-panel').style.display = '';
-  document.getElementById('stats-panel').style.display = '';
-  document.getElementById('export-panel').style.display = '';
-  document.getElementById('map-toolbar').style.display = '';
-  document.getElementById('btn-generar').disabled = false;
-
-  setTimeout(() => setProgress(0), 500);
+  prog(1);setTimeout(()=>prog(0),600);
   showToast(`✓ Mapa generado — ${pts.length} puntos`);
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function extractFirstRingCoords(contour) {
-  try {
-    for (const geo of contour.coordinates) {
-      for (const ring of geo) {
-        if (ring.length > 5) return ring;
-      }
-    }
-  } catch(e) {}
-  return null;
-}
-
-function niceStep(range, targetTicks) {
-  const raw = range / targetTicks;
-  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const norm = raw / mag;
-  const nice = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
-  return nice * mag;
-}
-
-function formatDMS(deg, type) {
-  const sign = deg < 0 ? (type==='lat'?'S':'O') : (type==='lat'?'N':'E');
-  const abs = Math.abs(deg);
-  const d = Math.floor(abs);
-  const mFull = (abs - d) * 60;
-  const m = Math.floor(mFull);
-  const s = Math.round((mFull - m) * 60);
-  return `${d}°${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}"${sign}`;
-}
-
 // ─── Rosa de los vientos ──────────────────────────────────────────────────────
-function drawNorthArrow(svg, cx, cy) {
-  const g = svg.append('g').attr('transform', `translate(${cx},${cy})`);
-  const R = 16;
-  // Flecha N
-  g.append('polygon')
-    .attr('points', `0,${-R} ${R*0.35},${R*0.3} 0,${R*0.1}`)
-    .attr('fill', '#1a237e');
-  g.append('polygon')
-    .attr('points', `0,${-R} ${-R*0.35},${R*0.3} 0,${R*0.1}`)
-    .attr('fill', '#9e9e9e');
-  // S
-  g.append('polygon')
-    .attr('points', `0,${R} ${R*0.35},${-R*0.3} 0,${-R*0.1}`)
-    .attr('fill', '#e53935');
-  g.append('polygon')
-    .attr('points', `0,${R} ${-R*0.35},${-R*0.3} 0,${-R*0.1}`)
-    .attr('fill', '#9e9e9e');
-  // Círculo central
-  g.append('circle').attr('r', 3.5).attr('fill', 'white').attr('stroke', '#1a237e').attr('stroke-width', 1);
-  // N label
-  g.append('text')
-    .attr('x', 0).attr('y', -R - 5)
-    .attr('text-anchor', 'middle')
-    .attr('font-family', 'Orbitron, monospace')
-    .attr('font-size', '9px').attr('font-weight', '700')
-    .attr('fill', '#1a237e').text('N');
+function northArrow(svg,cx,cy){
+  const g=svg.append('g').attr('transform',`translate(${cx},${cy})`);
+  const R=14;
+  g.append('polygon').attr('points',`0,${-R} ${R*.35},${R*.3} 0,${R*.1}`).attr('fill','#1a237e');
+  g.append('polygon').attr('points',`0,${-R} ${-R*.35},${R*.3} 0,${R*.1}`).attr('fill','#aaa');
+  g.append('polygon').attr('points',`0,${R} ${R*.35},${-R*.3} 0,${-R*.1}`).attr('fill','#c00');
+  g.append('polygon').attr('points',`0,${R} ${-R*.35},${-R*.3} 0,${-R*.1}`).attr('fill','#aaa');
+  g.append('circle').attr('r',3).attr('fill','white').attr('stroke','#1a237e').attr('stroke-width',1);
+  g.append('text').attr('x',0).attr('y',-R-5).attr('text-anchor','middle')
+    .attr('font-family','monospace').attr('font-size','9px').attr('font-weight','bold')
+    .attr('fill','#1a237e').text('N');
 }
 
 // ─── Escala de distancias ─────────────────────────────────────────────────────
-function drawScaleBar(svg, x, y, metricWidth, pixelWidth) {
-  const pxPerM = pixelWidth / metricWidth;
-  // Elegir escala bonita
-  const rawM = metricWidth * 0.2;
-  const mag  = Math.pow(10, Math.floor(Math.log10(rawM)));
-  const niceM = [1,2,5,10,25,50,100,200,500,1000].find(v => v * mag >= rawM * 0.5) * mag;
-  const barPx = niceM * pxPerM;
-  const label = niceM >= 1000 ? `${niceM/1000} km` : `${niceM} m`;
-
-  const g = svg.append('g').attr('transform', `translate(${x},${y})`);
-  // Fondo
-  g.append('rect').attr('x',-2).attr('y',-8).attr('width',barPx+4).attr('height',18)
-    .attr('fill','rgba(250,247,240,0.7)').attr('rx',2);
-  // Barra
-  g.append('rect').attr('x',0).attr('y',0).attr('width',barPx).attr('height',5)
-    .attr('fill','#1a237e');
-  // Mitad alternada
+function scaleBar(svg,x,y,metW,pxW){
+  const ppm=pxW/metW;
+  const rawM=metW*0.18;
+  const candidates=[1,2,5,10,25,50,100,200,500,1000,2000,5000];
+  const niceM=candidates.find(v=>v>=rawM*0.4)||50;
+  const barPx=niceM*ppm;
+  const lbl=niceM>=1000?`${niceM/1000}km`:`${niceM}m`;
+  const g=svg.append('g').attr('transform',`translate(${x},${y})`);
+  g.append('rect').attr('x',-2).attr('y',-7).attr('width',barPx+4).attr('height',16)
+    .attr('fill','rgba(250,247,240,0.85)').attr('rx',2);
+  g.append('rect').attr('x',0).attr('y',0).attr('width',barPx/2).attr('height',5).attr('fill','#1a237e');
   g.append('rect').attr('x',barPx/2).attr('y',0).attr('width',barPx/2).attr('height',5)
     .attr('fill','white').attr('stroke','#1a237e').attr('stroke-width',0.5);
-  // Ticks
-  [0, barPx/2, barPx].forEach((px, i) => {
+  [0,barPx].forEach(px=>{
     g.append('line').attr('x1',px).attr('x2',px).attr('y1',0).attr('y2',-3)
       .attr('stroke','#1a237e').attr('stroke-width',0.8);
   });
-  // Labels
   g.append('text').attr('x',0).attr('y',-5).attr('text-anchor','middle')
-    .attr('font-family','Share Tech Mono,monospace').attr('font-size','7px').attr('fill','#1a237e').text('0');
+    .attr('font-family','monospace').attr('font-size','7px').attr('fill','#1a237e').text('0');
   g.append('text').attr('x',barPx).attr('y',-5).attr('text-anchor','middle')
-    .attr('font-family','Share Tech Mono,monospace').attr('font-size','7px').attr('fill','#1a237e').text(label);
+    .attr('font-family','monospace').attr('font-size','7px').attr('fill','#1a237e').text(lbl);
 }
 
-// ─── Leyenda en SVG ──────────────────────────────────────────────────────────
-function drawLegendSVG(svg, x, y, zMin, zMax, colorSc, interval) {
-  const steps = 8, barH = 100, barW = 14;
-  const g = svg.append('g').attr('transform', `translate(${x},${y})`);
-
-  g.append('rect').attr('x',-4).attr('y',-14).attr('width',50).attr('height',barH+30)
-    .attr('fill','rgba(250,247,240,0.85)').attr('rx',3).attr('stroke','rgba(26,35,126,0.2)').attr('stroke-width',0.5);
-
-  g.append('text').attr('x', barW/2).attr('y',-4)
-    .attr('text-anchor','middle').attr('font-family','Share Tech Mono,monospace')
-    .attr('font-size','6px').attr('fill','#1a237e').text('PROF (m)');
-
-  for (let i = 0; i < steps; i++) {
-    const z = zMin + (zMax - zMin) * (1 - i / (steps-1));
-    const py = i * (barH / (steps-1));
-    g.append('rect').attr('x',0).attr('y',py).attr('width',barW).attr('height',barH/(steps-1)+1)
-      .attr('fill', colorSc(z)).attr('stroke','none');
+// ─── Leyenda colores en SVG ───────────────────────────────────────────────────
+function colorLegend(svg,x,y,pH,zMn,zMx,intv){
+  const bH=pH*0.55,bW=12;
+  const g=svg.append('g').attr('transform',`translate(${x},${y+(pH-bH)/2})`);
+  const steps=24;
+  for(let i=0;i<steps;i++){
+    const t=i/(steps-1);
+    const[r,gv,b]=palRGB(1-t);
+    g.append('rect').attr('x',0).attr('y',i*(bH/steps)).attr('width',bW).attr('height',bH/steps+1)
+      .attr('fill',`rgb(${r},${gv},${b})`);
   }
-  g.append('rect').attr('x',0).attr('y',0).attr('width',barW).attr('height',barH)
+  g.append('rect').attr('x',0).attr('y',0).attr('width',bW).attr('height',bH)
     .attr('fill','none').attr('stroke','rgba(0,0,0,0.3)').attr('stroke-width',0.5);
-
-  // Ticks
-  const ticks = d3.range(Math.ceil(zMin/interval)*interval, zMax+interval, interval*2);
-  const scLeg = d3.scaleLinear().domain([zMin, zMax]).range([barH, 0]);
-  ticks.forEach(z => {
-    const py = scLeg(z);
-    g.append('line').attr('x1',barW).attr('x2',barW+3).attr('y1',py).attr('y2',py)
+  const sc=d3.scaleLinear().domain([zMn,zMx]).range([bH,0]);
+  d3.range(Math.ceil(zMn/intv)*intv,zMx+intv,intv*2).forEach(z=>{
+    const py=sc(z);
+    g.append('line').attr('x1',bW).attr('x2',bW+3).attr('y1',py).attr('y2',py)
       .attr('stroke','#1a237e').attr('stroke-width',0.5);
-    g.append('text').attr('x',barW+5).attr('y',py+2)
-      .attr('font-family','Share Tech Mono,monospace').attr('font-size','6px')
-      .attr('fill','#1a237e').text(z.toFixed(1));
+    g.append('text').attr('x',bW+5).attr('y',py+2.5)
+      .attr('font-family','monospace').attr('font-size','7px').attr('fill','#1a237e')
+      .text(z.toFixed(1)+'m');
   });
+  g.append('text').attr('x',bW/2).attr('y',-5).attr('text-anchor','middle')
+    .attr('font-family','monospace').attr('font-size','6px').attr('fill','#1a237e').text('m');
 }
 
-// ─── Panel lateral: leyenda ───────────────────────────────────────────────────
-function buildLegendPanel(zMin, zMax, interval, colorSc) {
-  const items = document.getElementById('legend-items');
-  items.innerHTML = '';
-  const ticks = d3.range(
-    Math.ceil(zMin/interval)*interval,
-    zMax + interval, interval
-  );
-  ticks.forEach(z => {
-    const div = document.createElement('div');
-    div.className = 'legend-item';
-    const sw = document.createElement('div');
-    sw.className = 'legend-swatch';
-    sw.style.background = colorSc(z);
-    const lb = document.createElement('div');
-    lb.className = 'legend-label';
-    lb.textContent = z.toFixed(2) + ' m';
-    div.appendChild(sw); div.appendChild(lb);
-    items.appendChild(div);
+// ─── Paneles laterales ────────────────────────────────────────────────────────
+function buildLegend(zMn,zMx,intv){
+  const el=document.getElementById('li');el.innerHTML='';
+  d3.range(Math.ceil(zMn/intv)*intv,zMx+intv,intv).forEach(z=>{
+    const t=(z-zMn)/((zMx-zMn)||1);
+    const div=document.createElement('div');div.className='legend-item';
+    const sw=document.createElement('div');sw.className='legend-swatch';sw.style.background=palCSS(t);
+    const lb=document.createElement('div');lb.className='legend-label';lb.textContent=z.toFixed(2)+'m';
+    div.appendChild(sw);div.appendChild(lb);el.appendChild(div);
   });
 }
-
-// ─── Panel lateral: estadísticas ─────────────────────────────────────────────
-function buildStatsPanel(pts, zMin, zMax, W, H) {
-  const grid = document.getElementById('stats-grid');
-  grid.innerHTML = '';
-  const area = (W * H / 10000).toFixed(1);
-  const avg  = d3.mean(pts, p => p.z).toFixed(2);
-  const stats = [
-    { val: pts.length,          lbl: 'PUNTOS' },
-    { val: avg + 'm',           lbl: 'PROF MEDIA' },
-    { val: zMin.toFixed(2)+'m', lbl: 'MÍN' },
-    { val: zMax.toFixed(2)+'m', lbl: 'MÁX' },
-    { val: area + 'ha',         lbl: 'ÁREA APROX' },
-    { val: datasets.length,     lbl: 'SECTORES' },
-  ];
-  stats.forEach(s => {
-    const box = document.createElement('div');
-    box.className = 'stat-box';
-    box.innerHTML = `<div class="stat-val">${s.val}</div><div class="stat-lbl">${s.lbl}</div>`;
-    grid.appendChild(box);
+function buildStats(pts,zMn,zMx,W,H){
+  const el=document.getElementById('sg');el.innerHTML='';
+  [{v:pts.length,l:'PUNTOS'},{v:d3.mean(pts,p=>p.z).toFixed(2)+'m',l:'MEDIA'},
+   {v:zMn.toFixed(2)+'m',l:'MÍN'},{v:zMx.toFixed(2)+'m',l:'MÁX'},
+   {v:(W*H/10000).toFixed(1)+'ha',l:'ÁREA'},{v:datasets.length,l:'SECTORES'}]
+  .forEach(s=>{
+    const b=document.createElement('div');b.className='stat-box';
+    b.innerHTML=`<div class="stat-val">${s.v}</div><div class="stat-lbl">${s.l}</div>`;
+    el.appendChild(b);
   });
 }
 
 // ─── Toggle capas ─────────────────────────────────────────────────────────────
-function toggleLayer(name) {
-  layers[name] = !layers[name];
-  const btn = document.getElementById('tbtn-'+name);
-  btn.className = 'toolbar-btn ' + (layers[name] ? 'tbtn-active' : 'tbtn-inactive');
-  const el = document.getElementById('layer-'+name);
-  if (el) el.style.display = layers[name] ? '' : 'none';
+function togL(name){
+  layers[name]=!layers[name];
+  document.getElementById('tbtn-'+name).className='tbtn '+(layers[name]?'on':'off');
+  if(name==='labels'){
+    document.querySelectorAll('.pt-lbl').forEach(e=>e.style.display=layers[name]?'':'none');
+    const lel=document.getElementById('layer-labels');
+    if(lel)lel.style.display=layers[name]?'':'none';
+    return;
+  }
+  const el=document.getElementById('layer-'+name);
+  if(el)el.style.display=layers[name]?'':'none';
 }
 
 // ─── Exportar ─────────────────────────────────────────────────────────────────
-function exportPNG() {
-  if (!currentSVG) { showToast('Generá el mapa primero', true); return; }
-  const serializer = new XMLSerializer();
-  const svgStr = serializer.serializeToString(currentSVG);
-  const canvas = document.createElement('canvas');
-  const scale  = 3; // 3x para alta resolución
-  canvas.width  = 900 * scale;
-  canvas.height = 620 * scale;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(scale, scale);
-  const img = new Image();
-  const svgBlob = new Blob([svgStr], {type:'image/svg+xml;charset=utf-8'});
-  const url = URL.createObjectURL(svgBlob);
-  img.onload = () => {
-    ctx.fillStyle = '#faf7f0'; ctx.fillRect(0,0,900,620);
+function expPNG(){
+  if(!svgEl){showToast('Generá el mapa primero',true);return;}
+  const scale=2,W=900*scale,H=620*scale;
+  const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#faf7f0';ctx.fillRect(0,0,W,H);
+  ctx.scale(scale,scale);
+  const svgStr=new XMLSerializer().serializeToString(svgEl);
+  const blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  img.onload=()=>{
     ctx.drawImage(img,0,0);
-    const a = document.createElement('a');
-    a.download = 'batimetria_' + new Date().toISOString().substring(0,10) + '.png';
-    a.href = canvas.toDataURL('image/png');
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('✓ PNG exportado');
+    const a=document.createElement('a');
+    a.download='batimetria_'+new Date().toISOString().substring(0,10)+'.png';
+    a.href=canvas.toDataURL('image/png');a.click();
+    URL.revokeObjectURL(url);showToast('✓ PNG exportado');
   };
-  img.src = url;
+  img.onerror=()=>showToast('Error PNG — usá SVG',true);
+  img.src=url;
 }
-
-function exportSVG() {
-  if (!currentSVG) { showToast('Generá el mapa primero', true); return; }
-  const serializer = new XMLSerializer();
-  const svgStr = '<?xml version="1.0" encoding="utf-8"?>\n' + serializer.serializeToString(currentSVG);
-  const blob = new Blob([svgStr], {type:'image/svg+xml'});
-  const a = document.createElement('a');
-  a.download = 'batimetria_' + new Date().toISOString().substring(0,10) + '.svg';
-  a.href = URL.createObjectURL(blob);
-  a.click();
+function expSVG(){
+  if(!svgEl){showToast('Generá el mapa primero',true);return;}
+  const str='<?xml version="1.0" encoding="utf-8"?>\n'+new XMLSerializer().serializeToString(svgEl);
+  const a=document.createElement('a');
+  a.download='batimetria_'+new Date().toISOString().substring(0,10)+'.svg';
+  a.href=URL.createObjectURL(new Blob([str],{type:'image/svg+xml'}));a.click();
   showToast('✓ SVG exportado');
 }
 
-// ─── Utilidades ────────────────────────────────────────────────────────────
-function setProgress(pct) {
-  const bar = document.getElementById('progress-bar');
-  bar.style.transform = `scaleX(${pct})`;
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+function fr(contour){try{for(const g of contour.coordinates)for(const r of g)if(r.length>5)return r;}catch(e){}return null;}
+function nSt(range,n){const raw=range/n,mag=Math.pow(10,Math.floor(Math.log10(raw)));const norm=raw/mag;return(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;}
+function dms(deg,type){
+  const sign=deg<0?(type==='lat'?'S':'O'):(type==='lat'?'N':'E');
+  const abs=Math.abs(deg),d=Math.floor(abs),mf=(abs-d)*60,m=Math.floor(mf),s=Math.round((mf-m)*60);
+  return `${d}°${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}"${sign}`;
 }
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-let toastTimer;
-function showToast(msg, err=false) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (err ? ' err' : '');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.className='toast', 3500);
+function prog(p){document.getElementById('pb').style.transform=`scaleX(${p})`;}
+function sl(ms){return new Promise(r=>setTimeout(r,ms));}
+let tT;
+function showToast(msg,err=false){
+  const t=document.getElementById('toast');t.textContent=msg;
+  t.className='toast show'+(err?' err':'');
+  clearTimeout(tT);tT=setTimeout(()=>t.className='toast',3500);
 }
 </script>
 </body>
