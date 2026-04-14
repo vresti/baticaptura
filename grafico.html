@@ -417,7 +417,6 @@ function loadFiles(files) {
   Array.from(files).forEach(file => {
     const reader = new FileReader();
     reader.onload = e => parseCSV(file.name, e.target.result);
-    reader.readAsText(e => {}, file);
     reader.readAsText(file);
   });
 }
