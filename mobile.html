@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>BatiMobile</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@400;600&display=swap');
+
+:root {
+  --bg:     #060e18;
+  --panel:  #0b1e30;
+  --border: #0f3d60;
+  --amber:  #ffd060;
+  --green:  #00e5a0;
+  --red:    #ff4455;
+  --blue:   #1a8fe8;
+  --dim:    #2a4a6a;
+  --text:   #c8dcea;
+  --dimtxt: #4a7a9a;
+  --marea:  #c084fc;
+  --kbd:    #0d2540;
+  --kbd2:   #122d4a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none; user-select: none; }
+
+html, body {
+  height: 100%; overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Exo 2', sans-serif;
+}
+
+/* ── GRID PRINCIPAL ─────────────────────────────────────── */
+.app {
+  display: flex; flex-direction: column;
+  height: 100vh; height: 100dvh;
+  max-width: 480px; margin: 0 auto;
+  position: relative;
+}
+
+/* ── HEADER ─────────────────────────────────────────────── */
+.header {
+  background: var(--panel);
+  border-bottom: 2px solid var(--border);
+  padding: 8px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.zona-wrap { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.zona-label { font-size: 8px; letter-spacing: 2px; color: var(--dimtxt); flex-shrink: 0; }
+.zona-val {
+  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
+  color: var(--amber); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer; border-bottom: 1px dashed var(--dim);
+}
+.gps-pill {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+  border-radius: 12px; padding: 4px 10px; flex-shrink: 0;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); transition: all 0.3s; }
+.dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+.dot.err { background: var(--red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.gps-txt { font-family: 'Share Tech Mono', monospace; font-size: 10px; }
+
+/* ── INSTRUMENTOS GPS ───────────────────────────────────── */
+.instrum {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px; padding: 8px 10px;
+  background: var(--bg); flex-shrink: 0;
+}
+.ins {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 8px; position: relative; overflow: hidden;
+}
+.ins::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+}
+.ins-lbl { font-size: 7px; letter-spacing: 2px; color: var(--dimtxt); margin-bottom: 2px; }
+.ins-val {
+  font-family: 'Share Tech Mono', monospace; font-size: 13px;
+  color: var(--amber); transition: color 0.3s; min-height: 18px;
+}
+.ins-val.fresh { color: var(--green); }
+
+/* ── CORRECCIONES (panel colapsable) ────────────────────── */
+.corr-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 12px; background: var(--panel);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  cursor: pointer; flex-shrink: 0;
+}
+.corr-toggle-label { font-size: 9px; letter-spacing: 2px; color: var(--dimtxt); }
+.corr-toggle-vals {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--amber);
+}
+.corr-toggle-arrow { font-size: 10px; color: var(--dimtxt); transition: transform 0.2s; }
+.corr-toggle-arrow.open { transform: rotate(180deg); }
+
+.corr-panel {
+  background: var(--panel); padding: 10px 12px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  display: none;
+}
+.corr-panel.open { display: block; }
+
+.corr-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.corr-row:last-child { margin-bottom: 0; }
+.corr-lbl { font-size: 8px; letter-spacing: 2px; color: var(--dimtxt); width: 60px; flex-shrink: 0; }
+.sign-btn {
+  width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border);
+  background: #020a12; color: var(--amber); font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace; flex-shrink: 0;
+}
+.corr-display {
+  font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 700;
+  color: var(--amber); min-width: 60px; text-align: center;
+}
+.corr-unit { font-size: 11px; color: var(--dimtxt); }
+
+/* Nota de marea */
+.marea-nota-wrap { margin-top: 8px; }
+.marea-nota {
+  width: 100%; background: #020a12; border: 1px solid var(--border);
+  border-radius: 6px; color: var(--marea); font-size: 12px;
+  font-family: 'Exo 2', sans-serif; padding: 7px 10px;
+  outline: none; resize: none; height: 44px;
+  /* SÍ permitir teclado del sistema para este campo */
+  user-select: text; -webkit-user-select: text;
+}
+.marea-nota::placeholder { color: var(--dim); font-size: 11px; }
+.btn-actualizar-marea {
+  width: 100%; margin-top: 6px; padding: 8px;
+  background: rgba(192,132,252,0.1); border: 1px solid var(--marea);
+  border-radius: 6px; color: var(--marea);
+  font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 600;
+  letter-spacing: 2px; cursor: pointer;
+}
+.marea-log {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  color: var(--marea); margin-top: 4px; opacity: 0.7;
+}
+
+/* ── ODÓMETRO ────────────────────────────────────────────── */
+.odometro {
+  padding: 8px 12px; flex-shrink: 0;
+  background: var(--bg);
+}
+.odo-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.odo-lbl { font-size: 8px; letter-spacing: 2px; color: var(--dimtxt); }
+.odo-umbral { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--dimtxt); }
+.odo-umbral input {
+  width: 40px; background: var(--panel); border: 1px solid var(--border);
+  color: var(--amber); border-radius: 4px; padding: 2px 5px;
+  font-family: 'Share Tech Mono', monospace; font-size: 12px;
+  text-align: center; outline: none;
+  /* teclado numérico del sistema para el umbral */
+  user-select: text; -webkit-user-select: text;
+}
+.odo-bar-wrap {
+  height: 8px; background: #020a12; border-radius: 4px;
+  border: 1px solid var(--border); overflow: hidden; margin-bottom: 5px;
+}
+.odo-bar {
+  height: 100%; width: 0%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--blue), var(--green));
+  transition: width 0.5s ease;
+}
+.odo-bar.ready { background: var(--green); }
+.odo-bottom { display: flex; justify-content: space-between; align-items: baseline; }
+.odo-dist {
+  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 700;
+  color: var(--dim); transition: color 0.3s;
+}
+.odo-dist.moving { color: var(--blue); }
+.odo-dist.ready  { color: var(--green); animation: glow 1s ease infinite alternate; }
+@keyframes glow { from{text-shadow:0 0 8px var(--green)} to{text-shadow:0 0 20px var(--green)} }
+.odo-estado {
+  font-size: 10px; letter-spacing: 1px; padding: 3px 8px; border-radius: 10px;
+  background: rgba(42,74,106,0.4); color: var(--dimtxt); border: 1px solid var(--dim);
+  transition: all 0.3s;
+}
+.odo-estado.ready { background: rgba(0,229,160,0.1); color: var(--green); border-color: var(--green); }
+
+/* ── CALCULADORA ─────────────────────────────────────────── */
+.calc {
+  display: flex; align-items: center; justify-content: center;
+  gap: 4px; padding: 6px 12px; flex-shrink: 0;
+  background: var(--panel); border-top: 1px solid var(--border);
+}
+.calc-term { text-align: center; }
+.calc-lbl { font-size: 7px; letter-spacing: 1px; color: var(--dimtxt); }
+.calc-val { font-family: 'Orbitron', monospace; font-size: 16px; font-weight: 700; }
+.cv-eco   { color: var(--amber); }
+.cv-off   { color: var(--blue); font-size: 13px; }
+.cv-mar   { color: var(--marea); font-size: 13px; }
+.cv-fin   { color: var(--green); font-size: 22px; }
+.calc-op  { font-family: 'Share Tech Mono', monospace; font-size: 18px; color: var(--dim); padding: 0 2px; }
+.calc-eq  { color: var(--amber); }
+
+/* ── DISPLAY PROFUNDIDAD ─────────────────────────────────── */
+.depth-display-wrap {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 10px; background: var(--bg); min-height: 0;
+}
+.depth-display {
+  background: #020a12; border: 2px solid var(--dim);
+  border-radius: 12px; padding: 10px 20px;
+  font-family: 'Orbitron', monospace; font-size: 52px; font-weight: 900;
+  color: var(--amber); letter-spacing: 2px; text-align: center;
+  min-width: 200px; min-height: 80px;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  position: relative;
+}
+.depth-display.has-val { border-color: var(--amber); box-shadow: 0 0 20px rgba(255,208,96,0.15); }
+.depth-cursor {
+  display: inline-block; width: 3px; height: 52px;
+  background: var(--amber); margin-left: 3px; vertical-align: middle;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.depth-unit-lbl {
+  position: absolute; bottom: 6px; right: 12px;
+  font-size: 12px; color: var(--dimtxt); font-weight: 400;
+}
+
+/* ── BOTÓN GRABAR ─────────────────────────────────────────── */
+.btn-grabar {
+  margin: 0 10px 6px;
+  padding: 14px; border-radius: 10px;
+  font-family: 'Orbitron', monospace; font-size: 16px; font-weight: 700;
+  letter-spacing: 4px; text-transform: uppercase;
+  border: 2px solid; cursor: pointer; transition: all 0.2s;
+  flex-shrink: 0;
+}
+.btn-grabar.locked {
+  background: rgba(42,74,106,0.2); border-color: var(--dim);
+  color: var(--dim); cursor: not-allowed;
+}
+.btn-grabar.unlocked {
+  background: linear-gradient(135deg, rgba(0,229,160,0.15), rgba(26,143,232,0.15));
+  border-color: var(--green); color: var(--green);
+  animation: btnP 1.5s ease infinite;
+}
+@keyframes btnP { 0%,100%{box-shadow:0 0 16px rgba(0,229,160,0.2)} 50%{box-shadow:0 0 30px rgba(0,229,160,0.45)} }
+.btn-grabar.unlocked:active { transform: scale(0.97); }
+.btn-grabar.no-gps { background: rgba(42,74,106,0.1); border-color: var(--dim); color: var(--dim); cursor: not-allowed; }
+
+/* ── TECLADO PROPIO ──────────────────────────────────────── */
+.keyboard {
+  background: var(--kbd); padding: 6px 8px 10px;
+  flex-shrink: 0;
+}
+.kbd-row { display: flex; gap: 6px; margin-bottom: 6px; }
+.kbd-row:last-child { margin-bottom: 0; }
+.k {
+  flex: 1; padding: 0; height: 52px;
+  background: var(--kbd2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: 'Share Tech Mono', monospace; font-size: 22px;
+  cursor: pointer; transition: all 0.1s; display: flex;
+  align-items: center; justify-content: center;
+  border-bottom: 3px solid rgba(0,0,0,0.4);
+}
+.k:active { background: var(--border); transform: translateY(1px); border-bottom-width: 1px; }
+.k.dot { font-size: 28px; }
+.k.del {
+  background: rgba(255,68,85,0.1); border-color: rgba(255,68,85,0.3);
+  color: var(--red); font-size: 18px;
+}
+.k.del:active { background: rgba(255,68,85,0.25); }
+
+/* ── SNACKBAR / TOAST ────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--panel); border: 1px solid var(--green);
+  border-radius: 20px; padding: 8px 18px; font-size: 12px;
+  color: var(--green); font-family: 'Share Tech Mono', monospace;
+  opacity: 0; transition: all 0.3s; z-index: 100; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.err  { border-color: var(--red); color: var(--red); }
+.toast.marea-t { border-color: var(--marea); color: var(--marea); }
+
+/* ── MODAL CONFIGURACIÓN ─────────────────────────────────── */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  z-index: 200; display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px; width: 100%; max-width: 360px;
+}
+.modal-title {
+  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
+  color: var(--amber); letter-spacing: 3px; margin-bottom: 16px;
+  text-align: center;
+}
+.modal-field { margin-bottom: 12px; }
+.modal-label { font-size: 9px; letter-spacing: 2px; color: var(--dimtxt); margin-bottom: 4px; }
+.modal-input {
+  width: 100%; background: #020a12; border: 1px solid var(--border);
+  color: var(--amber); border-radius: 6px; padding: 9px 12px;
+  font-family: 'Share Tech Mono', monospace; font-size: 14px; outline: none;
+  user-select: text; -webkit-user-select: text;
+}
+.modal-input:focus { border-color: var(--amber); }
+.modal-btns { display: flex; gap: 8px; margin-top: 16px; }
+.modal-ok {
+  flex: 1; padding: 10px; background: var(--blue); border: none;
+  border-radius: 8px; color: white; font-family: 'Orbitron', monospace;
+  font-size: 11px; letter-spacing: 2px; cursor: pointer;
+}
+.modal-cancel {
+  padding: 10px 16px; background: none; border: 1px solid var(--dim);
+  border-radius: 8px; color: var(--dimtxt); font-size: 11px; cursor: pointer;
+}
+
+/* ── FLASH ───────────────────────────────────────────────── */
+.flash {
+  position: fixed; inset: 0; background: rgba(0,229,160,0.1);
+  pointer-events: none; opacity: 0; transition: opacity 0.08s; z-index: 50;
+}
+.flash.show { opacity: 1; }
+
+/* ── CONTADOR ────────────────────────────────────────────── */
+.counter-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 12px; background: var(--bg); flex-shrink: 0;
+}
+.counter-pts {
+  font-family: 'Orbitron', monospace; font-size: 14px; color: var(--amber); font-weight: 700;
+}
+.counter-pts span { font-size: 9px; color: var(--dimtxt); margin-left: 3px; }
+.btn-csv {
+  padding: 4px 12px; border-radius: 12px; cursor: pointer;
+  background: rgba(232,160,32,0.1); border: 1px solid var(--amber);
+  color: var(--amber); font-size: 10px; letter-spacing: 1px;
+  font-family: 'Exo 2', sans-serif; font-weight: 600;
+}
+.autosave-ind {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; color: var(--dimtxt);
+}
+.as-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--dim); transition: all 0.3s; }
+.as-dot.saved { background: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast"></div>
+
+<!-- MODAL CONFIGURACIÓN INICIAL -->
+<div class="modal-bg" id="modal-config">
+  <div class="modal">
+    <div class="modal-title">⚓ BATICAPTURA MOBILE</div>
+
+    <div class="modal-field">
+      <div class="modal-label">NOMBRE DE ZONA / SECTOR</div>
+      <input class="modal-input" id="cfg-zona" type="text" placeholder="Ej: Canal 1 — Dársena Norte" />
+    </div>
+
+    <div class="modal-field">
+      <div class="modal-label">OFFSET ECOSONDA (m)</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="sign-btn" id="cfg-eco-sign" onclick="toggleCfgSign('eco')">+</button>
+        <input class="modal-input" id="cfg-eco" type="number" value="0.00" step="0.01" min="0" style="flex:1" />
+        <span style="color:var(--dimtxt);font-size:11px">m</span>
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <div class="modal-label">URL GAS (opcional)</div>
+      <input class="modal-input" id="cfg-gas" type="url" placeholder="https://script.google.com/..." style="font-size:11px"/>
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-ok" onclick="initSesion()">▶ INICIAR SESIÓN</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP PRINCIPAL -->
+<div class="app" id="app-main" style="display:none">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="zona-wrap">
+      <div class="zona-label">ZONA</div>
+      <div class="zona-val" id="zona-display" onclick="editZona()">—</div>
+    </div>
+    <div class="gps-pill">
+      <div class="dot" id="gps-dot"></div>
+      <span class="gps-txt" id="gps-txt">GPS</span>
+    </div>
+  </div>
+
+  <!-- INSTRUMENTOS GPS -->
+  <div class="instrum">
+    <div class="ins">
+      <div class="ins-lbl">LATITUD</div>
+      <div class="ins-val" id="d-lat">—</div>
+    </div>
+    <div class="ins">
+      <div class="ins-lbl">LONGITUD</div>
+      <div class="ins-val" id="d-lon">—</div>
+    </div>
+    <div class="ins">
+      <div class="ins-lbl">SATS/PREC</div>
+      <div class="ins-val" id="d-acc">—</div>
+    </div>
+  </div>
+
+  <!-- CORRECCIONES TOGGLE -->
+  <div class="corr-toggle" onclick="toggleCorr()">
+    <span class="corr-toggle-label">⚙ CORRECCIONES</span>
+    <span class="corr-toggle-vals" id="corr-summary">ECO +0.00  MAR +0.00</span>
+    <span class="corr-toggle-arrow" id="corr-arrow">▼</span>
+  </div>
+
+  <div class="corr-panel" id="corr-panel">
+    <!-- Offset ecosonda -->
+    <div class="corr-row">
+      <div class="corr-lbl">ECOSONDA</div>
+      <button class="sign-btn" id="eco-sign" onclick="toggleSign('eco')">+</button>
+      <div class="corr-display" id="eco-display">0.00</div>
+      <div class="corr-unit">m</div>
+      <div style="flex:1;display:flex;gap:4px;justify-content:flex-end">
+        <button class="k" style="height:32px;font-size:14px;flex:none;width:32px" onclick="adjCorr('eco',-0.01)">−</button>
+        <button class="k" style="height:32px;font-size:14px;flex:none;width:32px" onclick="adjCorr('eco',+0.01)">+</button>
+      </div>
+    </div>
+
+    <!-- Corrección marea -->
+    <div class="corr-row">
+      <div class="corr-lbl">MAREA</div>
+      <button class="sign-btn" id="mar-sign" onclick="toggleSign('mar')">+</button>
+      <div class="corr-display" id="mar-display">0.00</div>
+      <div class="corr-unit">m</div>
+      <div style="flex:1;display:flex;gap:4px;justify-content:flex-end">
+        <button class="k" style="height:32px;font-size:14px;flex:none;width:32px" onclick="adjCorr('mar',-0.01)">−</button>
+        <button class="k" style="height:32px;font-size:14px;flex:none;width:32px" onclick="adjCorr('mar',+0.01)">+</button>
+      </div>
+    </div>
+
+    <!-- Nota de marea -->
+    <div class="marea-nota-wrap">
+      <textarea class="marea-nota" id="marea-nota"
+        placeholder="Referencia: Ej: escalón 3 muelle, medido con metro"
+        onclick="this.focus()" onfocus="this.readOnly=false"></textarea>
+      <button class="btn-actualizar-marea" onclick="actualizarMarea()">↺ REGISTRAR CORRECCIÓN</button>
+      <div class="marea-log" id="marea-log">Sin actualizaciones registradas</div>
+    </div>
+  </div>
+
+  <!-- ODÓMETRO -->
+  <div class="odometro">
+    <div class="odo-top">
+      <div class="odo-lbl">DISTANCIA DESDE ÚLTIMO PUNTO</div>
+      <div class="odo-umbral">
+        UMBRAL <input type="number" id="umbral" value="10" min="1" max="200"
+                      onchange="updateUmbral()" /> m
+      </div>
+    </div>
+    <div class="odo-bar-wrap"><div class="odo-bar" id="odo-bar"></div></div>
+    <div class="odo-bottom">
+      <div>
+        <span class="odo-dist" id="odo-dist">0.0</span>
+        <span style="font-size:10px;color:var(--dimtxt);margin-left:4px">m</span>
+      </div>
+      <div class="odo-estado" id="odo-estado">GRABÁ EL PRIMER PUNTO</div>
+    </div>
+  </div>
+
+  <!-- CALCULADORA -->
+  <div class="calc">
+    <div class="calc-term">
+      <div class="calc-lbl">ECOSONDA</div>
+      <div class="calc-val cv-eco" id="cv-eco">—</div>
+    </div>
+    <div class="calc-op">+</div>
+    <div class="calc-term">
+      <div class="calc-lbl">OFFSET</div>
+      <div class="calc-val cv-off" id="cv-off">+0.00</div>
+    </div>
+    <div class="calc-op">+</div>
+    <div class="calc-term">
+      <div class="calc-lbl">MAREA</div>
+      <div class="calc-val cv-mar" id="cv-mar">+0.00</div>
+    </div>
+    <div class="calc-op calc-eq">=</div>
+    <div class="calc-term">
+      <div class="calc-lbl">FINAL</div>
+      <div class="calc-val cv-fin" id="cv-fin">—</div>
+    </div>
+  </div>
+
+  <!-- DISPLAY PROFUNDIDAD -->
+  <div class="depth-display-wrap">
+    <div class="depth-display" id="depth-display">
+      <span id="depth-val">_</span><span class="depth-cursor" id="depth-cursor"></span>
+      <span class="depth-unit-lbl">m</span>
+    </div>
+  </div>
+
+  <!-- BOTÓN GRABAR -->
+  <button class="btn-grabar no-gps" id="btn-grabar" onclick="grabar()">
+    <span id="btn-icon">🔒</span> <span id="btn-txt">ESPERANDO GPS</span>
+  </button>
+
+  <!-- CONTADOR + CSV -->
+  <div class="counter-bar">
+    <div class="autosave-ind">
+      <div class="as-dot" id="as-dot"></div>
+      <span id="as-txt">sin datos</span>
+    </div>
+    <div class="counter-pts"><span id="pt-count">0</span><span>puntos</span></div>
+    <button class="btn-csv" onclick="exportCSV()">↓ CSV</button>
+  </div>
+
+  <!-- TECLADO PROPIO -->
+  <div class="keyboard">
+    <div class="kbd-row">
+      <button class="k" onclick="kp('1')">1</button>
+      <button class="k" onclick="kp('2')">2</button>
+      <button class="k" onclick="kp('3')">3</button>
+      <button class="k" onclick="kp('4')">4</button>
+      <button class="k" onclick="kp('5')">5</button>
+    </div>
+    <div class="kbd-row">
+      <button class="k" onclick="kp('6')">6</button>
+      <button class="k" onclick="kp('7')">7</button>
+      <button class="k" onclick="kp('8')">8</button>
+      <button class="k" onclick="kp('9')">9</button>
+      <button class="k" onclick="kp('0')">0</button>
+    </div>
+    <div class="kbd-row">
+      <button class="k dot" onclick="kp('.')">·</button>
+      <button class="k del" onclick="kp('DEL')" style="flex:2">⌫</button>
+      <button class="k" id="enter-btn" onclick="grabar()"
+              style="flex:3;background:rgba(0,229,160,0.1);border-color:rgba(0,229,160,0.3);color:var(--green);font-size:14px;letter-spacing:2px">
+        ENTER
+      </button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ─── Estado ───────────────────────────────────────────────────────────────────
+let zona = '', gasUrl = '';
+let ecoSign=+1, ecoVal=0;
+let marSign=+1, marVal=0;
+let depthStr = '';
+let puntos = [], mareaLogArr = [];
+let hasGPS=false, firstPoint=true, canGrab=false;
+let currentLat=null, currentLon=null, currentAcc=null;
+let lastLat=null, lastLon=null;
+let umbral=10;
+let watchId=null;
+let corrOpen=false;
+let cfgEcoSign=+1;
+const LS='batimobile_v1';
+
+// ─── Config inicial ────────────────────────────────────────────────────────────
+function toggleCfgSign(t) {
+  cfgEcoSign*=-1;
+  document.getElementById('cfg-eco-sign').textContent=cfgEcoSign>0?'+':'−';
+}
+
+function initSesion() {
+  zona = document.getElementById('cfg-zona').value.trim() || 'Sin nombre';
+  ecoSign = cfgEcoSign;
+  ecoVal  = parseFloat(document.getElementById('cfg-eco').value)||0;
+  gasUrl  = document.getElementById('cfg-gas').value.trim();
+
+  document.getElementById('eco-display').textContent = ecoVal.toFixed(2);
+  document.getElementById('eco-sign').textContent = ecoSign>0?'+':'−';
+  document.getElementById('zona-display').textContent = zona;
+
+  document.getElementById('modal-config').style.display='none';
+  document.getElementById('app-main').style.display='flex';
+
+  autoLoad();
+  startGPS();
+  updateCalc();
+  updateCorrSummary();
+}
+
+// ─── GPS Geolocation ──────────────────────────────────────────────────────────
+function startGPS() {
+  if (!('geolocation' in navigator)) {
+    setGPSStatus('NO GPS', false); return;
+  }
+  setGPSStatus('Buscando…', false);
+  watchId = navigator.geolocation.watchPosition(
+    onGPSok, onGPSerr,
+    { enableHighAccuracy:true, maximumAge:2000, timeout:10000 }
+  );
+}
+
+function onGPSok(pos) {
+  currentLat = pos.coords.latitude;
+  currentLon = pos.coords.longitude;
+  currentAcc = pos.coords.accuracy;
+  hasGPS = true;
+  setGPSStatus('OK', true);
+  document.getElementById('d-lat').textContent = currentLat.toFixed(5);
+  document.getElementById('d-lon').textContent = Math.abs(currentLon).toFixed(5);
+  document.getElementById('d-acc').textContent = '±'+Math.round(currentAcc)+'m';
+  // Fresh anim
+  ['d-lat','d-lon','d-acc'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.add('fresh');
+    setTimeout(()=>el.classList.remove('fresh'),800);
+  });
+  updateOdometro();
+}
+
+function onGPSerr(err) {
+  setGPSStatus('Error', false);
+  showToast('GPS: '+err.message, true);
+}
+
+function setGPSStatus(txt, on) {
+  document.getElementById('gps-txt').textContent = txt;
+  const dot = document.getElementById('gps-dot');
+  dot.className = 'dot'+(on?' on':err?' err':'');
+  if (on && firstPoint) setBtnState('unlocked');
+  if (!on) setBtnState('no-gps');
+}
+
+// ─── Haversine ────────────────────────────────────────────────────────────────
+function hav(la1,lo1,la2,lo2){
+  const R=6371000,r=d=>d*Math.PI/180;
+  const a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(lo2-lo1)/2)**2;
+  return R*2*Math.asin(Math.sqrt(a));
+}
+
+function getDist() {
+  if(!lastLat||!currentLat)return 0;
+  return hav(lastLat,lastLon,currentLat,currentLon);
+}
+
+function updateUmbral() {
+  umbral=parseInt(document.getElementById('umbral').value)||10;
+  autoSave();
+}
+
+// ─── Odómetro ─────────────────────────────────────────────────────────────────
+function updateOdometro() {
+  if (!hasGPS) return;
+  if (firstPoint) {
+    setBtnState(depthStr?'unlocked':'locked-nodepth');
+    document.getElementById('odo-dist').textContent='—';
+    document.getElementById('odo-estado').textContent='PRIMER PUNTO';
+    document.getElementById('odo-estado').className='odo-estado ready';
+    document.getElementById('odo-bar').style.width='100%';
+    document.getElementById('odo-bar').className='odo-bar ready';
+    return;
+  }
+  if(!lastLat)return;
+  const dist=getDist();
+  const pct=Math.min(dist/umbral,1)*100;
+  const bar=document.getElementById('odo-bar');
+  document.getElementById('odo-dist').textContent=dist.toFixed(1);
+  bar.style.width=pct+'%';
+  if(dist>=umbral){
+    bar.className='odo-bar ready';
+    document.getElementById('odo-dist').className='odo-dist ready';
+    document.getElementById('odo-estado').textContent='✓ LISTO';
+    document.getElementById('odo-estado').className='odo-estado ready';
+    if(!canGrab) beep();
+    canGrab=true;
+    setBtnState(depthStr?'unlocked':'locked-nodepth');
+  } else {
+    bar.className='odo-bar';
+    document.getElementById('odo-dist').className='odo-dist'+(dist>0.5?' moving':'');
+    document.getElementById('odo-estado').textContent='FALTAN '+(umbral-dist).toFixed(1)+'m';
+    document.getElementById('odo-estado').className='odo-estado';
+    canGrab=false;
+    setBtnState('locked');
+  }
+}
+
+// ─── Estado botón ─────────────────────────────────────────────────────────────
+function setBtnState(state) {
+  const btn=document.getElementById('btn-grabar');
+  const icon=document.getElementById('btn-icon');
+  const txt=document.getElementById('btn-txt');
+  switch(state){
+    case 'unlocked':
+      btn.className='btn-grabar unlocked'; btn.disabled=false;
+      icon.textContent='↵'; txt.textContent='GRABAR';
+      document.getElementById('enter-btn').style.borderColor='var(--green)';
+      document.getElementById('enter-btn').style.background='rgba(0,229,160,0.15)';
+      break;
+    case 'locked':
+      btn.className='btn-grabar locked'; btn.disabled=true;
+      icon.textContent='🔒'; txt.textContent='DESPLAZATE '+(umbral-getDist()).toFixed(0)+'m';
+      document.getElementById('enter-btn').style.borderColor='rgba(0,229,160,0.15)';
+      document.getElementById('enter-btn').style.background='rgba(0,229,160,0.05)';
+      break;
+    case 'locked-nodepth':
+      btn.className='btn-grabar locked'; btn.disabled=true;
+      icon.textContent='🔒'; txt.textContent='INGRESÁ PROFUNDIDAD';
+      break;
+    case 'grabbed':
+      btn.className='btn-grabar locked'; btn.disabled=true;
+      icon.textContent='✓'; txt.textContent='GRABADO — DESPLAZATE';
+      break;
+    case 'no-gps':
+      btn.className='btn-grabar no-gps'; btn.disabled=true;
+      icon.textContent='🔒'; txt.textContent='ESPERANDO GPS';
+      break;
+  }
+}
+
+// ─── Teclado propio ───────────────────────────────────────────────────────────
+function kp(key) {
+  if (key==='DEL') {
+    depthStr=depthStr.slice(0,-1);
+  } else if (key==='.') {
+    if (!depthStr.includes('.')) depthStr+='.';
+  } else {
+    if (depthStr.length>=6) return;
+    depthStr+=key;
+  }
+  // Actualizar display
+  const disp=document.getElementById('depth-val');
+  disp.textContent = depthStr || '_';
+  const dd=document.getElementById('depth-display');
+  dd.className='depth-display'+(depthStr?'':'')+((depthStr&&depthStr!='_')?' has-val':'');
+
+  updateCalc();
+  // Habilitar/deshabilitar grabar según depth + canGrab
+  if (hasGPS && (canGrab||firstPoint)) {
+    setBtnState(depthStr&&depthStr!='.'?'unlocked':'locked-nodepth');
+  }
+}
+
+// ─── Correcciones ─────────────────────────────────────────────────────────────
+function toggleSign(tipo) {
+  if(tipo==='eco'){ecoSign*=-1;document.getElementById('eco-sign').textContent=ecoSign>0?'+':'−';}
+  else{marSign*=-1;document.getElementById('mar-sign').textContent=marSign>0?'+':'−';}
+  updateCalc(); updateCorrSummary(); autoSave();
+}
+
+function adjCorr(tipo, delta) {
+  if(tipo==='eco'){ecoVal=Math.max(0,parseFloat((ecoVal+delta).toFixed(2)));document.getElementById('eco-display').textContent=ecoVal.toFixed(2);}
+  else{marVal=Math.max(0,parseFloat((marVal+delta).toFixed(2)));document.getElementById('mar-display').textContent=marVal.toFixed(2);}
+  updateCalc(); updateCorrSummary(); autoSave();
+}
+
+function getEco() { return ecoSign*ecoVal; }
+function getMar() { return marSign*marVal; }
+
+function updateCalc() {
+  const off=getEco(), mar=getMar();
+  const eco=parseFloat(depthStr);
+  const fin=isNaN(eco)?null:eco+off+mar;
+  document.getElementById('cv-off').textContent=(off>=0?'+':'')+off.toFixed(2);
+  document.getElementById('cv-mar').textContent=(mar>=0?'+':'')+mar.toFixed(2);
+  document.getElementById('cv-eco').textContent=isNaN(eco)?'—':eco.toFixed(2);
+  document.getElementById('cv-fin').textContent=fin===null?'—':fin.toFixed(2);
+}
+
+function updateCorrSummary() {
+  const e=getEco(), m=getMar();
+  document.getElementById('corr-summary').textContent=
+    `ECO ${e>=0?'+':''}${e.toFixed(2)}  MAR ${m>=0?'+':''}${m.toFixed(2)}`;
+}
+
+function toggleCorr() {
+  corrOpen=!corrOpen;
+  document.getElementById('corr-panel').className='corr-panel'+(corrOpen?' open':'');
+  document.getElementById('corr-arrow').className='corr-toggle-arrow'+(corrOpen?' open':'');
+}
+
+function actualizarMarea() {
+  const nota=document.getElementById('marea-nota').value.trim();
+  const mar=getMar(), off=getEco();
+  const hora=new Date().toTimeString().substring(0,8);
+  const signo=mar>=0?'+':'';
+  const entrada=`${hora}  ${signo}${mar.toFixed(2)}m${nota?' — '+nota:''}`;
+  mareaLogArr.push({hora,mar,off,nota});
+  document.getElementById('marea-log').textContent=entrada;
+  autoSave();
+  showToast('↺ Marea registrada',false,'marea');
+}
+
+// ─── Grabar punto ─────────────────────────────────────────────────────────────
+function grabar() {
+  if(!canGrab&&!firstPoint){showToast('Desplazate '+umbral+'m primero',true);return;}
+  if(!hasGPS){showToast('Sin GPS',true);return;}
+  const eco=parseFloat(depthStr);
+  if(isNaN(eco)||eco<=0){showToast('Ingresá la profundidad',true);return;}
+
+  const off=getEco(), mar=getMar(), fin=eco+off+mar;
+  const distAnt=lastLat?hav(lastLat,lastLon,currentLat,currentLon).toFixed(1):'—';
+  const hora=new Date().toTimeString().substring(0,8);
+  const nota=document.getElementById('marea-nota').value.trim();
+
+  const p={
+    n:puntos.length+1, zona,
+    lat:currentLat.toFixed(7), lon:currentLon.toFixed(7),
+    eco:eco.toFixed(2), off:off.toFixed(2), mar:mar.toFixed(2),
+    final:fin.toFixed(2), dist:distAnt, hora,
+    acc:currentAcc?Math.round(currentAcc)+'m':'—',
+    nota_marea:nota
+  };
+  puntos.push(p);
+  lastLat=currentLat; lastLon=currentLon;
+  firstPoint=false; canGrab=false;
+
+  sendGAS(p);
+  autoSave();
+
+  // Flash
+  document.getElementById('flash').classList.add('show');
+  setTimeout(()=>document.getElementById('flash').classList.remove('show'),120);
+
+  // Reset depth
+  depthStr='';
+  document.getElementById('depth-val').textContent='_';
+  document.getElementById('depth-display').className='depth-display';
+  document.getElementById('cv-eco').textContent='—';
+  document.getElementById('cv-fin').textContent='—';
+  document.getElementById('pt-count').textContent=puntos.length;
+
+  // Reset odómetro
+  document.getElementById('odo-dist').textContent='0.0';
+  document.getElementById('odo-dist').className='odo-dist';
+  document.getElementById('odo-bar').style.width='0%';
+  document.getElementById('odo-bar').className='odo-bar';
+  document.getElementById('odo-estado').textContent='DESPLAZATE '+umbral+'m';
+  document.getElementById('odo-estado').className='odo-estado';
+
+  setBtnState('grabbed');
+  showToast(`✓ #${p.n}  ECO ${eco.toFixed(1)}m → FINAL ${fin.toFixed(2)}m`);
+}
+
+// ─── GAS ──────────────────────────────────────────────────────────────────────
+async function sendGAS(punto) {
+  if(!gasUrl)return;
+  try {
+    await fetch(gasUrl,{method:'POST',mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'sondaje',...punto})});
+  } catch(e){}
+}
+
+// ─── CSV Export ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  if(!puntos.length){showToast('Sin puntos',true);return;}
+  const fecha=new Date().toISOString().substring(0,10);
+  const nombre=(zona||'batimetria').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g,'').replace(/ /g,'_');
+  const hdr='N,ZONA,LATITUD,LONGITUD,ECO_M,OFFSET_M,MAREA_M,FINAL_M,DIST_M,HORA,PRECISION,NOTA_MAREA\n';
+  const rows=puntos.map(p=>`${p.n},"${p.zona}",${p.lat},${p.lon},${p.eco},${p.off},${p.mar},${p.final},${p.dist},${p.hora},${p.acc},"${p.nota_marea||''}"`).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([hdr+rows],{type:'text/csv;charset=utf-8'}));
+  a.download=`${nombre}_${fecha}.csv`;
+  a.click();
+  showToast(`✓ CSV — ${puntos.length} puntos`);
+}
+
+// ─── Zona editable ────────────────────────────────────────────────────────────
+function editZona() {
+  const nz=prompt('Nombre de zona:', zona);
+  if(nz!==null&&nz.trim()){zona=nz.trim();document.getElementById('zona-display').textContent=zona;autoSave();}
+}
+
+// ─── autosave localStorage ────────────────────────────────────────────────────
+function autoSave() {
+  try {
+    localStorage.setItem(LS,JSON.stringify({
+      puntos, zona, gasUrl, ecoSign, ecoVal, marSign, marVal,
+      umbral, mareaLogArr,
+      savedAt:new Date().toTimeString().substring(0,8)
+    }));
+    const d=document.getElementById('as-dot');
+    d.className='as-dot saved';
+    document.getElementById('as-txt').textContent='guardado '+new Date().toTimeString().substring(0,5);
+    setTimeout(()=>d.className='as-dot',2000);
+  } catch(e){}
+}
+
+function autoLoad() {
+  try {
+    const raw=localStorage.getItem(LS);
+    if(!raw)return;
+    const s=JSON.parse(raw);
+    if(s.puntos&&s.puntos.length>0){
+      const ok=confirm(`Hay ${s.puntos.length} puntos de "${s.zona||'sesión anterior'}" guardados.\n¿Continuar desde donde lo dejaste?`);
+      if(ok){
+        puntos=s.puntos; mareaLogArr=s.mareaLogArr||[];
+        ecoSign=s.ecoSign||1; ecoVal=s.ecoVal||0;
+        marSign=s.marSign||1; marVal=s.marVal||0;
+        umbral=s.umbral||10;
+        document.getElementById('eco-display').textContent=ecoVal.toFixed(2);
+        document.getElementById('mar-display').textContent=marVal.toFixed(2);
+        document.getElementById('eco-sign').textContent=ecoSign>0?'+':'−';
+        document.getElementById('mar-sign').textContent=marSign>0?'+':'−';
+        document.getElementById('umbral').value=umbral;
+        document.getElementById('pt-count').textContent=puntos.length;
+        firstPoint=puntos.length===0;
+        updateCalc(); updateCorrSummary();
+        showToast(`✓ ${puntos.length} puntos recuperados`);
+      } else { localStorage.removeItem(LS); }
+    }
+  } catch(e){}
+}
+
+// ─── Beep ─────────────────────────────────────────────────────────────────────
+function beep(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [0,0.20].forEach(d=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=880;o.type='sine';
+      g.gain.setValueAtTime(0.4,ctx.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d+0.13);
+      o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+0.15);
+    });
+  }catch(e){}
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+let tT;
+function showToast(msg,err=false,tipo=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(err?' err':tipo==='marea'?' marea-t':'');
+  clearTimeout(tT);tT=setTimeout(()=>t.className='toast',3000);
+}
+</script>
+</body>
+</html>
