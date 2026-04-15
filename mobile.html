@@ -5,353 +5,215 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>BatiMobile</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@400;600&display=swap');
-
 :root {
-  --bg:    #060e18;
-  --panel: #0b1e30;
-  --bord:  #0f3d60;
-  --amb:   #ffd060;
-  --grn:   #00e5a0;
-  --red:   #ff4455;
-  --blu:   #1a8fe8;
-  --dim:   #2a4a6a;
-  --txt:   #c8dcea;
-  --dtxt:  #4a7a9a;
-  --mar:   #c084fc;
-  --kbd:   #0d2540;
-  --kbd2:  #122d4a;
+  --bg:#060e18; --panel:#0b1e30; --bord:#0f3d60;
+  --amb:#ffd060; --grn:#00e5a0; --red:#ff4455;
+  --blu:#1a8fe8; --dim:#2a4a6a; --txt:#c8dcea;
+  --dtxt:#4a7a9a; --mar:#c084fc; --kbd:#0d2540; --kbd2:#122d4a;
 }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:'Exo 2',sans-serif;}
 
-* { box-sizing:border-box; margin:0; padding:0;
-    -webkit-tap-highlight-color:transparent;
-    -webkit-touch-callout:none; user-select:none; }
+/* APP */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:480px;margin:0 auto;}
 
-html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt);
-  font-family:'Exo 2',sans-serif; }
-
-.app {
-  display:flex; flex-direction:column;
-  height:100vh; height:100dvh;
-  max-width:480px; margin:0 auto;
-}
-
-/* ── HEADER ── */
-.hdr {
-  background:var(--panel); border-bottom:2px solid var(--bord);
-  padding:5px 10px; display:flex; align-items:center;
-  justify-content:space-between; flex-shrink:0;
-}
-.zona-lbl { font-size:7px; letter-spacing:2px; color:var(--dtxt); }
-.zona-val {
-  font-family:'Orbitron',monospace; font-size:11px; font-weight:700;
-  color:var(--amb); cursor:pointer; border-bottom:1px dashed var(--dim);
-  max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-.gps-pill {
-  display:flex; align-items:center; gap:4px;
-  background:rgba(0,0,0,0.3); border:1px solid var(--bord);
-  border-radius:10px; padding:3px 8px;
-}
-.dot { width:7px; height:7px; border-radius:50%; background:var(--dim); transition:all 0.3s; }
-.dot.on  { background:var(--grn); box-shadow:0 0 6px var(--grn); animation:pulse 2s infinite; }
-.dot.err { background:var(--red); }
+/* HEADER */
+.hdr{background:var(--panel);border-bottom:2px solid var(--bord);padding:5px 10px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.zona-lbl{font-size:7px;letter-spacing:2px;color:var(--dtxt);}
+.zona-val{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--amb);
+  cursor:pointer;border-bottom:1px dashed var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gps-pill{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.3);
+  border:1px solid var(--bord);border-radius:10px;padding:3px 8px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dim);transition:all 0.3s;}
+.dot.on{background:var(--grn);box-shadow:0 0 6px var(--grn);animation:pulse 2s infinite;}
+.dot.err{background:var(--red);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.gps-txt { font-family:'Share Tech Mono',monospace; font-size:10px; }
+.gps-txt{font-family:'Share Tech Mono',monospace;font-size:10px;}
 
-/* ── INSTRUMENTOS ── */
-.instrum {
-  display:grid; grid-template-columns:1fr 1fr 1fr;
-  gap:4px; padding:4px 8px; flex-shrink:0;
-}
-.ins {
-  background:var(--panel); border:1px solid var(--bord);
-  border-radius:5px; padding:4px 6px;
-}
-.ins-lbl { font-size:6px; letter-spacing:2px; color:var(--dtxt); margin-bottom:1px; }
-.ins-val {
-  font-family:'Share Tech Mono',monospace; font-size:11px;
-  color:var(--amb); transition:color 0.3s;
-}
-.ins-val.fresh { color:var(--grn); }
+/* INSTRUMENTOS */
+.instrum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px 8px;flex-shrink:0;}
+.ins{background:var(--panel);border:1px solid var(--bord);border-radius:5px;padding:4px 6px;}
+.ins-lbl{font-size:6px;letter-spacing:2px;color:var(--dtxt);margin-bottom:1px;}
+.ins-val{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--amb);transition:color 0.3s;}
+.ins-val.fresh{color:var(--grn);}
 
-/* ── CORRECCIONES TOGGLE ── */
-.corr-toggle {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:4px 10px; background:var(--panel);
-  border-top:1px solid var(--bord); border-bottom:1px solid var(--bord);
-  cursor:pointer; flex-shrink:0;
-}
-.ctlbl { font-size:8px; letter-spacing:2px; color:var(--dtxt); }
-.ctval { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--amb); }
-.ctarr { font-size:9px; color:var(--dtxt); transition:transform 0.2s; }
-.ctarr.open { transform:rotate(180deg); }
+/* CORRECCIONES */
+.corr-toggle{display:flex;align-items:center;justify-content:space-between;
+  padding:4px 10px;background:var(--panel);border-top:1px solid var(--bord);
+  border-bottom:1px solid var(--bord);cursor:pointer;flex-shrink:0;}
+.ctlbl{font-size:8px;letter-spacing:2px;color:var(--dtxt);}
+.ctval{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--amb);}
+.ctarr{font-size:9px;color:var(--dtxt);transition:transform 0.2s;}
+.ctarr.open{transform:rotate(180deg);}
+.corr-panel{background:var(--panel);padding:8px 10px;border-bottom:1px solid var(--bord);flex-shrink:0;display:none;}
+.corr-panel.open{display:block;}
+.crow{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.crow:last-child{margin-bottom:0;}
+.clbl{font-size:7px;letter-spacing:2px;color:var(--dtxt);width:52px;flex-shrink:0;}
+.sign-btn{width:28px;height:28px;border-radius:5px;border:1px solid var(--bord);
+  background:#020a12;color:var(--amb);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cdisp{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--amb);min-width:52px;text-align:center;}
+.cunit{font-size:10px;color:var(--dtxt);}
+.adj-btn{width:28px;height:28px;border-radius:5px;border:1px solid var(--bord);
+  background:var(--kbd2);color:var(--txt);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;}
+.nota-marea{width:100%;background:#020a12;border:1px solid var(--bord);border-radius:5px;
+  color:var(--mar);font-size:11px;font-family:'Exo 2',sans-serif;padding:5px 8px;
+  outline:none;resize:none;height:38px;margin-top:6px;user-select:text;-webkit-user-select:text;}
+.nota-marea::placeholder{color:var(--dim);font-size:10px;}
+.btn-upd-marea{width:100%;margin-top:4px;padding:6px;background:rgba(192,132,252,0.1);
+  border:1px solid var(--mar);border-radius:5px;color:var(--mar);font-size:10px;
+  letter-spacing:2px;font-family:'Exo 2',sans-serif;font-weight:600;cursor:pointer;}
+.marea-log-txt{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--mar);margin-top:3px;opacity:0.7;}
 
-.corr-panel {
-  background:var(--panel); padding:8px 10px;
-  border-bottom:1px solid var(--bord); flex-shrink:0; display:none;
-}
-.corr-panel.open { display:block; }
-
-.crow { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
-.crow:last-child { margin-bottom:0; }
-.clbl { font-size:7px; letter-spacing:2px; color:var(--dtxt); width:52px; flex-shrink:0; }
-.sign-btn {
-  width:28px; height:28px; border-radius:5px; border:1px solid var(--bord);
-  background:#020a12; color:var(--amb); font-size:16px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center; flex-shrink:0;
-}
-.cdisp {
-  font-family:'Orbitron',monospace; font-size:16px; font-weight:700;
-  color:var(--amb); min-width:52px; text-align:center;
-}
-.cunit { font-size:10px; color:var(--dtxt); }
-.adj-btn {
-  width:28px; height:28px; border-radius:5px; border:1px solid var(--bord);
-  background:var(--kbd2); color:var(--txt); font-size:16px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-}
-
-.nota-marea {
-  width:100%; background:#020a12; border:1px solid var(--bord);
-  border-radius:5px; color:var(--mar); font-size:11px;
-  font-family:'Exo 2',sans-serif; padding:5px 8px;
-  outline:none; resize:none; height:38px; margin-top:6px;
-  user-select:text; -webkit-user-select:text;
-}
-.nota-marea::placeholder { color:var(--dim); font-size:10px; }
-.btn-upd-marea {
-  width:100%; margin-top:4px; padding:6px;
-  background:rgba(192,132,252,0.1); border:1px solid var(--mar);
-  border-radius:5px; color:var(--mar); font-size:10px; letter-spacing:2px;
-  font-family:'Exo 2',sans-serif; font-weight:600; cursor:pointer;
-}
-.marea-log-txt {
-  font-family:'Share Tech Mono',monospace; font-size:8px;
-  color:var(--mar); margin-top:3px; opacity:0.7;
-}
-
-/* ── ODÓMETRO ── */
-.odometro { padding:5px 10px; flex-shrink:0; }
-.odo-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:3px; }
-.odo-lbl { font-size:7px; letter-spacing:2px; color:var(--dtxt); }
-.odo-umbral { display:flex; align-items:center; gap:3px; font-size:8px; color:var(--dtxt); }
-.odo-umbral input {
-  width:36px; background:var(--panel); border:1px solid var(--bord);
-  color:var(--amb); border-radius:3px; padding:1px 4px;
-  font-family:'Share Tech Mono',monospace; font-size:11px;
-  text-align:center; outline:none;
-  user-select:text; -webkit-user-select:text;
-}
-.odo-bar-wrap {
-  height:6px; background:#020a12; border-radius:3px;
-  border:1px solid var(--bord); overflow:hidden; margin-bottom:3px;
-}
-.odo-bar {
-  height:100%; width:0%; border-radius:3px;
-  background:linear-gradient(90deg,var(--blu),var(--grn)); transition:width 0.5s ease;
-}
-.odo-bar.ready { background:var(--grn); }
-.odo-bottom { display:flex; justify-content:space-between; align-items:baseline; }
-.odo-dist {
-  font-family:'Orbitron',monospace; font-size:18px; font-weight:700;
-  color:var(--dim); transition:color 0.3s;
-}
-.odo-dist.moving { color:var(--blu); }
-.odo-dist.ready  { color:var(--grn); animation:glow 1s ease infinite alternate; }
+/* ODÓMETRO */
+.odometro{padding:5px 10px;flex-shrink:0;}
+.odo-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.odo-lbl{font-size:7px;letter-spacing:2px;color:var(--dtxt);}
+.odo-umbral{display:flex;align-items:center;gap:3px;font-size:8px;color:var(--dtxt);}
+.odo-umbral input{width:36px;background:var(--panel);border:1px solid var(--bord);
+  color:var(--amb);border-radius:3px;padding:1px 4px;font-family:'Share Tech Mono',monospace;
+  font-size:11px;text-align:center;outline:none;user-select:text;-webkit-user-select:text;}
+.odo-bar-wrap{height:6px;background:#020a12;border-radius:3px;border:1px solid var(--bord);overflow:hidden;margin-bottom:3px;}
+.odo-bar{height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,var(--blu),var(--grn));transition:width 0.5s ease;}
+.odo-bar.ready{background:var(--grn);}
+.odo-bottom{display:flex;justify-content:space-between;align-items:baseline;}
+.odo-dist{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--dim);transition:color 0.3s;}
+.odo-dist.moving{color:var(--blu);}
+.odo-dist.ready{color:var(--grn);animation:glow 1s ease infinite alternate;}
 @keyframes glow{from{text-shadow:0 0 8px var(--grn)}to{text-shadow:0 0 20px var(--grn)}}
-.odo-estado {
-  font-size:9px; letter-spacing:1px; padding:2px 7px; border-radius:8px;
-  background:rgba(42,74,106,0.4); color:var(--dtxt); border:1px solid var(--dim); transition:all 0.3s;
-}
-.odo-estado.ready { background:rgba(0,229,160,0.1); color:var(--grn); border-color:var(--grn); }
+.odo-estado{font-size:9px;letter-spacing:1px;padding:2px 7px;border-radius:8px;
+  background:rgba(42,74,106,0.4);color:var(--dtxt);border:1px solid var(--dim);transition:all 0.3s;}
+.odo-estado.ready{background:rgba(0,229,160,0.1);color:var(--grn);border-color:var(--grn);}
 
-/* ── CALCULADORA ── */
-.calc {
-  display:flex; align-items:center; justify-content:center;
-  gap:3px; padding:4px 8px; flex-shrink:0;
-  background:var(--panel); border-top:1px solid var(--bord); border-bottom:1px solid var(--bord);
-}
-.ct { text-align:center; }
-.clb { font-size:6px; letter-spacing:1px; color:var(--dtxt); }
-.cv  { font-family:'Orbitron',monospace; font-weight:700; }
-.cv-eco { color:var(--amb); font-size:14px; }
-.cv-off { color:var(--blu); font-size:11px; }
-.cv-mar { color:var(--mar); font-size:11px; }
-.cv-fin { color:var(--grn); font-size:18px; }
-.cop { font-family:'Share Tech Mono',monospace; font-size:14px; color:var(--dim); padding:0 1px; }
-.ceq { color:var(--amb); }
+/* CALCULADORA */
+.calc{display:flex;align-items:center;justify-content:center;gap:3px;padding:4px 8px;
+  flex-shrink:0;background:var(--panel);border-top:1px solid var(--bord);border-bottom:1px solid var(--bord);}
+.ct{text-align:center;}
+.clb{font-size:6px;letter-spacing:1px;color:var(--dtxt);}
+.cv{font-family:'Orbitron',monospace;font-weight:700;}
+.cv-eco{color:var(--amb);font-size:14px;}
+.cv-off{color:var(--blu);font-size:11px;}
+.cv-mar{color:var(--mar);font-size:11px;}
+.cv-fin{color:var(--grn);font-size:18px;}
+.cop{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--dim);padding:0 1px;}
+.ceq{color:var(--amb);}
 
-/* ── DISPLAY PROFUNDIDAD ── */
-.depth-wrap {
-  flex:1; display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  padding:6px; min-height:0;
+/* MODO AUTO INDICATOR */
+.auto-badge{
+  display:none;align-items:center;justify-content:center;gap:6px;
+  padding:3px 10px;background:rgba(255,208,96,0.1);
+  border-top:1px solid rgba(255,208,96,0.3);
+  font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--amb);
+  flex-shrink:0;letter-spacing:2px;
 }
-.depth-disp {
-  background:#020a12; border:2px solid var(--dim);
-  border-radius:10px; padding:8px 16px;
-  font-family:'Orbitron',monospace; font-size:44px; font-weight:900;
-  color:var(--amb); letter-spacing:2px; text-align:center;
-  min-width:180px;
-  display:flex; align-items:center; justify-content:center;
-  transition:border-color 0.3s, box-shadow 0.3s; position:relative;
-}
-.depth-disp.has-val { border-color:var(--amb); box-shadow:0 0 16px rgba(255,208,96,0.15); }
-.dcursor {
-  display:inline-block; width:3px; height:44px;
-  background:var(--amb); margin-left:2px; vertical-align:middle;
-  animation:blink 1s step-end infinite;
-}
+.auto-badge.show{display:flex;animation:badgePulse 1.5s ease infinite;}
+@keyframes badgePulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.auto-dot{width:6px;height:6px;border-radius:50%;background:var(--amb);}
+
+/* DISPLAY PROFUNDIDAD */
+.depth-wrap{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:6px;min-height:0;}
+.depth-disp{background:#020a12;border:2px solid var(--dim);border-radius:10px;
+  padding:8px 16px;font-family:'Orbitron',monospace;font-size:44px;font-weight:900;
+  color:var(--amb);letter-spacing:2px;text-align:center;min-width:180px;
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color 0.3s,box-shadow 0.3s;position:relative;}
+.depth-disp.has-val{border-color:var(--amb);box-shadow:0 0 16px rgba(255,208,96,0.15);}
+.depth-disp.auto-mode{border-color:var(--amb);border-style:dashed;}
+.dcursor{display:inline-block;width:3px;height:44px;background:var(--amb);
+  margin-left:2px;vertical-align:middle;animation:blink 1s step-end infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.dunit {
-  position:absolute; bottom:4px; right:10px;
-  font-size:11px; color:var(--dtxt); font-weight:400;
-}
+.dunit{position:absolute;bottom:4px;right:10px;font-size:11px;color:var(--dtxt);font-weight:400;}
 
-/* ── BOTÓN GRABAR ── */
-.btn-grabar {
-  margin:4px 8px 3px;
-  padding:11px; border-radius:8px;
-  font-family:'Orbitron',monospace; font-size:14px; font-weight:700;
-  letter-spacing:3px; text-transform:uppercase;
-  border:2px solid; cursor:pointer; transition:all 0.2s; flex-shrink:0;
-}
-.btn-grabar.locked  { background:rgba(42,74,106,0.2); border-color:var(--dim); color:var(--dim); cursor:not-allowed; }
-.btn-grabar.unlocked { background:linear-gradient(135deg,rgba(0,229,160,0.15),rgba(26,143,232,0.15)); border-color:var(--grn); color:var(--grn); animation:bp 1.5s ease infinite; }
+/* BOTÓN GRABAR */
+.btn-grabar{margin:4px 8px 3px;padding:11px;border-radius:8px;
+  font-family:'Orbitron',monospace;font-size:14px;font-weight:700;
+  letter-spacing:3px;text-transform:uppercase;border:2px solid;cursor:pointer;
+  transition:all 0.2s;flex-shrink:0;}
+.btn-grabar.locked{background:rgba(42,74,106,0.2);border-color:var(--dim);color:var(--dim);cursor:not-allowed;}
+.btn-grabar.unlocked{background:linear-gradient(135deg,rgba(0,229,160,0.15),rgba(26,143,232,0.15));
+  border-color:var(--grn);color:var(--grn);animation:bp 1.5s ease infinite;}
 @keyframes bp{0%,100%{box-shadow:0 0 14px rgba(0,229,160,0.2)}50%{box-shadow:0 0 28px rgba(0,229,160,0.45)}}
-.btn-grabar.unlocked:active { transform:scale(0.97); }
-.btn-grabar.no-gps { background:rgba(42,74,106,0.1); border-color:var(--dim); color:var(--dim); cursor:not-allowed; }
+.btn-grabar.unlocked:active{transform:scale(0.97);}
+.btn-grabar.no-gps{background:rgba(42,74,106,0.1);border-color:var(--dim);color:var(--dim);cursor:not-allowed;}
 
-/* ── TECLADO ── */
-.keyboard { background:var(--kbd); padding:4px 6px 6px; flex-shrink:0; }
-.krow { display:flex; gap:5px; margin-bottom:5px; }
-.krow:last-child { margin-bottom:0; }
-.k {
-  flex:1; height:44px;
-  background:var(--kbd2); border:1px solid var(--bord);
-  border-radius:7px; color:var(--txt);
-  font-family:'Share Tech Mono',monospace; font-size:19px;
-  cursor:pointer; display:flex; align-items:center; justify-content:center;
-  border-bottom:3px solid rgba(0,0,0,0.4); transition:all 0.08s;
-}
-.k:active { background:var(--bord); transform:translateY(1px); border-bottom-width:1px; }
-.k.del { background:rgba(255,68,85,0.1); border-color:rgba(255,68,85,0.25); color:var(--red); font-size:16px; }
-.k.del:active { background:rgba(255,68,85,0.25); }
-.k.enter-k {
-  flex:3; font-size:13px; letter-spacing:2px;
-  background:rgba(0,229,160,0.08); border-color:rgba(0,229,160,0.2); color:var(--grn);
-}
-.k.enter-k.ready {
-  background:rgba(0,229,160,0.15); border-color:var(--grn);
-  animation:bp 1.5s ease infinite;
-}
+/* TECLADO */
+.keyboard{background:var(--kbd);padding:4px 6px 6px;flex-shrink:0;}
+.krow{display:flex;gap:5px;margin-bottom:5px;}
+.krow:last-child{margin-bottom:0;}
+.k{flex:1;height:44px;background:var(--kbd2);border:1px solid var(--bord);border-radius:7px;
+  color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:19px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  border-bottom:3px solid rgba(0,0,0,0.4);transition:all 0.08s;}
+.k:active{background:var(--bord);transform:translateY(1px);border-bottom-width:1px;}
+.k.del{background:rgba(255,68,85,0.1);border-color:rgba(255,68,85,0.25);color:var(--red);font-size:16px;}
+.k.del:active{background:rgba(255,68,85,0.25);}
+.k.enter-k{flex:2;font-size:13px;letter-spacing:2px;
+  background:rgba(0,229,160,0.08);border-color:rgba(0,229,160,0.2);color:var(--grn);}
+.k.enter-k.ready{background:rgba(0,229,160,0.15);border-color:var(--grn);animation:bp 1.5s ease infinite;}
+.k.auto-k{flex:1;font-size:13px;letter-spacing:1px;font-weight:700;
+  background:rgba(255,208,96,0.08);border-color:rgba(255,208,96,0.25);color:var(--amb);}
+.k.auto-k.on{background:rgba(255,208,96,0.2);border-color:var(--amb);animation:ambPulse 1s ease infinite;}
+@keyframes ambPulse{0%,100%{box-shadow:0 0 8px rgba(255,208,96,0.3)}50%{box-shadow:0 0 20px rgba(255,208,96,0.7)}}
 
-/* ── COUNTER BAR ── */
-.cbar {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:3px 10px; background:var(--bg); flex-shrink:0;
-}
-.cpts { font-family:'Orbitron',monospace; font-size:13px; color:var(--amb); font-weight:700; }
-.cpts span { font-size:8px; color:var(--dtxt); margin-left:2px; }
-.btn-csv {
-  padding:3px 10px; border-radius:10px; cursor:pointer;
-  background:rgba(232,160,32,0.1); border:1px solid var(--amb);
-  color:var(--amb); font-size:9px; letter-spacing:1px;
-  font-family:'Exo 2',sans-serif; font-weight:600;
-}
-.as-ind { display:flex; align-items:center; gap:3px; font-size:8px; color:var(--dtxt); }
-.as-dot { width:5px; height:5px; border-radius:50%; background:var(--dim); transition:all 0.3s; }
-.as-dot.saved { background:var(--grn); }
+/* COUNTER BAR */
+.cbar{display:flex;justify-content:space-between;align-items:center;
+  padding:3px 10px;background:var(--bg);flex-shrink:0;}
+.cpts{font-family:'Orbitron',monospace;font-size:13px;color:var(--amb);font-weight:700;}
+.cpts span{font-size:8px;color:var(--dtxt);margin-left:2px;}
+.btn-csv{padding:3px 10px;border-radius:10px;cursor:pointer;
+  background:rgba(232,160,32,0.1);border:1px solid var(--amb);
+  color:var(--amb);font-size:9px;letter-spacing:1px;font-family:'Exo 2',sans-serif;font-weight:600;}
+.as-ind{display:flex;align-items:center;gap:3px;font-size:8px;color:var(--dtxt);}
+.as-dot{width:5px;height:5px;border-radius:50%;background:var(--dim);transition:all 0.3s;}
+.as-dot.saved{background:var(--grn);}
 
-/* ── TOAST ── */
-.toast {
-  position:fixed; bottom:70px; left:50%; transform:translateX(-50%) translateY(20px);
-  background:var(--panel); border:1px solid var(--grn);
-  border-radius:16px; padding:7px 16px; font-size:11px;
-  color:var(--grn); font-family:'Share Tech Mono',monospace;
-  opacity:0; transition:all 0.3s; z-index:100; white-space:nowrap;
-}
-.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-.toast.err  { border-color:var(--red); color:var(--red); }
-.toast.mt   { border-color:var(--mar); color:var(--mar); }
+/* TOAST */
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--panel);border:1px solid var(--grn);border-radius:16px;
+  padding:7px 16px;font-size:11px;color:var(--grn);font-family:'Share Tech Mono',monospace;
+  opacity:0;transition:all 0.3s;z-index:100;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.err{border-color:var(--red);color:var(--red);}
+.toast.mt{border-color:var(--mar);color:var(--mar);}
+.toast.auto{border-color:var(--amb);color:var(--amb);}
 
-/* ── MODAL ── */
-.modal-bg {
-  position:fixed; inset:0; background:rgba(0,0,0,0.8);
-  z-index:200; display:flex; align-items:center; justify-content:center; padding:16px;
-}
-.modal {
-  background:var(--panel); border:1px solid var(--bord);
-  border-radius:12px; padding:18px; width:100%; max-width:360px;
-}
-.modal-title {
-  font-family:'Orbitron',monospace; font-size:12px; font-weight:700;
-  color:var(--amb); letter-spacing:3px; margin-bottom:14px; text-align:center;
-}
-.mfield { margin-bottom:10px; }
-.mlbl { font-size:8px; letter-spacing:2px; color:var(--dtxt); margin-bottom:3px; }
-.minput {
-  width:100%; background:#020a12; border:1px solid var(--bord);
-  color:var(--amb); border-radius:5px; padding:8px 10px;
-  font-family:'Share Tech Mono',monospace; font-size:13px; outline:none;
-  user-select:text; -webkit-user-select:text;
-}
-.minput:focus { border-color:var(--amb); }
-.mbtns { display:flex; gap:8px; margin-top:14px; }
-.mok {
-  flex:1; padding:10px; background:var(--blu); border:none;
-  border-radius:7px; color:white; font-family:'Orbitron',monospace;
-  font-size:11px; letter-spacing:2px; cursor:pointer;
-}
-.mok:disabled { opacity:0.4; cursor:not-allowed; }
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:var(--panel);border:1px solid var(--bord);border-radius:12px;
+  padding:18px;width:100%;max-width:360px;}
+.modal-title{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;
+  color:var(--amb);letter-spacing:3px;margin-bottom:14px;text-align:center;}
+.mfield{margin-bottom:10px;}
+.mlbl{font-size:8px;letter-spacing:2px;color:var(--dtxt);margin-bottom:3px;}
+.minput{width:100%;background:#020a12;border:1px solid var(--bord);color:var(--amb);
+  border-radius:5px;padding:8px 10px;font-family:'Share Tech Mono',monospace;
+  font-size:13px;outline:none;user-select:text;-webkit-user-select:text;}
+.minput:focus{border-color:var(--amb);}
+.mbtns{display:flex;gap:8px;margin-top:14px;}
+.mok{flex:1;padding:10px;background:var(--blu);border:none;border-radius:7px;
+  color:white;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;cursor:pointer;}
 
-/* ── GPS PERMISSION SCREEN ── */
-.gps-screen {
-  position:fixed; inset:0; background:var(--bg);
-  z-index:150; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:16px; padding:30px;
-}
-.gps-icon { font-size:50px; }
-.gps-msg {
-  font-family:'Orbitron',monospace; font-size:12px; color:var(--amb);
-  letter-spacing:2px; text-align:center;
-}
-.gps-sub { font-size:11px; color:var(--dtxt); text-align:center; line-height:1.6; }
-.btn-allow-gps {
-  padding:12px 24px; background:var(--grn); border:none;
-  border-radius:8px; color:#020a12; font-family:'Orbitron',monospace;
-  font-size:12px; letter-spacing:2px; cursor:pointer; font-weight:700;
-}
+/* GPS PERMISSION */
+.gps-screen{position:fixed;inset:0;background:var(--bg);z-index:150;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;padding:30px;}
+.gps-icon{font-size:50px;}
+.gps-msg{font-family:'Orbitron',monospace;font-size:12px;color:var(--amb);letter-spacing:2px;text-align:center;}
+.gps-sub{font-size:11px;color:var(--dtxt);text-align:center;line-height:1.6;}
+.btn-allow{padding:12px 24px;background:var(--grn);border:none;border-radius:8px;
+  color:#020a12;font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;cursor:pointer;font-weight:700;}
 
-
-.k.auto-k {
-  flex:2; font-size:13px; letter-spacing:2px;
-  background:rgba(255,208,96,0.08); border-color:rgba(255,208,96,0.25); color:var(--amb);
-}
-.k.auto-k.on {
-  background:rgba(255,208,96,0.2); border-color:var(--amb);
-  animation:autoP 1s ease infinite;
-  color:var(--amb);
-}
-@keyframes autoP{0%,100%{box-shadow:0 0 8px rgba(255,208,96,0.3)}50%{box-shadow:0 0 20px rgba(255,208,96,0.7)}}
-.auto-ind {
-  position:absolute; top:6px; right:10px;
-  font-family:'Share Tech Mono',monospace; font-size:9px;
-  color:var(--amb); letter-spacing:1px; opacity:0;
-  transition:opacity 0.3s;
-}
-.auto-ind.show { opacity:1; animation:autoP 1s ease infinite; }
-
-/* ── FLASH ── */
-.flash {
-  position:fixed; inset:0; background:rgba(0,229,160,0.1);
-  pointer-events:none; opacity:0; transition:opacity 0.08s; z-index:50;
-}
-.flash.show { opacity:1; }
+/* FLASH */
+.flash{position:fixed;inset:0;background:rgba(0,229,160,0.1);pointer-events:none;opacity:0;transition:opacity 0.08s;z-index:50;}
+.flash.show{opacity:1;}
 </style>
 </head>
 <body>
@@ -359,40 +221,33 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
 <div class="flash" id="flash"></div>
 <div class="toast" id="toast"></div>
 
-<!-- PANTALLA PERMISO GPS -->
+<!-- GPS PERMISSION -->
 <div class="gps-screen" id="gps-screen" style="display:none">
   <div class="gps-icon">📍</div>
   <div class="gps-msg">PERMISO DE UBICACIÓN</div>
-  <div class="gps-sub">BatiMobile necesita acceso al GPS del celular para registrar las coordenadas de cada sondaje.</div>
-  <button class="btn-allow-gps" onclick="requestGPS()">▶ ACTIVAR GPS</button>
-  <div class="gps-sub" style="font-size:9px;margin-top:8px" id="gps-err-msg"></div>
+  <div class="gps-sub">BatiMobile necesita acceso al GPS para registrar las coordenadas de cada sondaje.</div>
+  <button class="btn-allow" onclick="requestGPS()">▶ ACTIVAR GPS</button>
+  <div class="gps-sub" style="font-size:9px;margin-top:8px" id="gps-err"></div>
 </div>
 
 <!-- MODAL CONFIG -->
 <div class="modal-bg" id="modal-config">
   <div class="modal">
     <div class="modal-title">⚓ BATICAPTURA MOBILE</div>
-
     <div class="mfield">
       <div class="mlbl">ZONA / SECTOR</div>
-      <input class="minput" id="cfg-zona" type="text" placeholder="Ej: Canal 1 — Dársena Norte"/>
+      <input class="minput" id="cfg-zona" type="text" placeholder="Ej: Canal 1"/>
     </div>
-
     <div class="mfield">
-      <div class="mlbl">OFFSET ECOSONDA</div>
+      <div class="mlbl">OFFSET ECOSONDA / ALTURA</div>
       <div style="display:flex;gap:6px;align-items:center">
-        <button class="sign-btn" id="cfg-eco-sign" onclick="toggleCfgSign()">+</button>
+        <button class="sign-btn" id="cfg-eco-sign" onclick="cfgEcoSign*=-1;this.textContent=cfgEcoSign>0?'+':'−'">+</button>
         <input class="minput" id="cfg-eco" type="number" value="0.00" step="0.01" min="0" style="flex:1"/>
         <span style="color:var(--dtxt);font-size:11px">m</span>
       </div>
     </div>
-
-    <div class="mfield">
-
-    </div>
-
     <div class="mbtns">
-      <button class="mok" id="btn-iniciar" onclick="initSesion()">▶ INICIAR</button>
+      <button class="mok" onclick="initSesion()">▶ INICIAR</button>
     </div>
   </div>
 </div>
@@ -419,14 +274,13 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
     <div class="ins"><div class="ins-lbl">PRECISIÓN</div><div class="ins-val" id="d-acc">—</div></div>
   </div>
 
-  <!-- CORRECCIONES TOGGLE -->
+  <!-- CORRECCIONES -->
   <div class="corr-toggle" onclick="toggleCorr()">
     <span class="ctlbl">⚙ CORRECCIONES</span>
     <span class="ctval" id="corr-sum">ECO +0.00  MAR +0.00</span>
     <span class="ctarr" id="ctarr">▼</span>
   </div>
   <div class="corr-panel" id="corr-panel">
-    <!-- Ecosonda -->
     <div class="crow">
       <div class="clbl">ECOSONDA</div>
       <button class="sign-btn" id="eco-sign" onclick="toggleSign('eco')">+</button>
@@ -437,7 +291,6 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
         <button class="adj-btn" onclick="adj('eco',+0.01)">+</button>
       </div>
     </div>
-    <!-- Marea -->
     <div class="crow">
       <div class="clbl">MAREA</div>
       <button class="sign-btn" id="mar-sign" onclick="toggleSign('mar')">+</button>
@@ -448,9 +301,8 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
         <button class="adj-btn" onclick="adj('mar',+0.01)">+</button>
       </div>
     </div>
-    <!-- Nota -->
     <textarea class="nota-marea" id="marea-nota"
-      placeholder="Referencia: ej. escalón 3 muelle, medido con metro"
+      placeholder="Referencia marea: ej. escalón 3 muelle, medido con metro"
       onclick="this.focus()" onfocus="this.readOnly=false"></textarea>
     <button class="btn-upd-marea" onclick="actualizarMarea()">↺ REGISTRAR CORRECCIÓN</button>
     <div class="marea-log-txt" id="marea-log">Sin actualizaciones</div>
@@ -460,7 +312,9 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
   <div class="odometro">
     <div class="odo-top">
       <div class="odo-lbl">DISTANCIA DESDE ÚLTIMO PUNTO</div>
-      <div class="odo-umbral">UMBRAL <input type="number" id="umbral" value="10" min="1" max="200" onchange="updateUmbral()"/> m</div>
+      <div class="odo-umbral">
+        UMBRAL <input type="number" id="umbral" value="10" min="1" max="200" onchange="umbral=parseInt(this.value)||10"/> m
+      </div>
     </div>
     <div class="odo-bar-wrap"><div class="odo-bar" id="odo-bar"></div></div>
     <div class="odo-bottom">
@@ -480,10 +334,17 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
     <div class="ct"><div class="clb">FINAL</div><div class="cv cv-fin" id="cv-fin">—</div></div>
   </div>
 
+  <!-- INDICADOR AUTO -->
+  <div class="auto-badge" id="auto-badge">
+    <div class="auto-dot"></div>
+    MODO AUTOMÁTICO ACTIVO
+    <div class="auto-dot"></div>
+  </div>
+
   <!-- DISPLAY PROFUNDIDAD -->
-  <div class="depth-wrap" style="position:relative"><div class="auto-ind" id="auto-ind">● AUTO</div>
+  <div class="depth-wrap">
     <div class="depth-disp" id="depth-disp">
-      <span id="dval">_</span><span class="dcursor"></span>
+      <span id="dval">_</span><span class="dcursor" id="dcursor"></span>
       <span class="dunit">m</span>
     </div>
   </div>
@@ -500,7 +361,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
     <button class="btn-csv" onclick="exportCSV()">↓ CSV</button>
   </div>
 
-  <!-- TECLADO PROPIO -->
+  <!-- TECLADO -->
   <div class="keyboard">
     <div class="krow">
       <button class="k" onclick="kp('1')">1</button>
@@ -524,438 +385,542 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
     </div>
   </div>
 
-</div>
+</div><!-- /app -->
 
 <script>
-// ─── Estado ───────────────────────────────────────────────────────────────────
-const GAS_URL='https://script.google.com/macros/s/AKfycbxxirQPVVJyk3Dz3VUFhas0fMTZXdonbyU55Wkrrfdc0y68sHmP85cBbdAOqFIqRHwQ/exec';
-let zona='', gasUrl=GAS_URL;
-let ecoSign=1, ecoVal=0, marSign=1, marVal=0;
-let depthStr='';
-let puntos=[], mareaLogArr=[];
-let hasGPS=false, firstPoint=true, canGrab=false;
-let lat=null, lon=null, acc=null, currentAlt=null;
-let lastLat=null, lastLon=null;
-let umbral=10, watchId=null, corrOpen=false, cfgEcoSign=1;
-const LS='batimobile_v2';
-let autoMode=false;
+// ════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ════════════════════════════════════════════════
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxxirQPVVJyk3Dz3VUFhas0fMTZXdonbyU55Wkrrfdc0y68sHmP85cBbdAOqFIqRHwQ/exec';
+const LS_KEY  = 'batimobile_v3';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-function toggleCfgSign(){
-  cfgEcoSign*=-1;
-  document.getElementById('cfg-eco-sign').textContent=cfgEcoSign>0?'+':'−';
-}
+let zona      = '';
+let ecoSign   = 1,  ecoVal = 0;
+let marSign   = 1,  marVal = 0;
+let cfgEcoSign = 1;
 
-function initSesion(){
-  zona=document.getElementById('cfg-zona').value.trim()||'Sin nombre';
-  ecoSign=cfgEcoSign;
-  ecoVal=parseFloat(document.getElementById('cfg-eco').value)||0;
-  gasUrl=GAS_URL;
-  document.getElementById('eco-disp').textContent=ecoVal.toFixed(2);
-  document.getElementById('eco-sign').textContent=ecoSign>0?'+':'−';
-  document.getElementById('zona-display').textContent=zona;
-  document.getElementById('modal-config').style.display='none';
+let depthStr  = '';
+let puntos    = [], mareaLogArr = [];
+
+let hasGPS    = false;
+let firstPoint = true;
+let canGrab   = false;
+let autoMode  = false;
+
+let gpsLat = null, gpsLon = null, gpsAcc = null, gpsAlt = null;
+let lastLat = null, lastLon = null;
+let umbral  = 10;
+let watchId = null;
+let corrOpen = false;
+
+// ════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════
+function initSesion() {
+  zona    = document.getElementById('cfg-zona').value.trim() || 'Sin nombre';
+  ecoSign = cfgEcoSign;
+  ecoVal  = parseFloat(document.getElementById('cfg-eco').value) || 0;
+
+  document.getElementById('eco-disp').textContent = ecoVal.toFixed(2);
+  document.getElementById('eco-sign').textContent = ecoSign > 0 ? '+' : '−';
+  document.getElementById('zona-display').textContent = zona;
+  document.getElementById('modal-config').style.display = 'none';
+
   autoLoad();
   checkGPS();
-  updateCalc(); updateCorrSum();
+  updateCalc();
+  updateCorrSum();
 }
 
-// ─── GPS — pedir permiso explícito ────────────────────────────────────────────
-function checkGPS(){
-  if(!('geolocation' in navigator)){
-    showToast('Este dispositivo no tiene GPS',true); return;
+function editZona() {
+  const nz = prompt('Nombre de zona:', zona);
+  if (nz !== null && nz.trim()) {
+    zona = nz.trim();
+    document.getElementById('zona-display').textContent = zona;
+    autoSave();
   }
-  // Mostrar pantalla de permiso
-  document.getElementById('gps-screen').style.display='flex';
 }
 
-function requestGPS(){
-  document.getElementById('gps-err-msg').textContent='Solicitando GPS…';
-  navigator.geolocation.getCurrentPosition(
-    pos=>{
-      // Permiso concedido — arrancar watch
-      document.getElementById('gps-screen').style.display='none';
-      document.getElementById('app-main').style.display='flex';
-      startWatch();
-    },
-    err=>{
-      let msg='';
-      switch(err.code){
-        case 1: msg='Permiso denegado. Habilitá ubicación en Configuración del celular.'; break;
-        case 2: msg='GPS no disponible. Salí a un lugar con señal.'; break;
-        case 3: msg='Tiempo agotado. Intentá de nuevo.'; break;
-      }
-      document.getElementById('gps-err-msg').textContent=msg;
-    },
-    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
-  );
-}
-
-function startWatch(){
-  setGPSStatus('Buscando…',false);
-  watchId=navigator.geolocation.watchPosition(
-    onOK, onErr,
-    {enableHighAccuracy:true, maximumAge:2000, timeout:10000}
-  );
-}
-
-function onOK(pos){
-  lat=pos.coords.latitude; lon=pos.coords.longitude; acc=pos.coords.accuracy;
-  currentAlt=pos.coords.altitude||0;
-  hasGPS=true;
-  setGPSStatus('OK',true);
-  document.getElementById('d-lat').textContent=lat.toFixed(5);
-  document.getElementById('d-lon').textContent=Math.abs(lon).toFixed(5);
-  document.getElementById('d-acc').textContent='±'+Math.round(acc)+'m';
-  ['d-lat','d-lon','d-acc'].forEach(id=>{
-    const el=document.getElementById(id);
-    el.classList.add('fresh');
-    setTimeout(()=>el.classList.remove('fresh'),800);
-  });
-  updateOdo();
-}
-
-function onErr(err){
-  setGPSStatus('Error',false);
-  showToast('GPS perdido: '+err.message,true);
-}
-
-function setGPSStatus(txt,on){
-  document.getElementById('gps-txt').textContent=txt;
-  document.getElementById('gps-dot').className='dot'+(on?' on':'');
-  if(on&&firstPoint)setBtnState('unlocked');
-  if(!on)setBtnState('no-gps');
-}
-
-// ─── Haversine ────────────────────────────────────────────────────────────────
-function hav(la1,lo1,la2,lo2){
-  const R=6371000,r=d=>d*Math.PI/180;
-  const a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(lo2-lo1)/2)**2;
-  return R*2*Math.asin(Math.sqrt(a));
-}
-function getDist(){return(!lastLat||!lat)?0:hav(lastLat,lastLon,lat,lon);}
-function updateUmbral(){umbral=parseInt(document.getElementById('umbral').value)||10; autoSave();}
-
-// ─── Odómetro ─────────────────────────────────────────────────────────────────
-function updateOdo(){
-  if(!hasGPS)return;
-  if(firstPoint){
-    setBtnState(depthStr?'unlocked':'unlocked-nodepth');
-    document.getElementById('odo-dist').textContent='—';
-    document.getElementById('odo-estado').textContent='PRIMER PUNTO';
-    document.getElementById('odo-estado').className='odo-estado ready';
-    document.getElementById('odo-bar').style.width='100%';
-    document.getElementById('odo-bar').className='odo-bar ready';
+// ════════════════════════════════════════════════
+//  GPS
+// ════════════════════════════════════════════════
+function checkGPS() {
+  if (!('geolocation' in navigator)) {
+    showToast('Este dispositivo no tiene GPS', true);
     return;
   }
-  if(!lastLat)return;
-  const dist=getDist(), pct=Math.min(dist/umbral,1)*100;
-  const bar=document.getElementById('odo-bar');
-  document.getElementById('odo-dist').textContent=dist.toFixed(1);
-  bar.style.width=pct+'%';
-  if(dist>=umbral){
-    bar.className='odo-bar ready';
-    document.getElementById('odo-dist').className='odo-dist ready';
-    document.getElementById('odo-estado').textContent='✓ LISTO';
-    document.getElementById('odo-estado').className='odo-estado ready';
-    if(!canGrab){
-      if(autoMode){
-        // Modo automático — grabar sin intervención
+  document.getElementById('gps-screen').style.display = 'flex';
+}
+
+function requestGPS() {
+  document.getElementById('gps-err').textContent = 'Solicitando GPS…';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      document.getElementById('gps-screen').style.display = 'none';
+      document.getElementById('app-main').style.display = 'flex';
+      startWatch();
+      // Primer fix inmediato
+      onGPSfix(pos);
+    },
+    err => {
+      const msgs = {1:'Permiso denegado — habilitá ubicación en Configuración.', 2:'GPS no disponible.', 3:'Tiempo agotado — intentá de nuevo.'};
+      document.getElementById('gps-err').textContent = msgs[err.code] || err.message;
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+function startWatch() {
+  watchId = navigator.geolocation.watchPosition(
+    onGPSfix,
+    err => setGPSStatus('Error', false),
+    { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
+  );
+}
+
+function onGPSfix(pos) {
+  gpsLat = pos.coords.latitude;
+  gpsLon = pos.coords.longitude;
+  gpsAcc = pos.coords.accuracy;
+  gpsAlt = pos.coords.altitude || 0;
+  hasGPS = true;
+
+  setGPSStatus('OK', true);
+
+  document.getElementById('d-lat').textContent = gpsLat.toFixed(5);
+  document.getElementById('d-lon').textContent = Math.abs(gpsLon).toFixed(5);
+  document.getElementById('d-acc').textContent = '±' + Math.round(gpsAcc) + 'm';
+
+  ['d-lat','d-lon','d-acc'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.add('fresh');
+    setTimeout(() => el.classList.remove('fresh'), 800);
+  });
+
+  checkOdometro();
+}
+
+function setGPSStatus(txt, on) {
+  document.getElementById('gps-txt').textContent = txt;
+  document.getElementById('gps-dot').className = 'dot' + (on ? ' on' : '');
+}
+
+// ════════════════════════════════════════════════
+//  ODÓMETRO
+// ════════════════════════════════════════════════
+function haversine(la1, lo1, la2, lo2) {
+  const R = 6371000, r = d => d * Math.PI / 180;
+  const a = Math.sin(r(la2-la1)/2)**2 + Math.cos(r(la1)) * Math.cos(r(la2)) * Math.sin(r(lo2-lo1)/2)**2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+function getDist() {
+  if (!lastLat || !gpsLat) return 0;
+  return haversine(lastLat, lastLon, gpsLat, gpsLon);
+}
+
+function checkOdometro() {
+  if (!hasGPS) return;
+
+  // PRIMER PUNTO — siempre habilitado
+  if (firstPoint) {
+    document.getElementById('odo-dist').textContent = '—';
+    document.getElementById('odo-estado').textContent = 'PRIMER PUNTO';
+    document.getElementById('odo-estado').className = 'odo-estado ready';
+    document.getElementById('odo-bar').style.width = '100%';
+    document.getElementById('odo-bar').className = 'odo-bar ready';
+    canGrab = true;
+    refreshBtnState();
+    return;
+  }
+
+  const dist = getDist();
+  const pct  = Math.min(dist / umbral, 1) * 100;
+  const bar  = document.getElementById('odo-bar');
+
+  document.getElementById('odo-dist').textContent = dist.toFixed(1);
+  bar.style.width = pct + '%';
+
+  if (dist >= umbral) {
+    bar.className = 'odo-bar ready';
+    document.getElementById('odo-dist').className = 'odo-dist ready';
+    document.getElementById('odo-estado').textContent = '✓ LISTO';
+    document.getElementById('odo-estado').className = 'odo-estado ready';
+
+    if (!canGrab) {
+      // Umbral cruzado por primera vez
+      if (autoMode) {
+        // MODO AUTO — grabar inmediatamente
         grabarAuto();
         return;
       }
-      beep();
+      beep(880);
     }
-    canGrab=true;
-    setBtnState(depthStr?'unlocked':'unlocked-nodepth');
+    canGrab = true;
+    refreshBtnState();
   } else {
-    bar.className='odo-bar';
-    document.getElementById('odo-dist').className='odo-dist'+(dist>0.5?' moving':'');
-    document.getElementById('odo-estado').textContent='FALTAN '+(umbral-dist).toFixed(1)+'m';
-    document.getElementById('odo-estado').className='odo-estado';
-    canGrab=false; setBtnState('locked');
+    bar.className = 'odo-bar';
+    document.getElementById('odo-dist').className = 'odo-dist' + (dist > 0.5 ? ' moving' : '');
+    document.getElementById('odo-estado').textContent = 'FALTAN ' + (umbral - dist).toFixed(1) + 'm';
+    document.getElementById('odo-estado').className = 'odo-estado';
+    canGrab = false;
+    refreshBtnState();
   }
 }
 
-// ─── Botón ────────────────────────────────────────────────────────────────────
-function setBtnState(s){
-  const btn=document.getElementById('btn-grabar');
-  const ek=document.getElementById('enter-k');
-  switch(s){
-    case 'unlocked':
-      btn.className='btn-grabar unlocked'; btn.disabled=false;
-      document.getElementById('bicon').textContent='↵';
-      document.getElementById('btxt').textContent='GRABAR';
-      ek.className='k enter-k ready'; break;
-    case 'unlocked-nodepth':
-      btn.className='btn-grabar locked'; btn.disabled=true;
-      document.getElementById('bicon').textContent='🔒';
-      document.getElementById('btxt').textContent='INGRESÁ PROFUNDIDAD';
-      ek.className='k enter-k'; break;
-    case 'locked':
-      btn.className='btn-grabar locked'; btn.disabled=true;
-      document.getElementById('bicon').textContent='🔒';
-      document.getElementById('btxt').textContent='DESPLAZATE '+(umbral-getDist()).toFixed(0)+'m';
-      ek.className='k enter-k'; break;
-    case 'grabbed':
-      btn.className='btn-grabar locked'; btn.disabled=true;
-      document.getElementById('bicon').textContent='✓';
-      document.getElementById('btxt').textContent='GRABADO — DESPLAZATE';
-      ek.className='k enter-k'; break;
-    case 'no-gps':
-      btn.className='btn-grabar no-gps'; btn.disabled=true;
-      document.getElementById('bicon').textContent='🔒';
-      document.getElementById('btxt').textContent='ESPERANDO GPS';
-      ek.className='k enter-k'; break;
+// ════════════════════════════════════════════════
+//  ESTADO DEL BOTÓN
+// ════════════════════════════════════════════════
+function refreshBtnState() {
+  const btn  = document.getElementById('btn-grabar');
+  const ek   = document.getElementById('enter-k');
+
+  if (!hasGPS) {
+    btn.className = 'btn-grabar no-gps';
+    btn.disabled  = true;
+    document.getElementById('bicon').textContent = '🔒';
+    document.getElementById('btxt').textContent  = 'ESPERANDO GPS';
+    ek.className = 'k enter-k';
+    return;
+  }
+
+  if (autoMode) {
+    // En modo auto el botón manual sigue disponible para correcciones
+    btn.className = 'btn-grabar locked';
+    btn.disabled  = true;
+    document.getElementById('bicon').textContent = 'A';
+    document.getElementById('btxt').textContent  = 'MODO AUTO — usá A';
+    ek.className = 'k enter-k';
+    return;
+  }
+
+  if (canGrab) {
+    const hasDepth = depthStr.length > 0 && depthStr !== '.';
+    if (hasDepth) {
+      btn.className = 'btn-grabar unlocked';
+      btn.disabled  = false;
+      document.getElementById('bicon').textContent = '↵';
+      document.getElementById('btxt').textContent  = 'GRABAR';
+      ek.className = 'k enter-k ready';
+    } else {
+      btn.className = 'btn-grabar locked';
+      btn.disabled  = true;
+      document.getElementById('bicon').textContent = '🔒';
+      document.getElementById('btxt').textContent  = 'INGRESÁ PROFUNDIDAD';
+      ek.className = 'k enter-k';
+    }
+  } else {
+    const dist = getDist();
+    btn.className = 'btn-grabar locked';
+    btn.disabled  = true;
+    document.getElementById('bicon').textContent = '🔒';
+    document.getElementById('btxt').textContent  = 'DESPLAZATE ' + (umbral - dist).toFixed(0) + 'm';
+    ek.className = 'k enter-k';
   }
 }
 
-// ─── Teclado ──────────────────────────────────────────────────────────────────
-function kp(key){
-  if(key==='DEL'){depthStr=depthStr.slice(0,-1);}
-  else if(key==='.'){if(!depthStr.includes('.'))depthStr+='.';}
-  else{if(depthStr.replace('.','').length>=4)return; depthStr+=key;}
-  const dv=document.getElementById('dval');
-  dv.textContent=depthStr||'_';
-  document.getElementById('depth-disp').className='depth-disp'+(depthStr&&depthStr!='.'?' has-val':'');
+// ════════════════════════════════════════════════
+//  TECLADO
+// ════════════════════════════════════════════════
+function kp(key) {
+  if (autoMode) return; // en modo auto no se tipea
+
+  if (key === 'DEL') {
+    depthStr = depthStr.slice(0, -1);
+  } else if (key === '.') {
+    if (!depthStr.includes('.')) depthStr += '.';
+  } else {
+    if (depthStr.replace('.','').length >= 4) return;
+    depthStr += key;
+  }
+
+  document.getElementById('dval').textContent = depthStr || '_';
+  const dd = document.getElementById('depth-disp');
+  dd.className = 'depth-disp' + (depthStr && depthStr !== '.' ? ' has-val' : '');
+
   updateCalc();
-  if(hasGPS&&(canGrab||firstPoint))
-    setBtnState(depthStr&&depthStr!='.'?'unlocked':'unlocked-nodepth');
+  refreshBtnState();
 }
 
-// ─── Correcciones ─────────────────────────────────────────────────────────────
-function toggleSign(t){
-  if(t==='eco'){ecoSign*=-1;document.getElementById('eco-sign').textContent=ecoSign>0?'+':'−';}
-  else{marSign*=-1;document.getElementById('mar-sign').textContent=marSign>0?'+':'−';}
+// ════════════════════════════════════════════════
+//  CORRECCIONES
+// ════════════════════════════════════════════════
+function toggleSign(t) {
+  if (t === 'eco') { ecoSign *= -1; document.getElementById('eco-sign').textContent = ecoSign > 0 ? '+' : '−'; }
+  else             { marSign *= -1; document.getElementById('mar-sign').textContent = marSign > 0 ? '+' : '−'; }
   updateCalc(); updateCorrSum(); autoSave();
 }
-function adj(t,d){
-  if(t==='eco'){ecoVal=Math.max(0,+(ecoVal+d).toFixed(2));document.getElementById('eco-disp').textContent=ecoVal.toFixed(2);}
-  else{marVal=Math.max(0,+(marVal+d).toFixed(2));document.getElementById('mar-disp').textContent=marVal.toFixed(2);}
+
+function adj(t, d) {
+  if (t === 'eco') { ecoVal = Math.max(0, +(ecoVal + d).toFixed(2)); document.getElementById('eco-disp').textContent = ecoVal.toFixed(2); }
+  else             { marVal = Math.max(0, +(marVal + d).toFixed(2)); document.getElementById('mar-disp').textContent = marVal.toFixed(2); }
   updateCalc(); updateCorrSum(); autoSave();
 }
-function getEco(){return ecoSign*ecoVal;}
-function getMar(){return marSign*marVal;}
-function updateCalc(){
-  const off=getEco(), mar=getMar(), eco=parseFloat(depthStr);
-  const fin=isNaN(eco)?null:eco+off+mar;
-  document.getElementById('cv-off').textContent=(off>=0?'+':'')+off.toFixed(2);
-  document.getElementById('cv-mar').textContent=(mar>=0?'+':'')+mar.toFixed(2);
-  document.getElementById('cv-eco').textContent=isNaN(eco)?'—':eco.toFixed(2);
-  document.getElementById('cv-fin').textContent=fin===null?'—':fin.toFixed(2);
+
+function getEco() { return ecoSign * ecoVal; }
+function getMar() { return marSign * marVal; }
+
+function updateCalc() {
+  const off = getEco(), mar = getMar();
+  const eco = autoMode ? gpsAlt : parseFloat(depthStr);
+  const fin = isNaN(eco) ? null : eco + off + mar;
+  document.getElementById('cv-off').textContent = (off >= 0 ? '+' : '') + off.toFixed(2);
+  document.getElementById('cv-mar').textContent = (mar >= 0 ? '+' : '') + mar.toFixed(2);
+  document.getElementById('cv-eco').textContent = isNaN(eco) ? '—' : eco.toFixed(2);
+  document.getElementById('cv-fin').textContent = fin === null ? '—' : fin.toFixed(2);
 }
-function updateCorrSum(){
-  const e=getEco(), m=getMar();
-  document.getElementById('corr-sum').textContent=
-    `ECO ${e>=0?'+':''}${e.toFixed(2)}  MAR ${m>=0?'+':''}${m.toFixed(2)}`;
+
+function updateCorrSum() {
+  const e = getEco(), m = getMar();
+  document.getElementById('corr-sum').textContent =
+    `ECO ${e >= 0 ? '+' : ''}${e.toFixed(2)}  MAR ${m >= 0 ? '+' : ''}${m.toFixed(2)}`;
 }
-function toggleCorr(){
-  corrOpen=!corrOpen;
-  document.getElementById('corr-panel').className='corr-panel'+(corrOpen?' open':'');
-  document.getElementById('ctarr').className='ctarr'+(corrOpen?' open':'');
+
+function toggleCorr() {
+  corrOpen = !corrOpen;
+  document.getElementById('corr-panel').className = 'corr-panel' + (corrOpen ? ' open' : '');
+  document.getElementById('ctarr').className = 'ctarr' + (corrOpen ? ' open' : '');
 }
-function actualizarMarea(){
-  const nota=document.getElementById('marea-nota').value.trim();
-  const mar=getMar();
-  const hora=new Date().toTimeString().substring(0,8);
-  const signo=mar>=0?'+':'';
-  mareaLogArr.push({hora,mar,nota});
-  document.getElementById('marea-log').textContent=
-    `${hora}  ${signo}${mar.toFixed(2)}m${nota?' — '+nota:''}`;
+
+function actualizarMarea() {
+  const nota = document.getElementById('marea-nota').value.trim();
+  const mar  = getMar();
+  const hora = new Date().toTimeString().substring(0, 8);
+  const signo = mar >= 0 ? '+' : '';
+  mareaLogArr.push({ hora, mar, nota });
+  document.getElementById('marea-log').textContent = `${hora}  ${signo}${mar.toFixed(2)}m${nota ? ' — ' + nota : ''}`;
   autoSave();
-  showToast('↺ Marea registrada',false,'mt');
+  showToast('↺ Marea registrada', false, 'mt');
 }
 
+// ════════════════════════════════════════════════
+//  MODO AUTOMÁTICO
+// ════════════════════════════════════════════════
+function toggleAuto() {
+  autoMode = !autoMode;
+  const btn = document.getElementById('auto-k');
+  const badge = document.getElementById('auto-badge');
+  const dd  = document.getElementById('depth-disp');
+  const cur = document.getElementById('dcursor');
 
-// ─── Modo Automático ──────────────────────────────────────────────────────────
-function toggleAuto(){
-  autoMode=!autoMode;
-  const btn=document.getElementById('auto-k');
-  const ind=document.getElementById('auto-ind');
-  btn.className='k auto-k'+(autoMode?' on':'');
-  if(autoMode){
-    ind.className='auto-ind show';
-    showToast('▶ Modo AUTO activo — caminá',false);
+  if (autoMode) {
+    btn.className   = 'k auto-k on';
+    badge.className = 'auto-badge show';
+    dd.className    = 'depth-disp auto-mode';
+    cur.style.display = 'none';
+    // Mostrar altura GPS en display
+    document.getElementById('dval').textContent = gpsAlt !== null ? 'GPS' : 'ALT';
+    showToast('▶ AUTO activo — caminá', false, 'auto');
     beep(660);
+    updateCalc();
+    refreshBtnState();
   } else {
-    ind.className='auto-ind';
-    showToast('■ Modo AUTO desactivado');
+    btn.className   = 'k auto-k';
+    badge.className = 'auto-badge';
+    dd.className    = 'depth-disp';
+    cur.style.display = '';
+    document.getElementById('dval').textContent = depthStr || '_';
+    showToast('■ AUTO desactivado');
     beep(440);
+    updateCalc();
+    refreshBtnState();
   }
 }
 
-function grabarAuto(){
-  // Graba automáticamente usando la altura del GPS
-  if(!hasGPS){return;}
-  const altGPS = currentAlt || 0;
-  const off    = getEco();   // offset calibrado (ej: -1.40m)
-  const mar    = getMar();
-  const eco    = altGPS;     // la "ecosonda" es la altura del GPS
-  const fin    = eco + off + mar;
-  const distAnt= lastLat ? hav(lastLat,lastLon,lat,lon).toFixed(1) : '—';
-  const hora   = new Date().toTimeString().substring(0,8);
-  const nota   = document.getElementById('marea-nota').value.trim();
+// ════════════════════════════════════════════════
+//  GRABAR MANUAL
+// ════════════════════════════════════════════════
+function grabar() {
+  if (autoMode) return; // en auto no grabar manual
 
-  const p={
-    n:puntos.length+1, zona,
-    lat:lat.toFixed(7), lon:lon.toFixed(7),
-    eco:eco.toFixed(2), off:off.toFixed(2), mar:mar.toFixed(2),
-    final:fin.toFixed(2), dist:distAnt, hora,
-    acc:acc?Math.round(acc)+'m':'—',
-    nota_marea:nota,
-    modo:'AUTO'
-  };
-  puntos.push(p); lastLat=lat; lastLon=lon;
-  firstPoint=false; canGrab=false;
+  if (!hasGPS) { showToast('Sin GPS', true); return; }
+  if (!canGrab && !firstPoint) { showToast('Desplazate ' + umbral + 'm primero', true); return; }
 
-  sendGAS(p); autoSave();
+  const eco = parseFloat(depthStr);
+  if (isNaN(eco) || eco <= 0) { showToast('Ingresá la profundidad', true); return; }
 
-  // Flash suave
-  document.getElementById('flash').classList.add('show');
-  setTimeout(()=>document.getElementById('flash').classList.remove('show'),80);
-
-  document.getElementById('ptcount').textContent=puntos.length;
-
-  // Reset odómetro
-  document.getElementById('odo-dist').textContent='0.0';
-  document.getElementById('odo-dist').className='odo-dist';
-  document.getElementById('odo-bar').style.width='0%';
-  document.getElementById('odo-bar').className='odo-bar';
-  document.getElementById('odo-estado').textContent='DESPLAZATE '+umbral+'m';
-  document.getElementById('odo-estado').className='odo-estado';
-
-  // Beep corto de confirmación
-  beep(1100);
-  showToast(`✓ AUTO #${p.n}  ALT ${eco.toFixed(2)}m → ${fin.toFixed(2)}m`);
+  _grabarPunto(eco, 'MANUAL');
 }
 
-// ─── Grabar ───────────────────────────────────────────────────────────────────
-function grabar(){
-  if(!canGrab&&!firstPoint){showToast('Desplazate primero',true);return;}
-  if(!hasGPS){showToast('Sin GPS',true);return;}
-  const eco=parseFloat(depthStr);
-  if(isNaN(eco)||eco<=0){showToast('Ingresá la profundidad',true);return;}
-  const off=getEco(), mar=getMar(), fin=eco+off+mar;
-  const distAnt=lastLat?hav(lastLat,lastLon,lat,lon).toFixed(1):'—';
-  const hora=new Date().toTimeString().substring(0,8);
-  const nota=document.getElementById('marea-nota').value.trim();
-  const p={
-    n:puntos.length+1, zona,
-    lat:lat.toFixed(7), lon:lon.toFixed(7),
-    eco:eco.toFixed(2), off:off.toFixed(2), mar:mar.toFixed(2),
-    final:fin.toFixed(2), dist:distAnt, hora,
-    acc:acc?Math.round(acc)+'m':'—', nota_marea:nota
+// ════════════════════════════════════════════════
+//  GRABAR AUTO (por odómetro)
+// ════════════════════════════════════════════════
+function grabarAuto() {
+  if (!hasGPS) return;
+  const eco = gpsAlt || 0; // altura del GPS como "ecosonda"
+  _grabarPunto(eco, 'AUTO');
+}
+
+// ════════════════════════════════════════════════
+//  GRABADO COMÚN
+// ════════════════════════════════════════════════
+function _grabarPunto(eco, modo) {
+  const off = getEco(), mar = getMar(), fin = eco + off + mar;
+  const distAnt = lastLat ? haversine(lastLat, lastLon, gpsLat, gpsLon).toFixed(1) : '—';
+  const hora = new Date().toTimeString().substring(0, 8);
+  const nota = document.getElementById('marea-nota').value.trim();
+
+  const p = {
+    n     : puntos.length + 1,
+    zona,
+    lat   : gpsLat.toFixed(7),
+    lon   : gpsLon.toFixed(7),
+    eco   : eco.toFixed(2),
+    off   : off.toFixed(2),
+    mar   : mar.toFixed(2),
+    final : fin.toFixed(2),
+    dist  : distAnt,
+    hora,
+    acc         : gpsAcc ? Math.round(gpsAcc) + 'm' : '—',
+    alt_gps     : gpsAlt !== null ? gpsAlt.toFixed(2) : '—',
+    nota_marea  : nota,
+    modo
   };
-  puntos.push(p); lastLat=lat; lastLon=lon;
-  firstPoint=false; canGrab=false;
-  sendGAS(p); autoSave();
+
+  puntos.push(p);
+  lastLat = gpsLat;
+  lastLon = gpsLon;
+  firstPoint = false;
+  canGrab    = false;
+
+  sendGAS(p);
+  autoSave();
+
   // Flash
   document.getElementById('flash').classList.add('show');
-  setTimeout(()=>document.getElementById('flash').classList.remove('show'),120);
-  // Reset
-  depthStr='';
-  document.getElementById('dval').textContent='_';
-  document.getElementById('depth-disp').className='depth-disp';
-  document.getElementById('cv-eco').textContent='—';
-  document.getElementById('cv-fin').textContent='—';
-  document.getElementById('ptcount').textContent=puntos.length;
-  // Reset odo
-  document.getElementById('odo-dist').textContent='0.0';
-  document.getElementById('odo-dist').className='odo-dist';
-  document.getElementById('odo-bar').style.width='0%';
-  document.getElementById('odo-bar').className='odo-bar';
-  document.getElementById('odo-estado').textContent='DESPLAZATE '+umbral+'m';
-  document.getElementById('odo-estado').className='odo-estado';
-  setBtnState('grabbed');
-  showToast(`✓ #${p.n}  ECO ${eco.toFixed(1)}m → FINAL ${fin.toFixed(2)}m`);
+  setTimeout(() => document.getElementById('flash').classList.remove('show'), 120);
+
+  // Reset UI manual
+  if (modo === 'MANUAL') {
+    depthStr = '';
+    document.getElementById('dval').textContent = '_';
+    document.getElementById('depth-disp').className = 'depth-disp';
+    document.getElementById('cv-eco').textContent = '—';
+    document.getElementById('cv-fin').textContent = '—';
+  }
+
+  // Reset odómetro
+  document.getElementById('ptcount').textContent = puntos.length;
+  document.getElementById('odo-dist').textContent = '0.0';
+  document.getElementById('odo-dist').className = 'odo-dist';
+  document.getElementById('odo-bar').style.width = '0%';
+  document.getElementById('odo-bar').className = 'odo-bar';
+  document.getElementById('odo-estado').textContent = 'DESPLAZATE ' + umbral + 'm';
+  document.getElementById('odo-estado').className = 'odo-estado';
+
+  refreshBtnState();
+
+  if (modo === 'AUTO') {
+    beep(1100);
+    showToast(`✓ AUTO #${p.n}  ALT ${eco.toFixed(2)}m → ${fin.toFixed(2)}m`, false, 'auto');
+  } else {
+    showToast(`✓ #${p.n}  ECO ${eco.toFixed(1)}m → FINAL ${fin.toFixed(2)}m`);
+  }
 }
 
-// ─── GAS ──────────────────────────────────────────────────────────────────────
-async function sendGAS(p){
-  if(!gasUrl)return;
-  try{await fetch(gasUrl,{method:'POST',mode:'no-cors',
-    headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sondaje',...p})});}
-  catch(e){}
+// ════════════════════════════════════════════════
+//  GAS
+// ════════════════════════════════════════════════
+async function sendGAS(p) {
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'sondaje', ...p })
+    });
+  } catch(e) {}
 }
 
-// ─── CSV ──────────────────────────────────────────────────────────────────────
-function exportCSV(){
-  if(!puntos.length){showToast('Sin puntos',true);return;}
-  const fecha=new Date().toISOString().substring(0,10);
-  const nom=(zona||'batimetria').replace(/[^a-zA-Z0-9 ]/g,'').replace(/ /g,'_');
-  const hdr='N,ZONA,LATITUD,LONGITUD,ECO_M,OFFSET_M,MAREA_M,FINAL_M,DIST_M,HORA,PRECISION,NOTA_MAREA,MODO\n';
-  const rows=puntos.map(p=>`${p.n},"${p.zona}",${p.lat},${p.lon},${p.eco},${p.off},${p.mar},${p.final},${p.dist},${p.hora},${p.acc},"${p.nota_marea||''}",${p.modo||'MANUAL'}`).join('\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([hdr+rows],{type:'text/csv;charset=utf-8'}));
-  a.download=`${nom}_${fecha}.csv`; a.click();
+// ════════════════════════════════════════════════
+//  CSV EXPORT
+// ════════════════════════════════════════════════
+function exportCSV() {
+  if (!puntos.length) { showToast('Sin puntos', true); return; }
+  const fecha = new Date().toISOString().substring(0, 10);
+  const nom   = (zona || 'batimetria').replace(/[^a-zA-Z0-9 áéíóúñ]/gi,'').replace(/ /g,'_');
+  const hdr   = 'N,ZONA,LATITUD,LONGITUD,ECO_M,OFFSET_M,MAREA_M,FINAL_M,DIST_M,HORA,PRECISION,ALT_GPS,NOTA_MAREA,MODO\n';
+  const rows  = puntos.map(p =>
+    `${p.n},"${p.zona}",${p.lat},${p.lon},${p.eco},${p.off},${p.mar},${p.final},${p.dist},${p.hora},${p.acc},${p.alt_gps},"${p.nota_marea||''}",${p.modo}`
+  ).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([hdr + rows], { type: 'text/csv;charset=utf-8' }));
+  a.download = `${nom}_${fecha}.csv`;
+  a.click();
   showToast(`✓ CSV — ${puntos.length} puntos`);
 }
 
-// ─── Zona editable ────────────────────────────────────────────────────────────
-function editZona(){
-  const nz=prompt('Nombre de zona:',zona);
-  if(nz!==null&&nz.trim()){zona=nz.trim();document.getElementById('zona-display').textContent=zona;autoSave();}
-}
-
-// ─── Autosave ─────────────────────────────────────────────────────────────────
-function autoSave(){
-  try{
-    localStorage.setItem(LS,JSON.stringify({
-      puntos,zona,ecoSign,ecoVal,marSign,marVal,umbral,mareaLogArr
+// ════════════════════════════════════════════════
+//  AUTOSAVE / AUTOLOAD
+// ════════════════════════════════════════════════
+function autoSave() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      puntos, zona, ecoSign, ecoVal, marSign, marVal, umbral, mareaLogArr
     }));
-    document.getElementById('asdot').className='as-dot saved';
-    document.getElementById('astxt').textContent='guardado '+new Date().toTimeString().substring(0,5);
-    setTimeout(()=>document.getElementById('asdot').className='as-dot',2000);
-  }catch(e){}
+    document.getElementById('asdot').className = 'as-dot saved';
+    document.getElementById('astxt').textContent = 'guardado ' + new Date().toTimeString().substring(0,5);
+    setTimeout(() => document.getElementById('asdot').className = 'as-dot', 2000);
+  } catch(e) {}
 }
 
-function autoLoad(){
-  try{
-    const raw=localStorage.getItem(LS); if(!raw)return;
-    const s=JSON.parse(raw);
-    if(s.puntos&&s.puntos.length>0){
-      const ok=confirm(`Hay ${s.puntos.length} puntos de "${s.zona||'sesión anterior'}" guardados.\n¿Continuar?`);
-      if(ok){
-        puntos=s.puntos; mareaLogArr=s.mareaLogArr||[];
-        ecoSign=s.ecoSign||1; ecoVal=s.ecoVal||0;
-        marSign=s.marSign||1; marVal=s.marVal||0;
-        umbral=s.umbral||10;
-        document.getElementById('eco-disp').textContent=ecoVal.toFixed(2);
-        document.getElementById('mar-disp').textContent=marVal.toFixed(2);
-        document.getElementById('eco-sign').textContent=ecoSign>0?'+':'−';
-        document.getElementById('mar-sign').textContent=marSign>0?'+':'−';
-        document.getElementById('umbral').value=umbral;
-        document.getElementById('ptcount').textContent=puntos.length;
-        firstPoint=puntos.length===0;
+function autoLoad() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s.puntos && s.puntos.length > 0) {
+      const ok = confirm(`Hay ${s.puntos.length} puntos de "${s.zona||'sesión anterior'}" guardados.\n¿Continuar desde donde lo dejaste?`);
+      if (ok) {
+        puntos       = s.puntos;
+        mareaLogArr  = s.mareaLogArr || [];
+        ecoSign      = s.ecoSign || 1;
+        ecoVal       = s.ecoVal  || 0;
+        marSign      = s.marSign || 1;
+        marVal       = s.marVal  || 0;
+        umbral       = s.umbral  || 10;
+        document.getElementById('eco-disp').textContent = ecoVal.toFixed(2);
+        document.getElementById('mar-disp').textContent = marVal.toFixed(2);
+        document.getElementById('eco-sign').textContent = ecoSign > 0 ? '+' : '−';
+        document.getElementById('mar-sign').textContent = marSign > 0 ? '+' : '−';
+        document.getElementById('umbral').value = umbral;
+        document.getElementById('ptcount').textContent = puntos.length;
+        firstPoint = puntos.length === 0;
         updateCalc(); updateCorrSum();
         showToast(`✓ ${puntos.length} puntos recuperados`);
-      }else{localStorage.removeItem(LS);}
+      } else {
+        localStorage.removeItem(LS_KEY);
+      }
     }
-  }catch(e){}
+  } catch(e) {}
 }
 
-// ─── Beep ─────────────────────────────────────────────────────────────────────
-function beep(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [0,0.2].forEach(d=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.frequency.value=880;o.type='sine';
-      g.gain.setValueAtTime(0.4,ctx.currentTime+d);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d+0.13);
-      o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+0.15);
+// ════════════════════════════════════════════════
+//  AUDIO
+// ════════════════════════════════════════════════
+function beep(freq) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.20].forEach(d => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq || 880; o.type = 'sine';
+      g.gain.setValueAtTime(0.4, ctx.currentTime + d);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d + 0.13);
+      o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.15);
     });
-  }catch(e){}
+  } catch(e) {}
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
-let tT;
-function showToast(msg,err=false,tipo=''){
-  const t=document.getElementById('toast');
-  t.textContent=msg;
-  t.className='toast show'+(err?' err':tipo==='mt'?' mt':'');
-  clearTimeout(tT);tT=setTimeout(()=>t.className='toast',3000);
+// ════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, err=false, tipo='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (err ? ' err' : tipo === 'mt' ? ' mt' : tipo === 'auto' ? ' auto' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', 3200);
 }
 </script>
 </body>
