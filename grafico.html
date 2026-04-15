@@ -434,7 +434,7 @@ async function generarMapa(){
     gLab.append('rect').attr('x',sx-10).attr('y',sy-5).attr('width',20).attr('height',10)
       .attr('fill','rgba(250,247,240,0.82)').attr('rx',2);
     gLab.append('text').attr('x',sx).attr('y',sy+3.5).attr('text-anchor','middle')
-      .attr('font-family','monospace').attr('font-size','6.5px').attr('fill','rgba(0,0,80,0.9)')
+      .attr('font-family','monospace').attr('font-size','8px').attr('fill','rgba(0,0,80,0.95)')
       .text(c.value.toFixed(1));
   });
 
@@ -443,7 +443,7 @@ async function generarMapa(){
   pts.forEach(p=>{
     const sx=ox+(p.x-x0)/W*pW, sy=oy+pH-(p.y-y0)/H*pH;
     if(sx<ox-2||sx>ox+pW+2||sy<oy-2||sy>oy+pH+2)return;
-    gPts.append('circle').attr('cx',sx).attr('cy',sy).attr('r',2)
+    gPts.append('circle').attr('cx',sx).attr('cy',sy).attr('r',2.8)
       .attr('fill','rgba(0,0,0,0.5)').attr('stroke','rgba(255,255,255,0.9)').attr('stroke-width',0.8)
       .style('cursor','pointer')
       .on('mousemove',function(event){
@@ -454,7 +454,7 @@ async function generarMapa(){
       }).on('mouseleave',()=>document.getElementById('tooltip').className='tooltip');
     gPts.append('text').attr('class','pt-lbl').attr('x',sx).attr('y',sy-4)
       .attr('text-anchor','middle').attr('font-family','monospace')
-      .attr('font-size','5.5px').attr('fill','rgba(0,0,0,0.7)')
+      .attr('font-size','8px').attr('fill','rgba(0,0,0,0.85)')
       .text(p.z.toFixed(1));
   });
 
@@ -592,7 +592,7 @@ function togL(name){
 // ─── Exportar ─────────────────────────────────────────────────────────────────
 function expPNG(){
   if(!svgEl){showToast('Generá el mapa primero',true);return;}
-  const scale=2,W=900*scale,H=620*scale;
+  const scale=3,W=900*scale,H=620*scale;
   const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
   const ctx=canvas.getContext('2d');
   ctx.fillStyle='#faf7f0';ctx.fillRect(0,0,W,H);
