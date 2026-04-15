@@ -327,6 +327,25 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
   font-size:12px; letter-spacing:2px; cursor:pointer; font-weight:700;
 }
 
+
+.k.auto-k {
+  flex:2; font-size:13px; letter-spacing:2px;
+  background:rgba(255,208,96,0.08); border-color:rgba(255,208,96,0.25); color:var(--amb);
+}
+.k.auto-k.on {
+  background:rgba(255,208,96,0.2); border-color:var(--amb);
+  animation:autoP 1s ease infinite;
+  color:var(--amb);
+}
+@keyframes autoP{0%,100%{box-shadow:0 0 8px rgba(255,208,96,0.3)}50%{box-shadow:0 0 20px rgba(255,208,96,0.7)}}
+.auto-ind {
+  position:absolute; top:6px; right:10px;
+  font-family:'Share Tech Mono',monospace; font-size:9px;
+  color:var(--amb); letter-spacing:1px; opacity:0;
+  transition:opacity 0.3s;
+}
+.auto-ind.show { opacity:1; animation:autoP 1s ease infinite; }
+
 /* ── FLASH ── */
 .flash {
   position:fixed; inset:0; background:rgba(0,229,160,0.1);
@@ -462,7 +481,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
   </div>
 
   <!-- DISPLAY PROFUNDIDAD -->
-  <div class="depth-wrap">
+  <div class="depth-wrap" style="position:relative"><div class="auto-ind" id="auto-ind">● AUTO</div>
     <div class="depth-disp" id="depth-disp">
       <span id="dval">_</span><span class="dcursor"></span>
       <span class="dunit">m</span>
@@ -501,6 +520,7 @@ html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--txt)
       <button class="k" onclick="kp('.')" style="font-size:26px">·</button>
       <button class="k del" onclick="kp('DEL')" style="flex:2">⌫</button>
       <button class="k enter-k" id="enter-k" onclick="grabar()">ENTER</button>
+      <button class="k auto-k" id="auto-k" onclick="toggleAuto()">A</button>
     </div>
   </div>
 
@@ -514,10 +534,11 @@ let ecoSign=1, ecoVal=0, marSign=1, marVal=0;
 let depthStr='';
 let puntos=[], mareaLogArr=[];
 let hasGPS=false, firstPoint=true, canGrab=false;
-let lat=null, lon=null, acc=null;
+let lat=null, lon=null, acc=null, currentAlt=null;
 let lastLat=null, lastLon=null;
 let umbral=10, watchId=null, corrOpen=false, cfgEcoSign=1;
 const LS='batimobile_v2';
+let autoMode=false;
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 function toggleCfgSign(){
@@ -580,6 +601,7 @@ function startWatch(){
 
 function onOK(pos){
   lat=pos.coords.latitude; lon=pos.coords.longitude; acc=pos.coords.accuracy;
+  currentAlt=pos.coords.altitude||0;
   hasGPS=true;
   setGPSStatus('OK',true);
   document.getElementById('d-lat').textContent=lat.toFixed(5);
@@ -636,7 +658,14 @@ function updateOdo(){
     document.getElementById('odo-dist').className='odo-dist ready';
     document.getElementById('odo-estado').textContent='✓ LISTO';
     document.getElementById('odo-estado').className='odo-estado ready';
-    if(!canGrab)beep();
+    if(!canGrab){
+      if(autoMode){
+        // Modo automático — grabar sin intervención
+        grabarAuto();
+        return;
+      }
+      beep();
+    }
     canGrab=true;
     setBtnState(depthStr?'unlocked':'unlocked-nodepth');
   } else {
@@ -737,6 +766,69 @@ function actualizarMarea(){
   showToast('↺ Marea registrada',false,'mt');
 }
 
+
+// ─── Modo Automático ──────────────────────────────────────────────────────────
+function toggleAuto(){
+  autoMode=!autoMode;
+  const btn=document.getElementById('auto-k');
+  const ind=document.getElementById('auto-ind');
+  btn.className='k auto-k'+(autoMode?' on':'');
+  if(autoMode){
+    ind.className='auto-ind show';
+    showToast('▶ Modo AUTO activo — caminá',false);
+    beep(660);
+  } else {
+    ind.className='auto-ind';
+    showToast('■ Modo AUTO desactivado');
+    beep(440);
+  }
+}
+
+function grabarAuto(){
+  // Graba automáticamente usando la altura del GPS
+  if(!hasGPS){return;}
+  const altGPS = currentAlt || 0;
+  const off    = getEco();   // offset calibrado (ej: -1.40m)
+  const mar    = getMar();
+  const eco    = altGPS;     // la "ecosonda" es la altura del GPS
+  const fin    = eco + off + mar;
+  const distAnt= lastLat ? hav(lastLat,lastLon,lat,lon).toFixed(1) : '—';
+  const hora   = new Date().toTimeString().substring(0,8);
+  const nota   = document.getElementById('marea-nota').value.trim();
+
+  const p={
+    n:puntos.length+1, zona,
+    lat:lat.toFixed(7), lon:lon.toFixed(7),
+    eco:eco.toFixed(2), off:off.toFixed(2), mar:mar.toFixed(2),
+    final:fin.toFixed(2), dist:distAnt, hora,
+    acc:acc?Math.round(acc)+'m':'—',
+    nota_marea:nota,
+    modo:'AUTO'
+  };
+  puntos.push(p); lastLat=lat; lastLon=lon;
+  firstPoint=false; canGrab=false;
+
+  sendGAS(p); autoSave();
+
+  // Flash suave
+  document.getElementById('flash').classList.add('show');
+  setTimeout(()=>document.getElementById('flash').classList.remove('show'),80);
+
+  document.getElementById('ptcount').textContent=puntos.length;
+
+  // Reset odómetro
+  document.getElementById('odo-dist').textContent='0.0';
+  document.getElementById('odo-dist').className='odo-dist';
+  document.getElementById('odo-bar').style.width='0%';
+  document.getElementById('odo-bar').className='odo-bar';
+  document.getElementById('odo-estado').textContent='DESPLAZATE '+umbral+'m';
+  document.getElementById('odo-estado').className='odo-estado';
+
+  // Beep corto de confirmación
+  beep(1100);
+  showToast(`✓ AUTO #${p.n}  ALT ${eco.toFixed(2)}m → ${fin.toFixed(2)}m`);
+}
+
 // ─── Grabar ───────────────────────────────────────────────────────────────────
 function grabar(){
   if(!canGrab&&!firstPoint){showToast('Desplazate primero',true);return;}
@@ -791,8 +883,8 @@ function exportCSV(){
   if(!puntos.length){showToast('Sin puntos',true);return;}
   const fecha=new Date().toISOString().substring(0,10);
   const nom=(zona||'batimetria').replace(/[^a-zA-Z0-9 ]/g,'').replace(/ /g,'_');
-  const hdr='N,ZONA,LATITUD,LONGITUD,ECO_M,OFFSET_M,MAREA_M,FINAL_M,DIST_M,HORA,PRECISION,NOTA_MAREA\n';
-  const rows=puntos.map(p=>`${p.n},"${p.zona}",${p.lat},${p.lon},${p.eco},${p.off},${p.mar},${p.final},${p.dist},${p.hora},${p.acc},"${p.nota_marea||''}"`).join('\n');
+  const hdr='N,ZONA,LATITUD,LONGITUD,ECO_M,OFFSET_M,MAREA_M,FINAL_M,DIST_M,HORA,PRECISION,NOTA_MAREA,MODO\n';
+  const rows=puntos.map(p=>`${p.n},"${p.zona}",${p.lat},${p.lon},${p.eco},${p.off},${p.mar},${p.final},${p.dist},${p.hora},${p.acc},"${p.nota_marea||''}",${p.modo||'MANUAL'}`).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([hdr+rows],{type:'text/csv;charset=utf-8'}));
   a.download=`${nom}_${fecha}.csv`; a.click();
