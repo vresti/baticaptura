@@ -270,7 +270,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
   <!-- INSTRUMENTOS -->
   <div class="instrum">
     <div class="ins"><div class="ins-lbl">LATITUD</div><div class="ins-val" id="d-lat">—</div></div>
-    <div class="ins"><div class="ins-lbl">LONGITUD</div><div class="ins-val" id="d-lon">—</div></div>
+    <div class="ins"><div class="ins-lbl">LONGITUD (O)</div><div class="ins-val" id="d-lon">—</div></div>
     <div class="ins"><div class="ins-lbl">PRECISIÓN</div><div class="ins-val" id="d-acc">—</div></div>
   </div>
 
@@ -516,7 +516,7 @@ function onGPSfix(pos) {
   requestWakeLock(); // mantener pantalla encendida
 
   document.getElementById('d-lat').textContent = gpsLat.toFixed(5);
-  document.getElementById('d-lon').textContent = Math.abs(gpsLon).toFixed(5);
+  document.getElementById('d-lon').textContent = Math.abs(gpsLon).toFixed(5) + ' O';
   document.getElementById('d-acc').textContent = '±' + Math.round(gpsAcc) + 'm';
 
   ['d-lat','d-lon','d-acc'].forEach(id => {

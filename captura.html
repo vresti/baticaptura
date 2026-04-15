@@ -517,6 +517,7 @@ function autoSave() {
       ecoVal  : document.getElementById('eco-val').value,
       mareaVal: document.getElementById('marea-val').value,
       mareaLog,
+      lastGrabbedLat, lastGrabbedLon,
       savedAt : new Date().toTimeString().substring(0,8)
     };
     localStorage.setItem(LS_KEY, JSON.stringify(state));
@@ -553,6 +554,16 @@ function autoLoad() {
         document.getElementById('marea-sign-btn').textContent = mareaSign > 0 ? '+' : '−';
         mareaLog  = state.mareaLog || [];
         firstPoint = puntos.length === 0;
+        // Restaurar referencia del odómetro
+        if (state.lastGrabbedLat) {
+          lastGrabbedLat = state.lastGrabbedLat;
+          lastGrabbedLon = state.lastGrabbedLon;
+        } else if (state.puntos && state.puntos.length > 0) {
+          // Fallback: tomar último punto guardado
+          const ult = state.puntos[state.puntos.length-1];
+          lastGrabbedLat = parseFloat(ult.lat);
+          lastGrabbedLon = parseFloat(ult.lon);
+        }
 
         // Reconstruir tabla
         puntos.forEach(p => addRow(p, false));
@@ -769,7 +780,7 @@ function updateCoords(lat,lon,hdop,sats) {
   if(lat===null||lon===null) return;
   currentLat=lat; currentLon=lon; currentHdop=hdop||'--'; currentSats=sats||'--'; hasGPS=true;
   document.getElementById('disp-lat').textContent=lat.toFixed(6);
-  document.getElementById('disp-lon').textContent=Math.abs(lon).toFixed(6);
+  document.getElementById('disp-lon').textContent=Math.abs(lon).toFixed(6)+' O';
   document.getElementById('disp-hdop').textContent=currentSats+' / '+currentHdop;
   ['disp-lat','disp-lon','disp-hdop'].forEach(id=>{
     const el=document.getElementById(id); el.classList.add('fresh');
