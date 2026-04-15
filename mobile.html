@@ -412,6 +412,33 @@ let lastLat = null, lastLon = null;
 let umbral  = 10;
 let watchId = null;
 let corrOpen = false;
+let wakeLock = null;
+
+
+// ════════════════════════════════════════════════
+//  WAKE LOCK — pantalla siempre encendida
+// ════════════════════════════════════════════════
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return; // no soportado
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => {
+      // Se liberó (ej: tab en background) — reintentar
+      setTimeout(requestWakeLock, 2000);
+    });
+  } catch(e) {
+    console.warn('WakeLock no disponible:', e.message);
+  }
+}
+
+async function releaseWakeLock() {
+  if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+}
+
+// Re-adquirir wakeLock cuando la página vuelve al foco
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && hasGPS) requestWakeLock();
+});
 
 // ════════════════════════════════════════════════
 //  INIT
@@ -486,6 +513,7 @@ function onGPSfix(pos) {
   hasGPS = true;
 
   setGPSStatus('OK', true);
+  requestWakeLock(); // mantener pantalla encendida
 
   document.getElementById('d-lat').textContent = gpsLat.toFixed(5);
   document.getElementById('d-lon').textContent = Math.abs(gpsLon).toFixed(5);
@@ -522,8 +550,19 @@ function getDist() {
 function checkOdometro() {
   if (!hasGPS) return;
 
-  // PRIMER PUNTO — siempre habilitado
+  // PRIMER PUNTO
   if (firstPoint) {
+    if (autoMode) {
+      // En modo AUTO: grabar el primer punto automáticamente sin esperar
+      document.getElementById('odo-dist').textContent = '—';
+      document.getElementById('odo-estado').textContent = 'PRIMER PUNTO AUTO';
+      document.getElementById('odo-estado').className = 'odo-estado ready';
+      document.getElementById('odo-bar').style.width = '100%';
+      document.getElementById('odo-bar').className = 'odo-bar ready';
+      grabarAuto();
+      return;
+    }
+    // Modo manual: habilitar botón
     document.getElementById('odo-dist').textContent = '—';
     document.getElementById('odo-estado').textContent = 'PRIMER PUNTO';
     document.getElementById('odo-estado').className = 'odo-estado ready';
@@ -855,7 +894,8 @@ function exportCSV() {
 function autoSave() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
-      puntos, zona, ecoSign, ecoVal, marSign, marVal, umbral, mareaLogArr
+      puntos, zona, ecoSign, ecoVal, marSign, marVal, umbral, mareaLogArr,
+      lastLat, lastLon  // guardar referencia para restaurar odómetro
     }));
     document.getElementById('asdot').className = 'as-dot saved';
     document.getElementById('astxt').textContent = 'guardado ' + new Date().toTimeString().substring(0,5);
@@ -885,6 +925,14 @@ function autoLoad() {
         document.getElementById('umbral').value = umbral;
         document.getElementById('ptcount').textContent = puntos.length;
         firstPoint = puntos.length === 0;
+        // Restaurar última posición grabada para que el odómetro funcione
+        if (s.lastLat) { lastLat = s.lastLat; lastLon = s.lastLon; }
+        else if (s.puntos && s.puntos.length > 0) {
+          // Compatibilidad: tomar último punto grabado
+          const ult = s.puntos[s.puntos.length-1];
+          lastLat = parseFloat(ult.lat);
+          lastLon = parseFloat(ult.lon);
+        }
         updateCalc(); updateCorrSum();
         showToast(`✓ ${puntos.length} puntos recuperados`);
       } else {
