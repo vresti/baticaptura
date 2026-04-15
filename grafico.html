@@ -283,7 +283,7 @@ async function generarMapa(){
   if(allPoints.length<4)return;
   prog(0.05);
   document.getElementById('btn-gen').disabled=true;
-  document.getElementById('es').style.display='none';
+  const esEl=document.getElementById('es'); if(esEl)esEl.style.display='none';
   await sl(30);
 
   const intv=parseFloat(document.getElementById('ci').value);
