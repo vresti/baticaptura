@@ -28,7 +28,7 @@
     min-height: 100vh;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    overflow: hidden;
+    overflow-y: auto;
   }
 
   /* Fondo animado de carta náutica */
@@ -73,7 +73,7 @@
   .container {
     position: relative; z-index: 1;
     text-align: center;
-    padding: 40px 20px;
+    padding: 30px 20px 40px;
     max-width: 700px;
     width: 100%;
   }
@@ -113,8 +113,9 @@
   .cards {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 40px;
+    gap: 16px;
+    margin-bottom: 30px;
+    width: 100%;
   }
 
   .card {
@@ -126,7 +127,7 @@
     color: inherit;
     transition: all 0.3s;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     display: block;
   }
   .card::before {
@@ -212,9 +213,11 @@
   }
 
   /* Responsive */
-  @media (max-width: 560px) {
+  @media (max-width: 600px) {
     .cards { grid-template-columns: 1fr; }
-    .title { font-size: 22px; }
+    .title { font-size: 20px; letter-spacing: 3px; }
+    .anchor { font-size: 36px; margin-bottom: 14px; }
+    .tagline { font-size: 10px; }
   }
   .card.tres-d::before { background: linear-gradient(90deg, #00e5a0, #1a8fe8); }
   .card.mobile::before { background: linear-gradient(90deg, #c084fc, #1a8fe8); }
