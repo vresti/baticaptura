@@ -216,6 +216,18 @@
     .cards { grid-template-columns: 1fr; }
     .title { font-size: 22px; }
   }
+  .card.tres-d::before { background: linear-gradient(90deg, #00e5a0, #1a8fe8); }
+  .card.mobile::before { background: linear-gradient(90deg, #c084fc, #1a8fe8); }
+  .card.tres-d::after { background: radial-gradient(circle at 50% 0%, rgba(0,229,160,0.05), transparent 70%); }
+  .card.mobile::after { background: radial-gradient(circle at 50% 0%, rgba(192,132,252,0.05), transparent 70%); }
+  .card.tres-d:hover { border-color: var(--green); box-shadow: 0 8px 30px rgba(0,229,160,0.1); }
+  .card.mobile:hover { border-color: #c084fc; box-shadow: 0 8px 30px rgba(192,132,252,0.1); }
+  .card.tres-d .card-title { color: var(--green); }
+  .card.mobile .card-title { color: #c084fc; }
+  .card.tres-d .card-features li::before { color: var(--green); }
+  .card.mobile .card-features li::before { color: #c084fc; }
+  .card.tres-d .card-cta { background: rgba(0,229,160,0.1); border: 1px solid var(--green); color: var(--green); }
+  .card.mobile .card-cta { background: rgba(192,132,252,0.1); border: 1px solid #c084fc; color: #c084fc; }
 </style>
 </head>
 <body>
@@ -262,6 +274,38 @@
         <li>Grilla de coordenadas DMS</li>
         <li>Rosa de los vientos + escala</li>
         <li>Export PNG alta resolución / SVG</li>
+      </ul>
+
+    <!-- 3D -->
+    <a class="card tres-d" href="grafico3d.html">
+      <span class="card-icon">🌊</span>
+      <div class="card-title">BATI3D</div>
+      <div class="card-desc">
+        Visualización tridimensional interactiva del fondo batimétrico.
+      </div>
+      <ul class="card-features">
+        <li>Superficie 3D con colores por profundidad</li>
+        <li>Rotación · Zoom · Pan con mouse o dedo</li>
+        <li>Espejo de agua transparente</li>
+        <li>Puntos de sondaje como esferas</li>
+        <li>Export PNG desde cualquier ángulo</li>
+      </ul>
+      <div class="card-cta">▶ ABRIR</div>
+    </a>
+
+    <!-- MOBILE -->
+    <a class="card mobile" href="mobile.html">
+      <span class="card-icon">📱</span>
+      <div class="card-title">BATIMOBILE</div>
+      <div class="card-desc">
+        Captura desde el celular con GPS interno. Sin cables, sin internet.
+      </div>
+      <ul class="card-features">
+        <li>GPS interno del celular</li>
+        <li>Teclado propio — pantalla siempre visible</li>
+        <li>Corrección marea con nota de referencia</li>
+        <li>Autosave local</li>
+        <li>GAS integrado</li>
       </ul>
       <div class="card-cta">▶ ABRIR</div>
     </a>

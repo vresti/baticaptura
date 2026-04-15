@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bati3D — Batimetría Tridimensional</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@400;600&display=swap');
+
+:root {
+  --bg:    #050d14;
+  --panel: #0a1a28;
+  --bord:  #0e3a5c;
+  --amb:   #ffd060;
+  --grn:   #00e5a0;
+  --blu:   #1a8fe8;
+  --dim:   #2a4a6a;
+  --txt:   #c8dcea;
+  --dtxt:  #4a7a9a;
+  --red:   #ff4455;
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  background:var(--bg); color:var(--txt);
+  font-family:'Exo 2',sans-serif;
+  height:100vh; overflow:hidden;
+  display:flex; flex-direction:column;
+}
+
+/* HEADER */
+header {
+  background:var(--panel); border-bottom:2px solid var(--bord);
+  padding:10px 18px; display:flex; align-items:center;
+  justify-content:space-between; flex-shrink:0; z-index:10;
+}
+.logo-title {
+  font-family:'Orbitron',monospace; font-size:14px;
+  font-weight:900; letter-spacing:4px; color:var(--amb);
+}
+.logo-sub { font-size:9px; color:var(--dtxt); letter-spacing:2px; margin-top:2px; }
+.header-info { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--dtxt); text-align:right; }
+
+/* LAYOUT */
+.main {
+  display:flex; flex:1; min-height:0;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width:260px; background:var(--panel); border-right:1px solid var(--bord);
+  padding:14px; display:flex; flex-direction:column; gap:12px;
+  overflow-y:auto; flex-shrink:0; z-index:5;
+}
+.panel {
+  background:rgba(0,0,0,0.2); border:1px solid var(--bord);
+  border-radius:6px; padding:10px 12px;
+}
+.panel-title {
+  font-size:8px; letter-spacing:3px; color:var(--blu);
+  text-transform:uppercase; margin-bottom:8px; font-weight:600;
+  border-bottom:1px solid var(--bord); padding-bottom:5px;
+}
+
+/* Upload */
+.upload-area {
+  border:2px dashed var(--bord); border-radius:6px;
+  padding:16px; text-align:center; cursor:pointer;
+  transition:all 0.2s; background:rgba(0,0,0,0.2);
+}
+.upload-area:hover,.upload-area.drag {
+  border-color:var(--blu); background:rgba(26,143,232,0.05);
+}
+.upload-icon { font-size:24px; margin-bottom:6px; }
+.upload-text { font-size:10px; color:var(--dtxt); letter-spacing:1px; }
+#fi { display:none; }
+
+.file-list { display:flex; flex-direction:column; gap:3px; }
+.file-item {
+  display:flex; align-items:center; background:rgba(0,0,0,0.3);
+  border:1px solid var(--bord); border-radius:4px;
+  padding:5px 8px; font-size:10px; font-family:'Share Tech Mono',monospace;
+}
+.fname { color:var(--blu); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fct { color:var(--dtxt); font-size:9px; margin:0 6px; }
+.fdel { background:none; border:none; color:var(--dim); cursor:pointer; font-size:12px; }
+.fdel:hover { color:var(--red); }
+
+/* Controles */
+.ctrl { display:flex; flex-direction:column; gap:5px; margin-bottom:6px; }
+.ctrl-lbl { font-size:8px; letter-spacing:2px; color:var(--dtxt); }
+.ctrl select {
+  width:100%; background:#020a12; border:1px solid var(--bord);
+  color:var(--txt); border-radius:4px; padding:4px 7px;
+  font-size:11px; font-family:'Share Tech Mono',monospace; outline:none;
+}
+input[type=range] { width:100%; accent-color:var(--blu); cursor:pointer; }
+
+/* Botones */
+.btn-primary {
+  width:100%; padding:9px; background:var(--blu); color:white;
+  border:none; border-radius:6px; font-family:'Orbitron',monospace;
+  font-size:10px; letter-spacing:3px; cursor:pointer; transition:all 0.2s;
+}
+.btn-primary:hover { filter:brightness(1.2); }
+.btn-primary:disabled { opacity:0.3; cursor:not-allowed; }
+.btn-sec {
+  width:100%; padding:7px; margin-bottom:5px;
+  background:rgba(255,208,96,0.08); border:1px solid var(--amb);
+  border-radius:5px; color:var(--amb); font-size:10px;
+  letter-spacing:1px; cursor:pointer; font-family:'Exo 2',sans-serif; font-weight:600;
+}
+.btn-sec:hover { background:rgba(255,208,96,0.15); }
+
+/* Stats */
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.stat-box { background:rgba(0,0,0,0.3); border:1px solid var(--bord); border-radius:4px; padding:6px; text-align:center; }
+.stat-val { font-family:'Orbitron',monospace; font-size:14px; color:var(--amb); font-weight:700; }
+.stat-lbl { font-size:7px; letter-spacing:2px; color:var(--dtxt); margin-top:1px; }
+
+/* Controles 3D */
+.ctrl3d-row { display:flex; gap:5px; margin-bottom:5px; }
+.c3btn {
+  flex:1; padding:6px; border-radius:5px; cursor:pointer; font-size:11px;
+  font-family:'Share Tech Mono',monospace; border:1px solid; transition:all 0.15s;
+}
+.c3btn.on  { background:rgba(26,143,232,0.2); border-color:var(--blu); color:var(--blu); }
+.c3btn.off { background:rgba(0,0,0,0.2); border-color:var(--bord); color:var(--dtxt); }
+
+/* Leyenda */
+.leg { display:flex; flex-direction:column; gap:2px; }
+.leg-item { display:flex; align-items:center; gap:6px; }
+.leg-sw { width:20px; height:12px; border-radius:2px; flex-shrink:0; }
+.leg-lb { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--txt); }
+
+/* CANVAS 3D */
+.canvas-wrap {
+  flex:1; position:relative; overflow:hidden;
+}
+#c3d { display:block; width:100%; height:100%; }
+
+/* Overlay info */
+.overlay-info {
+  position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+  background:rgba(10,26,40,0.85); border:1px solid var(--bord);
+  border-radius:20px; padding:6px 16px;
+  font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--dtxt);
+  pointer-events:none; white-space:nowrap;
+}
+
+/* Tooltip 3D */
+.tip3d {
+  position:absolute; background:var(--panel); border:1px solid var(--amb);
+  border-radius:6px; padding:7px 12px; font-size:11px; color:var(--amb);
+  font-family:'Share Tech Mono',monospace; pointer-events:none;
+  opacity:0; transition:opacity 0.15s; z-index:20;
+}
+.tip3d.show { opacity:1; }
+
+/* Progress */
+.prog-bar {
+  position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--amb); transform-origin:left; transform:scaleX(0);
+  transition:transform 0.3s; z-index:30;
+}
+
+/* Toast */
+.toast {
+  position:fixed; bottom:20px; right:20px;
+  background:var(--panel); border:1px solid var(--grn);
+  border-radius:8px; padding:8px 14px; font-size:11px;
+  color:var(--grn); font-family:'Share Tech Mono',monospace;
+  transform:translateY(60px); opacity:0; transition:all 0.3s; z-index:100;
+}
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.err  { border-color:var(--red); color:var(--red); }
+
+/* Empty */
+.empty3d {
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:12px; color:var(--dtxt);
+  text-align:center; padding:40px;
+}
+.empty-icon { font-size:60px; opacity:0.2; }
+.empty-title { font-family:'Orbitron',monospace; font-size:14px; color:var(--blu); opacity:0.4; letter-spacing:3px; }
+.empty-sub { font-size:12px; max-width:260px; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<header>
+  <div>
+    <div class="logo-title">🌊 Bati3D</div>
+    <div class="logo-sub">VISUALIZACIÓN BATIMÉTRICA 3D — BATISISTEMA</div>
+  </div>
+  <div class="header-info" id="hinfo">Sin datos · <a href="index.html" style="color:var(--blu);text-decoration:none">← HUB</a></div>
+</header>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="panel">
+      <div class="panel-title">▸ Datos</div>
+      <div class="upload-area" id="ua"
+           onclick="document.getElementById('fi').click()"
+           ondragover="dov(event)" ondragleave="dlv(event)" ondrop="ddp(event)">
+        <div class="upload-icon">🗂</div>
+        <div class="upload-text">CARGAR CSV(s)</div>
+      </div>
+      <input type="file" id="fi" multiple accept=".csv" onchange="loadFiles(this.files)"/>
+      <div class="file-list" id="fl" style="margin-top:6px"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">▸ Configuración</div>
+      <div class="ctrl">
+        <div class="ctrl-lbl">Resolución IDW</div>
+        <select id="gr">
+          <option value="60">Rápida (60×60)</option>
+          <option value="100" selected>Normal (100×100)</option>
+          <option value="160">Alta (160×160)</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-lbl">Escala vertical: <span id="vsv">3.0×</span></div>
+        <input type="range" id="vs" min="1" max="10" step="0.5" value="3"
+               oninput="document.getElementById('vsv').textContent=this.value+'×'; updateScale()"/>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-lbl">Potencia IDW: <span id="ipv">2</span></div>
+        <input type="range" id="ip" min="1" max="4" step="0.5" value="2"
+               oninput="document.getElementById('ipv').textContent=this.value"/>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btn-gen" onclick="generar3D()" disabled>▶ GENERAR 3D</button>
+
+    <div class="panel" id="ctrl3d-panel" style="display:none">
+      <div class="panel-title">▸ Vista</div>
+      <div class="ctrl3d-row">
+        <button class="c3btn on"  id="cb-surf"   onclick="togObj('surf')">Superficie</button>
+        <button class="c3btn on"  id="cb-pts"    onclick="togObj('pts')">Sondajes</button>
+      </div>
+      <div class="ctrl3d-row">
+        <button class="c3btn on"  id="cb-agua"   onclick="togObj('agua')">Espejo agua</button>
+        <button class="c3btn on"  id="cb-grid"   onclick="togObj('grid')">Grilla</button>
+      </div>
+      <div class="ctrl3d-row">
+        <button class="c3btn off" id="cb-wire"   onclick="togObj('wire')">Wireframe</button>
+        <button class="c3btn on"  id="cb-luz"    onclick="togObj('luz')">Iluminación</button>
+      </div>
+      <div style="margin-top:8px">
+        <div class="ctrl-lbl" style="margin-bottom:4px">PUNTO DE VISTA</div>
+        <div class="ctrl3d-row">
+          <button class="c3btn off" style="font-size:9px" onclick="setView('top')">CENITAL</button>
+          <button class="c3btn off" style="font-size:9px" onclick="setView('front')">FRENTE</button>
+          <button class="c3btn off" style="font-size:9px" onclick="setView('iso')">ISO</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="stats-panel" style="display:none">
+      <div class="panel-title">▸ Estadísticas</div>
+      <div class="stats-grid" id="sg"></div>
+    </div>
+
+    <div class="panel" id="leg-panel" style="display:none">
+      <div class="panel-title">▸ Profundidad (m)</div>
+      <div class="leg" id="leg-items"></div>
+    </div>
+
+    <div class="panel" id="exp-panel" style="display:none">
+      <div class="panel-title">▸ Exportar</div>
+      <button class="btn-sec" onclick="expPNG()">↓ PNG desde vista actual</button>
+    </div>
+
+  </aside>
+
+  <!-- CANVAS 3D -->
+  <div class="canvas-wrap" id="canvas-wrap">
+    <div class="empty3d" id="empty3d">
+      <div class="empty-icon">🌊</div>
+      <div class="empty-title">BATI 3D</div>
+      <div class="empty-sub">Cargá un CSV de BatiCaptura y presioná GENERAR 3D para ver el fondo en tres dimensiones</div>
+    </div>
+    <div class="prog-bar" id="pb"></div>
+    <canvas id="c3d"></canvas>
+    <div class="overlay-info" id="overlay" style="display:none">
+      🖱 Rotar · Scroll zoom · Click derecho mover
+    </div>
+    <div class="tip3d" id="tip3d"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── Estado ───────────────────────────────────────────────────────────────────
+let datasets=[], allPts=[];
+let renderer=null, scene=null, camera=null, animId=null;
+let objects={ surf:null, pts:null, agua:null, grid:null, wire:null };
+let lights=[], visState={ surf:true,pts:true,agua:true,grid:true,wire:false,luz:true };
+let vScale=3.0, idwPow=2;
+let isDragging=false, isRightDrag=false;
+let prevMouse={x:0,y:0};
+let spherical={theta:0.6, phi:1.0, radius:180};
+let target={x:0,y:0,z:0};
+let zMin=0, zMax=10;
+
+// ─── Paleta náutica ───────────────────────────────────────────────────────────
+const PAL=[
+  [210,240,215],[150,220,210],[90,190,225],[50,150,210],
+  [25,110,190],[10,70,160],[4,40,120],[1,18,70]
+];
+function palRGB(t){
+  t=Math.max(0,Math.min(1,t));
+  const n=PAL.length-1,i=Math.floor(t*n),f=t*n-i;
+  const a=PAL[Math.min(i,n)],b=PAL[Math.min(i+1,n)];
+  return[Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)];
+}
+function palHex(t){const[r,g,b]=palRGB(t);return(r<<16)|(g<<8)|b;}
+
+// ─── Drag & Drop ──────────────────────────────────────────────────────────────
+function dov(e){e.preventDefault();document.getElementById('ua').classList.add('drag');}
+function dlv(e){document.getElementById('ua').classList.remove('drag');}
+function ddp(e){e.preventDefault();dlv(e);loadFiles(e.dataTransfer.files);}
+
+// ─── CSV ──────────────────────────────────────────────────────────────────────
+function loadFiles(files){
+  Array.from(files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>parseCSV(f.name,e.target.result);
+    r.readAsText(f);
+  });
+}
+function parseCSV(filename,text){
+  try{
+    const rows=d3.csvParse(text);
+    const UC=rows.columns.map(c=>c.trim().toUpperCase());
+    const fc=(...ns)=>{for(const n of ns){const i=UC.findIndex(c=>c===n||c.includes(n));if(i>=0)return rows.columns[i];}return null;};
+    const latC=fc('LATITUD','LAT','LATITUDE');
+    const lonC=fc('LONGITUD','LON','LONGITUDE');
+    const prC =fc('FINAL_M','FINAL','PROF_M','PROF','PROFUNDIDAD','DEPTH','Z');
+    const seC =fc('SECTOR','NOMBRE','NAME');
+    if(!latC||!lonC||!prC){showToast(`${filename}: no encuentro LAT/LON/PROF`,true);return;}
+    const pts=[];
+    rows.forEach(row=>{
+      const lat=parseFloat(row[latC]),lon=parseFloat(row[lonC]),z=parseFloat(row[prC]);
+      if(isNaN(lat)||isNaN(lon)||isNaN(z))return;
+      pts.push({lat,lon,z,sector:row[seC]||filename});
+    });
+    if(!pts.length){showToast(`${filename}: sin puntos válidos`,true);return;}
+    const ix=datasets.findIndex(d=>d.name===filename);
+    if(ix>=0)datasets.splice(ix,1);
+    datasets.push({name:filename,points:pts});
+    rebuild();
+    showToast(`✓ ${filename} — ${pts.length} puntos`);
+  }catch(e){showToast(`Error: ${e.message}`,true);}
+}
+function rebuild(){
+  allPts=datasets.flatMap(d=>d.points);
+  renderFL();
+  document.getElementById('btn-gen').disabled=allPts.length<4;
+  if(allPts.length){
+    const mn=d3.min(allPts,p=>p.z).toFixed(2),mx=d3.max(allPts,p=>p.z).toFixed(2);
+    document.getElementById('hinfo').innerHTML=`${allPts.length} SONDAJES | ${mn}m — ${mx}m | <a href="index.html" style="color:var(--blu);text-decoration:none">← HUB</a>`;
+  }
+}
+function renderFL(){
+  const fl=document.getElementById('fl');fl.innerHTML='';
+  datasets.forEach(ds=>{
+    const s=ds.name.length>22?ds.name.substring(0,20)+'…':ds.name;
+    const div=document.createElement('div');div.className='file-item';
+    div.innerHTML=`<span class="fname">${s}</span><span class="fct">${ds.points.length}pt</span>
+      <button class="fdel" onclick="rmDS('${ds.name}')">✕</button>`;
+    fl.appendChild(div);
+  });
+}
+function rmDS(n){datasets=datasets.filter(d=>d.name!==n);rebuild();}
+
+// ─── Proyección ───────────────────────────────────────────────────────────────
+function toM(lat,lon,lat0,lon0){
+  const R=6371000;
+  return{x:(lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180,y:(lat-lat0)*R*Math.PI/180};
+}
+function idw(pts,x,y,pow){
+  let sw=0,swz=0;
+  for(const p of pts){
+    const d2=(p.x-x)**2+(p.y-y)**2;
+    if(d2<0.01)return p.z;
+    const w=1/Math.pow(d2,pow/2);sw+=w;swz+=w*p.z;
+  }
+  return swz/sw;
+}
+
+// ─── GENERAR 3D ───────────────────────────────────────────────────────────────
+async function generar3D(){
+  if(allPts.length<4)return;
+  prog(0.05);
+  document.getElementById('btn-gen').disabled=true;
+  document.getElementById('empty3d').style.display='none';
+  await sl(30);
+
+  const gN=parseInt(document.getElementById('gr').value);
+  idwPow=parseFloat(document.getElementById('ip').value);
+  vScale=parseFloat(document.getElementById('vs').value);
+
+  const lat0=d3.mean(allPts,p=>p.lat), lon0=d3.mean(allPts,p=>p.lon);
+  const pts=allPts.map(p=>{
+    const m=toM(p.lat,p.lon,lat0,lon0);
+    return{x:m.x,y:m.y,z:p.z,lat:p.lat,lon:p.lon,sector:p.sector};
+  });
+
+  prog(0.10);
+
+  const xMn=d3.min(pts,p=>p.x),xMx=d3.max(pts,p=>p.x);
+  const yMn=d3.min(pts,p=>p.y),yMx=d3.max(pts,p=>p.y);
+  const xP=(xMx-xMn)*0.08+5, yP=(yMx-yMn)*0.08+5;
+  const x0=xMn-xP,x1=xMx+xP,y0=yMn-yP,y1=yMx+yP;
+  const W=x1-x0, H=y1-y0;
+
+  const gW=gN, gH=Math.max(4,Math.round(gN*H/W));
+  const vals=new Float32Array(gW*gH);
+
+  for(let c=0;c<8;c++){
+    const r0=Math.round(c*gH/8),r1=Math.round((c+1)*gH/8);
+    for(let row=r0;row<r1;row++)
+      for(let col=0;col<gW;col++)
+        vals[row*gW+col]=idw(pts,x0+(col/(gW-1))*W,y0+(row/(gH-1))*H,idwPow);
+    prog(0.10+c*0.09); await sl(0);
+  }
+
+  zMin=d3.min(vals); zMax=d3.max(vals);
+  prog(0.85);
+
+  // Normalizar a escena Three.js
+  const SZ=100; // tamaño de escena
+  const scX=v=>(v-x0)/W*SZ-SZ/2;
+  const scY=v=>(v-y0)/H*SZ-SZ/2;
+  const scZ=v=>-((v-zMin)/(zMax-zMin||1))*SZ*0.3*vScale; // profundidad hacia abajo
+
+  // Inicializar Three.js
+  initThree();
+  clearObjects();
+
+  // ── Superficie IDW (PlaneGeometry customizado) ──
+  const geo=new THREE.PlaneGeometry(SZ,SZ,gW-1,gH-1);
+  geo.rotateX(-Math.PI/2);
+
+  const pos=geo.attributes.position;
+  const colors=[];
+  for(let row=0;row<gH;row++){
+    for(let col=0;col<gW;col++){
+      const idx=row*gW+col;
+      const z=vals[idx];
+      const t=(z-zMin)/(zMax-zMin||1);
+      const[r,g,b]=palRGB(t);
+      colors.push(r/255,g/255,b/255);
+      // Y en Three.js es la altura; bajar según profundidad
+      const vi=idx;
+      pos.setY(vi, scZ(z));
+    }
+  }
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  geo.computeVertexNormals();
+
+  const mat=new THREE.MeshPhongMaterial({
+    vertexColors:true, side:THREE.DoubleSide,
+    shininess:40, specular:0x224488
+  });
+  const mesh=new THREE.Mesh(geo,mat);
+  scene.add(mesh);
+  objects.surf=mesh;
+
+  // Wireframe
+  const wireMat=new THREE.MeshBasicMaterial({color:0x1a3a5c,wireframe:true,transparent:true,opacity:0.15});
+  const wireMesh=new THREE.Mesh(geo.clone(),wireMat);
+  wireMesh.visible=false;
+  scene.add(wireMesh);
+  objects.wire=wireMesh;
+
+  // ── Espejo de agua (plano transparente en z=0) ──
+  const wGeo=new THREE.PlaneGeometry(SZ*1.1,SZ*1.1);
+  wGeo.rotateX(-Math.PI/2);
+  const wMat=new THREE.MeshPhongMaterial({
+    color:0x1a6090, transparent:true, opacity:0.35,
+    side:THREE.DoubleSide, shininess:100, specular:0x88ccff
+  });
+  const wMesh=new THREE.Mesh(wGeo,wMat);
+  wMesh.position.y=0.5; // justo sobre la superficie en el punto más alto
+  scene.add(wMesh);
+  objects.agua=wMesh;
+
+  // ── Grilla de fondo ──
+  const gridHelper=new THREE.GridHelper(SZ,10,0x0e3a5c,0x0e3a5c);
+  gridHelper.position.y=scZ(zMax)*1.05;
+  scene.add(gridHelper);
+  objects.grid=gridHelper;
+
+  // ── Puntos de sondaje ──
+  const ptsGroup=new THREE.Group();
+  const sphGeo=new THREE.SphereGeometry(0.6,8,8);
+  pts.forEach(p=>{
+    const sx=scX(p.x), sy=scZ(p.z), sz=-scY(p.y);
+    const t=(p.z-zMin)/(zMax-zMin||1);
+    const mat=new THREE.MeshPhongMaterial({color:palHex(t),emissive:palHex(t),emissiveIntensity:0.3});
+    const sph=new THREE.Mesh(sphGeo,mat);
+    sph.position.set(sx,sy+0.3,sz);
+    sph.userData={z:p.z,lat:p.lat,lon:p.lon,sector:p.sector};
+    ptsGroup.add(sph);
+  });
+  scene.add(ptsGroup);
+  objects.pts=ptsGroup;
+
+  // Centrar cámara
+  target={x:0,y:scZ(zMin)/2,z:0};
+  spherical={theta:0.6,phi:1.1,radius:180};
+  updateCamera();
+
+  prog(1); setTimeout(()=>prog(0),600);
+
+  // Panels
+  buildStats(pts,gW,gH,W,H);
+  buildLegend();
+  ['ctrl3d-panel','stats-panel','leg-panel','exp-panel'].forEach(id=>document.getElementById(id).style.display='');
+  document.getElementById('overlay').style.display='';
+  document.getElementById('btn-gen').disabled=false;
+  showToast(`✓ Escena 3D — ${pts.length} puntos`);
+}
+
+// ─── Three.js ─────────────────────────────────────────────────────────────────
+function initThree(){
+  if(renderer)return; // ya inicializado
+
+  const wrap=document.getElementById('canvas-wrap');
+  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c3d'),antialias:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(wrap.clientWidth,wrap.clientHeight);
+  renderer.setClearColor(0x060e18);
+
+  scene=new THREE.Scene();
+  scene.fog=new THREE.FogExp2(0x060e18,0.004);
+
+  camera=new THREE.PerspectiveCamera(50,wrap.clientWidth/wrap.clientHeight,0.1,2000);
+
+  // Luces
+  const amb=new THREE.AmbientLight(0x334466,0.8);
+  scene.add(amb); lights.push(amb);
+  const dir=new THREE.DirectionalLight(0xaaccff,1.2);
+  dir.position.set(80,120,60); scene.add(dir); lights.push(dir);
+  const dir2=new THREE.DirectionalLight(0x4477aa,0.6);
+  dir2.position.set(-60,40,-80); scene.add(dir2); lights.push(dir2);
+
+  // Eventos mouse
+  const c=document.getElementById('c3d');
+  c.addEventListener('mousedown',onMD);
+  c.addEventListener('mousemove',onMM);
+  c.addEventListener('mouseup',()=>{isDragging=false;isRightDrag=false;});
+  c.addEventListener('mouseleave',()=>{isDragging=false;isRightDrag=false;});
+  c.addEventListener('wheel',onWheel,{passive:false});
+  c.addEventListener('contextmenu',e=>e.preventDefault());
+
+  // Eventos touch
+  c.addEventListener('touchstart',onTS,{passive:false});
+  c.addEventListener('touchmove',onTM,{passive:false});
+  c.addEventListener('touchend',()=>{isDragging=false;});
+
+  window.addEventListener('resize',onResize);
+  render();
+}
+
+function render(){
+  animId=requestAnimationFrame(render);
+  if(renderer&&scene&&camera) renderer.render(scene,camera);
+}
+
+function updateCamera(){
+  const{theta,phi,radius}=spherical;
+  camera.position.x=target.x+radius*Math.sin(phi)*Math.sin(theta);
+  camera.position.y=target.y+radius*Math.cos(phi);
+  camera.position.z=target.z+radius*Math.sin(phi)*Math.cos(theta);
+  camera.lookAt(target.x,target.y,target.z);
+}
+
+function updateScale(){
+  vScale=parseFloat(document.getElementById('vs').value);
+  // Re-generar si ya hay datos
+  if(objects.surf) generar3D();
+}
+
+// ─── Mouse / Touch controls ───────────────────────────────────────────────────
+function onMD(e){
+  isDragging=true;
+  isRightDrag=e.button===2;
+  prevMouse={x:e.clientX,y:e.clientY};
+}
+function onMM(e){
+  if(!isDragging)return;
+  const dx=e.clientX-prevMouse.x, dy=e.clientY-prevMouse.y;
+  prevMouse={x:e.clientX,y:e.clientY};
+  if(isRightDrag){
+    // Pan
+    target.x-=dx*0.15; target.z+=dy*0.15;
+  } else {
+    // Orbit
+    spherical.theta-=dx*0.005;
+    spherical.phi=Math.max(0.1,Math.min(Math.PI*0.9,spherical.phi-dy*0.005));
+  }
+  updateCamera();
+}
+function onWheel(e){
+  e.preventDefault();
+  spherical.radius=Math.max(30,Math.min(400,spherical.radius+e.deltaY*0.2));
+  updateCamera();
+}
+
+// Touch
+let lastTouchDist=0;
+function onTS(e){
+  e.preventDefault();
+  if(e.touches.length===1){isDragging=true;prevMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};}
+  else if(e.touches.length===2){
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    lastTouchDist=Math.sqrt(dx*dx+dy*dy);
+  }
+}
+function onTM(e){
+  e.preventDefault();
+  if(e.touches.length===1&&isDragging){
+    const dx=e.touches[0].clientX-prevMouse.x, dy=e.touches[0].clientY-prevMouse.y;
+    prevMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    spherical.theta-=dx*0.005;
+    spherical.phi=Math.max(0.1,Math.min(Math.PI*0.9,spherical.phi-dy*0.005));
+    updateCamera();
+  } else if(e.touches.length===2){
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    spherical.radius=Math.max(30,Math.min(400,spherical.radius-(dist-lastTouchDist)*0.5));
+    lastTouchDist=dist;
+    updateCamera();
+  }
+}
+
+function onResize(){
+  const wrap=document.getElementById('canvas-wrap');
+  if(!renderer||!camera)return;
+  camera.aspect=wrap.clientWidth/wrap.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(wrap.clientWidth,wrap.clientHeight);
+}
+
+// ─── Vistas predefinidas ──────────────────────────────────────────────────────
+function setView(v){
+  switch(v){
+    case 'top':   spherical={theta:0,phi:0.01,radius:160}; break;
+    case 'front': spherical={theta:0,phi:Math.PI/2,radius:160}; break;
+    case 'iso':   spherical={theta:0.8,phi:0.9,radius:180}; break;
+  }
+  updateCamera();
+}
+
+// ─── Toggle objetos ───────────────────────────────────────────────────────────
+function togObj(name){
+  visState[name]=!visState[name];
+  const btn=document.getElementById('cb-'+name);
+  btn.className='c3btn '+(visState[name]?'on':'off');
+  if(name==='luz'){
+    lights.forEach(l=>l.visible=visState.luz);
+    return;
+  }
+  if(objects[name]){
+    if(name==='pts'&&objects.pts){
+      objects.pts.children.forEach(c=>c.visible=visState.pts);
+    } else {
+      objects[name].visible=visState[name];
+    }
+  }
+}
+
+function clearObjects(){
+  Object.values(objects).forEach(o=>{if(o&&scene)scene.remove(o);});
+  objects={surf:null,pts:null,agua:null,grid:null,wire:null};
+}
+
+// ─── Paneles laterales ────────────────────────────────────────────────────────
+function buildStats(pts,gW,gH,W,H){
+  const el=document.getElementById('sg');el.innerHTML='';
+  [{v:pts.length,l:'PUNTOS'},{v:d3.mean(pts,p=>p.z).toFixed(2)+'m',l:'MEDIA'},
+   {v:zMin.toFixed(2)+'m',l:'MÍN'},{v:zMax.toFixed(2)+'m',l:'MÁX'},
+   {v:(W*H/10000).toFixed(1)+'ha',l:'ÁREA'},{v:datasets.length,l:'SECTORES'}]
+  .forEach(s=>{
+    const b=document.createElement('div');b.className='stat-box';
+    b.innerHTML=`<div class="stat-val">${s.v}</div><div class="stat-lbl">${s.l}</div>`;
+    el.appendChild(b);
+  });
+}
+function buildLegend(){
+  const el=document.getElementById('leg-items');el.innerHTML='';
+  const steps=8;
+  for(let i=0;i<steps;i++){
+    const t=i/(steps-1);
+    const z=zMin+t*(zMax-zMin);
+    const[r,g,b]=palRGB(t);
+    const div=document.createElement('div');div.className='leg-item';
+    const sw=document.createElement('div');sw.className='leg-sw';
+    sw.style.background=`rgb(${r},${g},${b})`;
+    const lb=document.createElement('div');lb.className='leg-lb';
+    lb.textContent=z.toFixed(2)+'m';
+    div.appendChild(sw);div.appendChild(lb);el.appendChild(div);
+  }
+}
+
+// ─── Exportar PNG ─────────────────────────────────────────────────────────────
+function expPNG(){
+  if(!renderer){showToast('Generá la escena primero',true);return;}
+  renderer.render(scene,camera);
+  const url=renderer.domElement.toDataURL('image/png');
+  const a=document.createElement('a');
+  a.download='bati3d_'+new Date().toISOString().substring(0,10)+'.png';
+  a.href=url; a.click();
+  showToast('✓ PNG exportado');
+}
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+function prog(p){document.getElementById('pb').style.transform=`scaleX(${p})`;}
+function sl(ms){return new Promise(r=>setTimeout(r,ms));}
+let tT;
+function showToast(msg,err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(err?' err':'');
+  clearTimeout(tT);tT=setTimeout(()=>t.className='toast',3500);
+}
+</script>
+</body>
+</html>
