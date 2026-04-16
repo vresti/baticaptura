@@ -450,6 +450,7 @@ async function comparar() {
   prog(0.92);
   await generar3D(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax);
   prog(0.95);
+  window._lastPerfilArgs=[valsA,valsB,diff,gW,gH,dMax];
   generarPerfil(valsA,valsB,diff,gW,gH,dMax);
   prog(1); setTimeout(()=>prog(0),600);
 
@@ -700,7 +701,7 @@ function generarPerfil(valsA,valsB,diff,gW,gH,dMax) {
   const zMn=d3.min(allVals)-0.5, zMx=d3.max(allVals)+0.5;
 
   const scX=d3.scaleLinear().domain([0,gW-1]).range([0,PW]);
-  const scY=d3.scaleLinear().domain([zMx,zMn]).range([0,PH]); // invertido
+  const scY=d3.scaleLinear().domain([zMn,zMx]).range([0,PH]); // profundo=abajo
 
   wrap.innerHTML='';
   const svgP=document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -712,8 +713,13 @@ function generarPerfil(valsA,valsB,diff,gW,gH,dMax) {
   const g=svg.append('g').attr('transform',`translate(${ML},${MT})`);
 
   // Fondo
+  // Fondo degradado: agua en superficie (arriba), fondo en profundidad (abajo)
+  const defs=svg.append('defs');
+  const grad=defs.append('linearGradient').attr('id','bgGrad').attr('x1','0').attr('y1','0').attr('x2','0').attr('y2','1');
+  grad.append('stop').attr('offset','0%').attr('stop-color','#c8e8f8');
+  grad.append('stop').attr('offset','100%').attr('stop-color','#0a2a4a');
   g.append('rect').attr('x',0).attr('y',0).attr('width',PW).attr('height',PH)
-    .attr('fill','#e8f4f8').attr('stroke','none');
+    .attr('fill','url(#bgGrad)').attr('stroke','none');
 
   // Relleno entre curvas (área dragada/sedimentada)
   const areaPath=d3.area()
@@ -735,15 +741,16 @@ function generarPerfil(valsA,valsB,diff,gW,gH,dMax) {
   // Línea A (antes)
   const lineA=d3.line().x((d,i)=>scX(i)).y(d=>scY(d)).curve(d3.curveCatmullRom);
   g.append('path').datum(profA).attr('d',lineA)
-    .attr('fill','none').attr('stroke','#1a237e').attr('stroke-width',2);
+    .attr('fill','none').attr('stroke','#60aaff').attr('stroke-width',2.5).attr('stroke-dasharray','6,3');
 
   // Línea B (después)
   const lineB=d3.line().x((d,i)=>scX(i)).y(d=>scY(d)).curve(d3.curveCatmullRom);
   g.append('path').datum(profB).attr('d',lineB)
-    .attr('fill','none').attr('stroke','#2e7d32').attr('stroke-width',2);
+    .attr('fill','none').attr('stroke','#00e5a0').attr('stroke-width',2.5);
 
   // Ejes
   const axisY=d3.axisLeft(scY).ticks(6).tickFormat(d=>d.toFixed(1)+'m');
+  // Eje invertido: la escala aumenta hacia abajo (más profundo=abajo)
   g.append('g').call(axisY).attr('font-size','8px').attr('font-family','monospace');
   g.append('rect').attr('x',0).attr('y',0).attr('width',PW).attr('height',PH)
     .attr('fill','none').attr('stroke','#1a237e').attr('stroke-width',1);
@@ -752,7 +759,7 @@ function generarPerfil(valsA,valsB,diff,gW,gH,dMax) {
   svg.append('text').attr('x',W2/2).attr('y',18).attr('text-anchor','middle')
     .attr('font-family','monospace').attr('font-size','10px').attr('font-weight','bold')
     .attr('fill','#1a237e').text('PERFIL TRANSVERSAL — EJE DEL CANAL');
-  [{c:'#1a237e',t:'ANTES'},{c:'#2e7d32',t:'DESPUÉS'}].forEach((it,i)=>{
+  [{c:'#60aaff',t:'ANTES (discontinua)'},{c:'#00e5a0',t:'DESPUÉS'}].forEach((it,i)=>{
     svg.append('line').attr('x1',W2-120+i*60).attr('x2',W2-100+i*60)
       .attr('y1',H2-15).attr('y2',H2-15).attr('stroke',it.c).attr('stroke-width',2);
     svg.append('text').attr('x',W2-97+i*60).attr('y',H2-12)
@@ -811,13 +818,21 @@ function buildLegend(dMax) {
 //  THREE.JS
 // ════════════════════════════════════════════════
 function initThree(){
+  // Mostrar el panel 3D brevemente para obtener dimensiones reales
+  const panel3d=document.getElementById('panel-3d');
+  const wasHidden=panel3d.style.display==='none'||!panel3d.classList.contains('active');
+  panel3d.style.display='flex';
+  panel3d.style.position='absolute';panel3d.style.visibility='hidden';
   const wrap=document.getElementById('c3d-wrap');
+  const W3=Math.max(400,wrap.clientWidth||800);
+  const H3=Math.max(300,wrap.clientHeight||500);
+  if(wasHidden){panel3d.style.display='';panel3d.style.position='';panel3d.style.visibility='';}
   renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c3d'),antialias:true});
   renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(wrap.clientWidth,wrap.clientHeight);
+  renderer.setSize(W3,H3);
   renderer.setClearColor(0x0a1628);
   scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x0a1628,0.005);
-  camera=new THREE.PerspectiveCamera(50,wrap.clientWidth/wrap.clientHeight,0.1,2000);
+  camera=new THREE.PerspectiveCamera(50,W3/H3,0.1,2000);
   scene.add(new THREE.AmbientLight(0x334466,0.9));
   const d1=new THREE.DirectionalLight(0xaaccff,1.2);d1.position.set(80,120,60);scene.add(d1);
   const d2=new THREE.DirectionalLight(0x4477aa,0.6);d2.position.set(-60,40,-80);scene.add(d2);
@@ -836,7 +851,7 @@ function initThree(){
   c.addEventListener('contextmenu',e=>e.preventDefault());
   window.addEventListener('resize',()=>{
     const w=document.getElementById('c3d-wrap');
-    if(!renderer)return;
+    if(!renderer||!w.clientWidth)return;
     camera.aspect=w.clientWidth/w.clientHeight;camera.updateProjectionMatrix();
     renderer.setSize(w.clientWidth,w.clientHeight);
   });
@@ -864,6 +879,21 @@ function setTab(id) {
   });
   document.querySelectorAll('.view-panel').forEach(p=>p.className='view-panel');
   document.getElementById('panel-'+id).className='view-panel active';
+  // Al cambiar a 3D: redimensionar el renderer al tamaño real
+  if(id==='3d'&&renderer){
+    setTimeout(()=>{
+      const w=document.getElementById('c3d-wrap');
+      if(w.clientWidth>0){
+        camera.aspect=w.clientWidth/w.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w.clientWidth,w.clientHeight);
+      }
+    },50);
+  }
+  // Al cambiar a perfil: re-generar con tamaño real
+  if(id==='perfil'&&window._lastPerfilArgs){
+    generarPerfil(...window._lastPerfilArgs);
+  }
 }
 
 // ════════════════════════════════════════════════
