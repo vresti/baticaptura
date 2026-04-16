@@ -616,22 +616,35 @@ async function genMapa2D(valsA,valsB,diff,gW,gH,W,H,x0,y0,dMax,lat0,lon0,ptsA,pt
 //  3D SUPERPUESTO
 // ════════════════════════════════════════════════
 async function generar3D(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax) {
+  // Si el panel 3D no está visible, guardar para cuando se abra
+  const panel3d=document.getElementById('panel-3d');
+  if(!panel3d.classList.contains('active')){
+    window._pending3D=[valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax];
+    return; // se ejecutará cuando el usuario haga click en el tab 3D
+  }
+  const wrap3=document.getElementById('c3d-wrap');
+  const W3d=wrap3.clientWidth||800, H3d=wrap3.clientHeight||500;
+  if(!renderer) init3D(W3d,H3d);
+  else clearScene();
+
+  build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax);
+}
+
+async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
+  if(!renderer||!scene||!camera)return;
+  clearScene();
+
+  // Escalas — deben estar aqui porque build3Dscene es funcion independiente
   const zMnA=d3.min(valsA), zMxB=d3.max(valsB);
   const zR=zMxB-zMnA||1;
   const SZ=100;
-  const scX=v=>(v-x0)/W*SZ-SZ/2;
-  const scY=v=>(v-y0)/H*SZ-SZ/2;
-  // Escala vertical adaptiva: si el rango es pequeño relativo al área, aumentar
-  const areaRatio = Math.max(W,H) / Math.max(zR,0.1);
-  const autoScale = Math.min(20, Math.max(vSc, areaRatio * 0.08));
+  const areaRatio=Math.max(W,H)/Math.max(zR,0.1);
+  const autoScale=Math.min(20,Math.max(vSc,areaRatio*0.08));
   const scZ=z=>-((z-zMnA)/zR)*SZ*0.25*autoScale;
-  // Offset para separar visualmente A de B cuando la diferencia es muy pequeña
-  const diffM = d3.max(valsB) - d3.min(valsA);
-  const pixelDiff = Math.abs(scZ(d3.max(valsB)) - scZ(d3.min(valsA)));
-  const minVisualGap = 3.0; // mínimo 3 unidades de separación visual
 
-  if(!renderer) initThree();
-  else clearScene();
+  // Info de escala en overlay
+  const scInfo=document.getElementById('scale-info');
+  if(scInfo)scInfo.textContent='Escala vertical: '+autoScale.toFixed(1)+'×';
 
   // ── Superficie A (antes) — semitransparente azul oscuro ──
   const geoA=new THREE.PlaneGeometry(SZ,SZ,gW-1,gH-1);
@@ -882,11 +895,8 @@ function buildLegend(dMax) {
 // ════════════════════════════════════════════════
 //  THREE.JS
 // ════════════════════════════════════════════════
-function initThree(){
-  // Usar dimensiones del área principal — siempre visible
-  const mainArea=document.querySelector('.main-area');
-  const W3=Math.max(600, (mainArea?mainArea.clientWidth:900) - 20);
-  const H3=Math.max(400, (mainArea?mainArea.clientHeight:600) - 60);
+function init3D(W3,H3){
+  W3=Math.max(400,W3); H3=Math.max(300,H3);
   renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c3d'),antialias:true});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   renderer.setSize(W3,H3);
@@ -939,22 +949,32 @@ function setTab(id) {
   });
   document.querySelectorAll('.view-panel').forEach(p=>p.className='view-panel');
   document.getElementById('panel-'+id).className='view-panel active';
-  // Al cambiar a 3D: redimensionar el renderer al tamaño real
+
   if(id==='3d'){
+    // El panel ya es visible — inicializar o redimensionar con dimensiones reales
     setTimeout(()=>{
-      const w=document.getElementById('c3d-wrap');
-      const nW=Math.max(400,w.clientWidth||600);
-      const nH=Math.max(300,w.clientHeight||400);
-      if(renderer){
-        camera.aspect=nW/nH;
+      const wrap=document.getElementById('c3d-wrap');
+      const W=wrap.clientWidth  || wrap.offsetWidth  || 800;
+      const H=wrap.clientHeight || wrap.offsetHeight || 500;
+      if(!renderer){
+        // Primera vez: inicializar
+        init3D(W,H);
+      } else {
+        // Ya existe: solo redimensionar
+        camera.aspect=W/H;
         camera.updateProjectionMatrix();
-        renderer.setSize(nW,nH);
+        renderer.setSize(W,H);
       }
-    },100);
+      // Si hay datos 3D pendientes, renderizarlos ahora
+      if(window._pending3D){
+        build3Dscene(...window._pending3D);
+        window._pending3D=null;
+      }
+    },80);
   }
-  // Al cambiar a perfil: re-generar con tamaño real
+
   if(id==='perfil'&&window._lastPerfilArgs){
-    generarPerfil(...window._lastPerfilArgs);
+    setTimeout(()=>generarPerfil(...window._lastPerfilArgs),80);
   }
 }
 
