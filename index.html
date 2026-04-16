@@ -231,6 +231,12 @@
   .card.mobile .card-features li::before { color: #c084fc; }
   .card.tres-d .card-cta { background: rgba(0,229,160,0.1); border: 1px solid var(--green); color: var(--green); }
   .card.mobile .card-cta { background: rgba(192,132,252,0.1); border: 1px solid #c084fc; color: #c084fc; }
+  .card.comparar::before { background: linear-gradient(90deg, #c9a227, #ffd060); }
+  .card.comparar::after  { background: radial-gradient(circle at 50% 0%, rgba(201,162,39,0.06), transparent 70%); }
+  .card.comparar:hover   { border-color: #c9a227; box-shadow: 0 8px 30px rgba(201,162,39,0.12); }
+  .card.comparar .card-title { color: #ffd060; }
+  .card.comparar .card-features li::before { color: #ffd060; }
+  .card.comparar .card-cta { background: rgba(201,162,39,0.1); border: 1px solid #c9a227; color: #ffd060; }
 </style>
 </head>
 <body>
@@ -309,6 +315,24 @@
         <li>Corrección marea con nota de referencia</li>
         <li>Autosave local</li>
         <li>GAS integrado</li>
+      </ul>
+      <div class="card-cta">▶ ABRIR</div>
+    </a>
+
+
+    <!-- COMPARAR -->
+    <a class="card comparar" href="comparar.html">
+      <span class="card-icon">⚖</span>
+      <div class="card-title">BATICOMPARAR</div>
+      <div class="card-desc">
+        Compará dos relevamientos del mismo lugar y calculá el volumen dragado.
+      </div>
+      <ul class="card-features">
+        <li>Mapa de diferencias 2D coloreado</li>
+        <li>3D superpuesto antes/después</li>
+        <li>Perfil transversal del canal</li>
+        <li>Volumen dragado y sedimentado en m³</li>
+        <li>Export PNG y CSV de diferencias</li>
       </ul>
       <div class="card-cta">▶ ABRIR</div>
     </a>
