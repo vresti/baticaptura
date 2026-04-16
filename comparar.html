@@ -442,7 +442,13 @@ async function comparar() {
   }
   const dMax = Math.max(Math.abs(d3.max(diff)), Math.abs(d3.min(diff)));
 
-  buildStats(volDrag,volSed,cellArea,gW,gH,W,H,valsA,valsB,diff,dMax);
+  // Volúmenes totales = suma de profundidad × área de celda
+  let volTotalA=0, volTotalB=0;
+  for(let i=0;i<valsA.length;i++){
+    volTotalA += valsA[i] * cellArea;
+    volTotalB += valsB[i] * cellArea;
+  }
+  buildStats(volDrag,volSed,cellArea,gW,gH,W,H,valsA,valsB,diff,dMax,volTotalA,volTotalB);
   buildLegend(dMax);
 
   // Generar vistas
@@ -770,33 +776,62 @@ function generarPerfil(valsA,valsB,diff,gW,gH,dMax) {
 // ════════════════════════════════════════════════
 //  ESTADÍSTICAS
 // ════════════════════════════════════════════════
-function buildStats(volDrag,volSed,cellArea,gW,gH,W,H,valsA,valsB,diff,dMax) {
-  const balance = volDrag-volSed;
-  const area    = (W*H/10000).toFixed(2);
-  const diffMax = d3.max(diff).toFixed(2);
-  const diffMin = d3.min(diff).toFixed(2);
-  const diffMed = d3.mean(diff).toFixed(2);
-  const mA      = d3.mean(valsA).toFixed(2);
-  const mB      = d3.mean(valsB).toFixed(2);
+function buildStats(volDrag,volSed,cellArea,gW,gH,W,H,valsA,valsB,diff,dMax,volTotalA,volTotalB) {
+  const balance  = volTotalB - volTotalA; // positivo = se dragó
+  const area     = (W*H/10000).toFixed(2);
+  const diffMax  = d3.max(diff).toFixed(2);
+  const diffMin  = d3.min(diff).toFixed(2);
+  const mA       = d3.mean(valsA).toFixed(2);
+  const mB       = d3.mean(valsB).toFixed(2);
 
   const sg=document.getElementById('stats-big');sg.innerHTML='';
+
+  // ── Fila principal: los tres volúmenes ──
+  const volRow=document.createElement('div');
+  volRow.style.cssText='grid-column:1/-1;background:white;border:1px solid var(--border);border-radius:6px;padding:10px 8px;';
+  volRow.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:4px;text-align:center;">
+      <div>
+        <div style="font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:#1a6090">
+          ${Math.round(volTotalA).toLocaleString('es-AR')} m³
+        </div>
+        <div style="font-size:7px;letter-spacing:2px;color:#6a6a7a;margin-top:2px">VOL. INICIAL (ANTES)</div>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:20px;color:#999">−</div>
+      <div>
+        <div style="font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:#2e7d32">
+          ${Math.round(volTotalB).toLocaleString('es-AR')} m³
+        </div>
+        <div style="font-size:7px;letter-spacing:2px;color:#6a6a7a;margin-top:2px">VOL. FINAL (DESPUÉS)</div>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:20px;color:#999">=</div>
+      <div style="background:${balance>0?'rgba(26,96,144,0.08)':'rgba(139,0,0,0.08)'};border-radius:6px;padding:6px 4px">
+        <div style="font-family:'Orbitron',monospace;font-size:15px;font-weight:900;color:${balance>0?'#1a6090':'#8B0000'}">
+          ${balance>0?'+':''}${Math.round(Math.abs(balance)).toLocaleString('es-AR')} m³
+        </div>
+        <div style="font-size:7px;letter-spacing:2px;color:#6a6a7a;margin-top:2px">
+          ${balance>0?'DRAGADO':'SEDIMENTADO'}
+        </div>
+      </div>
+    </div>`;
+  sg.appendChild(volRow);
+
+  // ── Stats secundarias ──
   [
-    {v:Math.round(volDrag).toLocaleString('es-AR')+'m³', l:'DRAGADO',     cls:'dragado'},
-    {v:Math.round(volSed).toLocaleString('es-AR')+'m³',  l:'SEDIMENTADO', cls:'sedim'},
-    {v:Math.round(balance).toLocaleString('es-AR')+'m³', l:'BALANCE NETO',cls:'balance'},
-    {v:area+'ha', l:'ÁREA', cls:'neutro'},
+    {v:area+' ha',          l:'ÁREA RELEVADA',    cls:'neutro'},
+    {v:'+'+diffMax+' m',    l:'MÁX DRAGADO',      cls:'dragado'},
+    {v:diffMin+' m',        l:'MÁX SEDIMENT.',    cls:'sedim'},
+    {v:mA+' m → '+mB+' m', l:'PROF. MEDIA',       cls:'neutro'},
   ].forEach(s=>{
     const b=document.createElement('div');b.className='stat';
-    b.innerHTML=`<div class="stat-val ${s.cls}">${s.v}</div><div class="stat-lbl">${s.l}</div>`;
+    b.innerHTML=`<div class="stat-val ${s.cls}" style="font-size:12px">${s.v}</div><div class="stat-lbl">${s.l}</div>`;
     sg.appendChild(b);
   });
 
   document.getElementById('stats-detalle').innerHTML=`
-    Prof. media ANTES:  ${mA} m<br>
-    Prof. media DESPUÉS: ${mB} m<br>
-    Diferencia media:   ${diffMed} m<br>
-    Máx dragado:        +${diffMax} m<br>
-    Máx sedimentación:  ${diffMin} m
+    Celdas dragadas:   ${Array.from(diff).filter(v=>v>0.05).length} de ${diff.length}<br>
+    Celdas sediment.:  ${Array.from(diff).filter(v=>v<-0.05).length} de ${diff.length}<br>
+    Área celda:        ${cellArea.toFixed(1)} m²
   `;
 }
 
