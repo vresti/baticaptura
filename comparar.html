@@ -218,8 +218,8 @@ input[type=range] { width:100%; accent-color:var(--navy); cursor:pointer; }
       </select>
     </div>
     <div class="ctrl">
-      <div class="ctrl-lbl">Escala 3D: <span id="vsv">4×</span></div>
-      <input type="range" id="vs" min="1" max="12" step="0.5" value="4"
+      <div class="ctrl-lbl">Escala 3D: <span id="vsv">8×</span></div>
+      <input type="range" id="vs" min="1" max="20" step="0.5" value="8"
              oninput="document.getElementById('vsv').textContent=this.value+'×'"/>
     </div>
   </div>
@@ -276,7 +276,7 @@ input[type=range] { width:100%; accent-color:var(--navy); cursor:pointer; }
   <div class="view-panel" id="panel-3d">
     <div id="c3d-wrap">
       <canvas id="c3d"></canvas>
-      <div class="overlay3d">🖱 Rotar · Scroll zoom · Derecho mover</div>
+      <div class="overlay3d">🖱 Rotar · Scroll zoom · Derecho mover &nbsp;|&nbsp; <span id="scale-info" style="color:var(--gold)"></span></div>
     </div>
   </div>
 
@@ -621,7 +621,14 @@ async function generar3D(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax) {
   const SZ=100;
   const scX=v=>(v-x0)/W*SZ-SZ/2;
   const scY=v=>(v-y0)/H*SZ-SZ/2;
-  const scZ=z=>-((z-zMnA)/zR)*SZ*0.25*vSc;
+  // Escala vertical adaptiva: si el rango es pequeño relativo al área, aumentar
+  const areaRatio = Math.max(W,H) / Math.max(zR,0.1);
+  const autoScale = Math.min(20, Math.max(vSc, areaRatio * 0.08));
+  const scZ=z=>-((z-zMnA)/zR)*SZ*0.25*autoScale;
+  // Offset para separar visualmente A de B cuando la diferencia es muy pequeña
+  const diffM = d3.max(valsB) - d3.min(valsA);
+  const pixelDiff = Math.abs(scZ(d3.max(valsB)) - scZ(d3.min(valsA)));
+  const minVisualGap = 3.0; // mínimo 3 unidades de separación visual
 
   if(!renderer) initThree();
   else clearScene();
@@ -639,10 +646,17 @@ async function generar3D(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax) {
   geoA.setAttribute('color',new THREE.Float32BufferAttribute(colsA,3));
   geoA.computeVertexNormals();
   const matA=new THREE.MeshPhongMaterial({
-    vertexColors:true, transparent:true, opacity:0.55,
+    vertexColors:true, transparent:true, opacity:0.6,
     side:THREE.DoubleSide, shininess:30
   });
-  scene.add(new THREE.Mesh(geoA,matA));
+  const meshA=new THREE.Mesh(geoA,matA);
+  scene.add(meshA);
+
+  // Wireframe de A para que se vea aunque B esté encima
+  const wireA=new THREE.WireframeGeometry(geoA);
+  const lineA3=new THREE.LineSegments(wireA,
+    new THREE.LineBasicMaterial({color:0x3060aa,transparent:true,opacity:0.15}));
+  scene.add(lineA3);
 
   // ── Superficie B (después) — semitransparente verde ──
   const geoB=new THREE.PlaneGeometry(SZ,SZ,gW-1,gH-1);
@@ -661,8 +675,8 @@ async function generar3D(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax) {
   geoB.setAttribute('color',new THREE.Float32BufferAttribute(colsB,3));
   geoB.computeVertexNormals();
   const matB=new THREE.MeshPhongMaterial({
-    vertexColors:true, transparent:true, opacity:0.85,
-    side:THREE.DoubleSide, shininess:50
+    vertexColors:true, transparent:true, opacity:0.90,
+    side:THREE.DoubleSide, shininess:60, specular:0x224488
   });
   scene.add(new THREE.Mesh(geoB,matB));
 
@@ -679,7 +693,23 @@ async function generar3D(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax) {
   const grid=new THREE.GridHelper(SZ,10,0x334466,0x334466);
   grid.position.y=scZ(zMxB)*1.05; scene.add(grid);
 
+  // Plano de referencia en el nivel A (antes) — línea de referencia visual
+  const refGeo=new THREE.PlaneGeometry(SZ,SZ);
+  refGeo.rotateX(-Math.PI/2);
+  const refMat=new THREE.MeshBasicMaterial({
+    color:0x3060aa, transparent:true, opacity:0.08,
+    side:THREE.DoubleSide
+  });
+  const refMesh=new THREE.Mesh(refGeo,refMat);
+  refMesh.position.y=scZ(d3.mean(valsA));
+  scene.add(refMesh);
+
   tgt={x:0,y:scZ((zMnA+zMxB)/2)/2,z:0};
+  // Log escala para debug
+  console.log(`Escala auto: ${autoScale.toFixed(1)}× | Rango Z: ${zR.toFixed(2)}m | Área: ${W.toFixed(0)}×${H.toFixed(0)}m`);
+  // Mostrar escala en overlay
+  const scInfo=document.getElementById('scale-info');
+  if(scInfo) scInfo.textContent=`Escala vertical: ${autoScale.toFixed(1)}×`;
   sph={theta:0.7,phi:1.0,radius:180};
   updateCamera();
 }
