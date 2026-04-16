@@ -800,7 +800,7 @@ function grabarPunto() {
   if(!canGrab&&!firstPoint) return;
   if(!hasGPS) { showToast('Sin GPS',true); return; }
   const ecoRaw=parseFloat(document.getElementById('depth-input').value);
-  if(isNaN(ecoRaw)||ecoRaw<0) { showToast('Ingresá la lectura del ecosonda',true); document.getElementById('depth-input').focus(); return; }
+  if(isNaN(ecoRaw)||ecoRaw<0) { showToast('Ingresá un valor válido (0 o mayor)',true); document.getElementById('depth-input').focus(); return; }
 
   const off=getEcoOffset(), mar=getMareaCorr(), fin=ecoRaw+off+mar;
   const distAnt=lastGrabbedLat!==null ? haversine(lastGrabbedLat,lastGrabbedLon,currentLat,currentLon).toFixed(1) : '—';

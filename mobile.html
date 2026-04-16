@@ -776,7 +776,7 @@ function grabar() {
   if (!canGrab && !firstPoint) { showToast('Desplazate ' + umbral + 'm primero', true); return; }
 
   const eco = parseFloat(depthStr);
-  if (isNaN(eco) || eco <= 0) { showToast('Ingresá la profundidad', true); return; }
+  if (isNaN(eco) || eco < 0) { showToast('Ingresá un valor válido (0 o mayor)', true); return; }
 
   _grabarPunto(eco, 'MANUAL');
 }
