@@ -237,6 +237,12 @@
   .card.comparar .card-title { color: #ffd060; }
   .card.comparar .card-features li::before { color: #ffd060; }
   .card.comparar .card-cta { background: rgba(201,162,39,0.1); border: 1px solid #c9a227; color: #ffd060; }
+  .card.terreno::before { background: linear-gradient(90deg, #00e5a0, #ffd060); }
+  .card.terreno::after  { background: radial-gradient(circle at 50% 0%, rgba(0,229,160,0.05), transparent 70%); }
+  .card.terreno:hover   { border-color: var(--green); box-shadow: 0 8px 30px rgba(0,229,160,0.1); }
+  .card.terreno .card-title { color: var(--green); }
+  .card.terreno .card-features li::before { color: var(--green); }
+  .card.terreno .card-cta { background: rgba(0,229,160,0.1); border: 1px solid var(--green); color: var(--green); }
 </style>
 </head>
 <body>
@@ -333,6 +339,24 @@
         <li>Perfil transversal del canal</li>
         <li>Volumen dragado y sedimentado en m³</li>
         <li>Export PNG y CSV de diferencias</li>
+      </ul>
+      <div class="card-cta">▶ ABRIR</div>
+    </a>
+
+
+    <!-- TERRENO 3D -->
+    <a class="card terreno" href="terreno3d.html">
+      <span class="card-icon">🛸</span>
+      <div class="card-title">TERRENO 3D</div>
+      <div class="card-desc">
+        Ortofoto del drone en 3D con batimetría del canal superpuesta.
+      </div>
+      <ul class="card-features">
+        <li>GeoTIFF de WebODM como textura real</li>
+        <li>Canal batimétrico adyacente en 3D</li>
+        <li>Espejo de agua transparente</li>
+        <li>Rotación · Zoom · Pan</li>
+        <li>Export PNG desde cualquier ángulo</li>
       </ul>
       <div class="card-cta">▶ ABRIR</div>
     </a>
