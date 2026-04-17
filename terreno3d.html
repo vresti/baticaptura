@@ -394,6 +394,7 @@ async function generarTerreno() {
   });
   const meshTerr = new THREE.Mesh(geoTerr, matTerr);
   meshTerr.position.y = 0;
+  meshTerr.receiveShadow = true;
   scene.add(meshTerr);
   objects.orto = meshTerr;
 
@@ -414,14 +415,15 @@ async function generarTerreno() {
   }
 
   // ── Espejo de agua ──
-  const wGeo = new THREE.PlaneGeometry(SZ*1.1, SZ*1.1*(H/W));
+  // Espejo global (plano fino sobre todo el terreno)
+  const wGeo = new THREE.PlaneGeometry(SZ*1.05, SZ*1.05*(H/W));
   wGeo.rotateX(-Math.PI/2);
   const wMat = new THREE.MeshPhongMaterial({
-    color:0x1a6090, transparent:true, opacity:0.3,
-    side:THREE.DoubleSide, shininess:100, specular:0x88ccff
+    color:0x1a4060, transparent:true, opacity:0.12,
+    side:THREE.DoubleSide, shininess:80
   });
   const wMesh = new THREE.Mesh(wGeo,wMat);
-  wMesh.position.y = -2; // justo bajo la superficie
+  wMesh.position.y = 0.3;
   scene.add(wMesh);
   objects.agua = wMesh;
 
@@ -454,55 +456,65 @@ async function generarTerreno() {
 
 // ─── Batimetría del canal ─────────────────────────────────────────────────────
 async function generarBatimetria(pts, lat0, lon0, W, H, SZ, vSB) {
-  // Convertir a coordenadas de escena
-  const toScene = (lat,lon) => {
-    const R=6371000;
-    const mx=(lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180;
-    const my=(lat-lat0)*R*Math.PI/180;
-    return {
-      x:  mx/W*SZ,
-      z: -my/H*SZ*(H/W)  // flip Y → Z en Three.js
-    };
-  };
+  // ── Sistema de coordenadas IGUAL al terreno ──────────────────
+  // Terreno: X ∈ [-SZ/2, SZ/2], Z ∈ [-SZ/2*(H/W), SZ/2*(H/W)]
+  // Mismo origen: centro geográfico del GeoTIFF (lat0,lon0)
+  const R = 6371000;
+  const sceneX = lon => (lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180 / W * SZ;
+  const sceneZ = lat => -(lat-lat0)*R*Math.PI/180 / H * SZ * (H/W);
 
-  const scenePts = pts.map(p=>({...toScene(p.lat,p.lon), z_bati:p.z}));
+  const sPts = pts.map(p=>({
+    x: sceneX(p.lon),
+    z: sceneZ(p.lat),
+    z_bati: p.z
+  }));
+
   const zMax = d3.max(pts,p=>p.z)||5;
   const zMin = d3.min(pts,p=>p.z)||0;
   const zR   = zMax-zMin||1;
 
+  // Bounding box en coordenadas de escena
+  const sxMin=d3.min(sPts,p=>p.x), sxMax=d3.max(sPts,p=>p.x);
+  const szMin=d3.min(sPts,p=>p.z), szMax=d3.max(sPts,p=>p.z);
+  const bW=sxMax-sxMin, bH=Math.abs(szMax-szMin);
+
+  // Grilla IDW
+  const gN=80;
+  const gW=gN, gH=Math.max(4,Math.round(gN*bH/bW));
+  const geo=new THREE.PlaneGeometry(bW,bH,gW-1,gH-1);
+  geo.rotateX(-Math.PI/2);
+  const pos=geo.attributes.position;
+  const colors=[];
+
+  // Escala vertical: cada metro de profundidad baja scaleY unidades
+  const scaleY = vSB * (SZ / 100) * 5;
+
   // Paleta náutica
-  const palRGB = t=>{
-    const PAL=[[210,240,215],[150,220,210],[90,190,225],[50,150,210],[25,110,190],[10,70,160],[4,40,120],[1,18,70]];
+  const palRGB=t=>{
+    const P=[[210,240,215],[150,220,210],[90,190,225],[50,150,210],[25,110,190],[10,70,160],[4,40,120],[1,18,70]];
     t=Math.max(0,Math.min(1,t));
-    const n=PAL.length-1,i=Math.floor(t*n),f=t*n-i;
-    const a=PAL[Math.min(i,n)],b=PAL[Math.min(i+1,n)];
+    const n=P.length-1,i=Math.floor(t*n),f=t*n-i;
+    const a=P[Math.min(i,n)],b=P[Math.min(i+1,n)];
     return[Math.round(a[0]+(b[0]-a[0])*f)/255,Math.round(a[1]+(b[1]-a[1])*f)/255,Math.round(a[2]+(b[2]-a[2])*f)/255];
   };
-
-  // IDW en grilla local de los puntos de batimetría
-  const bxMin=d3.min(scenePts,p=>p.x), bxMax=d3.max(scenePts,p=>p.x);
-  const bzMin=d3.min(scenePts,p=>p.z), bzMax=d3.max(scenePts,p=>p.z);
-  const bW=bxMax-bxMin+4, bH=bzMax-bzMin+4;
-  const gN=60;
-  const gW=gN, gH=Math.max(4,Math.round(gN*Math.abs(bH/bW)));
-
-  const geo = new THREE.PlaneGeometry(bW, Math.abs(bH), gW-1, gH-1);
-  geo.rotateX(-Math.PI/2);
-  const pos = geo.attributes.position;
-  const colors = [];
-
-  // Referencia para IDW
-  const idwPts = scenePts.map(p=>({x:p.x-(bxMin+bxMax)/2, y:p.z-(bzMin+bzMax)/2, z:p.z_bati}));
 
   for(let row=0;row<gH;row++){
     for(let col=0;col<gW;col++){
       const vi=row*gW+col;
-      const lx=(col/(gW-1))*bW - bW/2;
-      const lz=(row/(gH-1))*Math.abs(bH) - Math.abs(bH)/2;
-      const z_real = idw(idwPts, lx, lz, 2);
-      const t = (z_real-zMin)/zR;
-      // Profundidad hacia abajo
-      pos.setY(vi, -(z_real-zMin)/zR * 20 * vSB/5);
+      // Coordenada en espacio de escena
+      const wx=sxMin+(col/(gW-1))*bW;
+      const wz=szMin+(row/(gH-1))*bH;
+      // IDW — usar puntos con mismo sistema
+      let sw=0,swz=0;
+      for(const p of sPts){
+        const d2=(p.x-wx)**2+(p.z-wz)**2;
+        if(d2<0.0001){swz=p.z_bati;sw=1;break;}
+        const w=1/Math.pow(d2,1);sw+=w;swz+=w*p.z_bati;
+      }
+      const z_real=swz/sw;
+      const t=(z_real-zMin)/zR;
+      // Y=0 es la superficie → bajar según profundidad
+      pos.setY(vi, -(z_real/zMax)*scaleY);
       const [r,g,b]=palRGB(t);
       colors.push(r,g,b);
     }
@@ -510,14 +522,26 @@ async function generarBatimetria(pts, lat0, lon0, W, H, SZ, vSB) {
   geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
   geo.computeVertexNormals();
 
-  const mat = new THREE.MeshPhongMaterial({
-    vertexColors:true, side:THREE.DoubleSide,
-    transparent:true, opacity:0.85, shininess:40
+  const mat=new THREE.MeshPhongMaterial({
+    vertexColors:true,side:THREE.DoubleSide,
+    transparent:true,opacity:0.92,shininess:60,specular:0x224488
   });
-  const mesh = new THREE.Mesh(geo,mat);
-  mesh.position.set((bxMin+bxMax)/2, -3, -(bzMin+bzMax)/2);
+  const mesh=new THREE.Mesh(geo,mat);
+  // Centro exacto en coordenadas de escena
+  mesh.position.set((sxMin+sxMax)/2, 0.2, (szMin+szMax)/2);
   scene.add(mesh);
-  objects.bati = mesh;
+  objects.bati=mesh;
+
+  // Espejo de agua sobre la laguna
+  const wGeo=new THREE.PlaneGeometry(bW+1,bH+1);
+  wGeo.rotateX(-Math.PI/2);
+  const wMat=new THREE.MeshPhongMaterial({
+    color:0x1a6090,transparent:true,opacity:0.5,
+    side:THREE.DoubleSide,shininess:120,specular:0x88ddff
+  });
+  const wMesh=new THREE.Mesh(wGeo,wMat);
+  wMesh.position.set((sxMin+sxMax)/2, 0.3, (szMin+szMax)/2);
+  scene.add(wMesh);
 }
 
 // ─── Three.js ─────────────────────────────────────────────────────────────────
