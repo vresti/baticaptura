@@ -408,7 +408,7 @@ async function comparar() {
   const allM  = [...ptsA,...ptsB];
   const xMn=d3.min(allM,p=>p.x), xMx=d3.max(allM,p=>p.x);
   const yMn=d3.min(allM,p=>p.y), yMx=d3.max(allM,p=>p.y);
-  const xP=(xMx-xMn)*0.1+5, yP=(yMx-yMn)*0.1+5;
+  const xP=(xMx-xMn)*0.02+1, yP=(yMx-yMn)*0.02+1;
   const x0=xMn-xP,x1=xMx+xP,y0=yMn-yP,y1=yMx+yP;
   const W=x1-x0, H=y1-y0;
 
@@ -429,6 +429,15 @@ async function comparar() {
       }
     prog(0.05+c*0.1); await sl(0);
   }
+  // Clampear valores al rango real de los datos originales
+  const zMinReal=Math.min(d3.min(ptsA,p=>p.z), d3.min(ptsB,p=>p.z));
+  const zMaxReal=Math.max(d3.max(ptsA,p=>p.z), d3.max(ptsB,p=>p.z));
+  for(let i=0;i<valsA.length;i++){
+    valsA[i]=Math.max(zMinReal, Math.min(zMaxReal, valsA[i]));
+    valsB[i]=Math.max(zMinReal, Math.min(zMaxReal, valsB[i]));
+    diff[i]=valsB[i]-valsA[i];
+  }
+
   prog(0.85);
 
   // Estadísticas
@@ -718,16 +727,7 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
   const grid=new THREE.GridHelper(SZ,10,0x334466,0x334466);
   grid.position.y=scZ(zMxB)*1.05; scene.add(grid);
 
-  // Plano de referencia en el nivel A (antes) — línea de referencia visual
-  const refGeo=new THREE.PlaneGeometry(SZ,SZ);
-  refGeo.rotateX(-Math.PI/2);
-  const refMat=new THREE.MeshBasicMaterial({
-    color:0x3060aa, transparent:true, opacity:0.08,
-    side:THREE.DoubleSide
-  });
-  const refMesh=new THREE.Mesh(refGeo,refMat);
-  refMesh.position.y=scZ(d3.mean(valsA));
-  scene.add(refMesh);
+  // (plano de referencia eliminado — generaba confusión visual)
 
   tgt={x:0,y:scZ((zMnA+zMxB)/2)/2,z:0};
   sph={theta:0.7,phi:1.0,radius:180};
