@@ -190,7 +190,7 @@ input[type=range] { width:100%; accent-color:var(--navy); cursor:pointer; }
         <div class="slot-name" id="name-a">Cargá CSV</div>
         <div class="slot-pts" id="pts-a"></div>
       </div>
-      <input type="file" id="fi-a" accept=".csv" style="display:none" onchange="loadCSV('a',this.files[0])"/>
+      <input type="file" id="fi-a" accept=".csv" style="display:none"/>
 
       <!-- Slot B -->
       <div class="upload-slot" id="slot-b"
@@ -201,7 +201,7 @@ input[type=range] { width:100%; accent-color:var(--navy); cursor:pointer; }
         <div class="slot-name" id="name-b">Cargá CSV</div>
         <div class="slot-pts" id="pts-b"></div>
       </div>
-      <input type="file" id="fi-b" accept=".csv" style="display:none" onchange="loadCSV('b',this.files[0])"/>
+      <input type="file" id="fi-b" accept=".csv" style="display:none"/>
 
     </div>
   </div>
@@ -635,16 +635,30 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
   clearScene();
 
   // Escalas — deben estar aqui porque build3Dscene es funcion independiente
-  const zMnA=d3.min(valsA), zMxB=d3.max(valsB);
-  const zR=zMxB-zMnA||1;
-  const SZ=100;
-  const areaRatio=Math.max(W,H)/Math.max(zR,0.1);
-  const autoScale=Math.min(20,Math.max(vSc,areaRatio*0.08));
-  const scZ=z=>-((z-zMnA)/zR)*SZ*0.25*autoScale;
+  const zMnA = d3.min(valsA), zMxB = d3.max(valsB);
+  const zR   = zMxB - zMnA || 1;
+  const SZ   = 100;
+
+  // ── Escala adaptiva basada en diferencia de medias ───────────
+  // Método: la diferencia entre medias define cuánto exagerar
+  // para que esa diferencia sea visualmente prominente en pantalla
+  const mediaA   = d3.mean(valsA);
+  const mediaB   = d3.mean(valsB);
+  const diffMedia = Math.abs(mediaB - mediaA) || 0.5;
+
+  // Queremos que la diferencia de medias ocupe al menos el 15% de la altura de escena
+  // targetVisual = SZ * 0.25 * scale * (diffMedia/zR) >= SZ * 0.15
+  // → scale >= 0.15 * zR / (0.25 * diffMedia) = 0.6 * zR / diffMedia
+  const scaleMinimo  = Math.ceil(0.6 * zR / diffMedia);
+  const scaleUsuario = vSc; // lo que puso el usuario en el slider
+  const autoScale    = Math.min(20, Math.max(scaleUsuario, scaleMinimo));
+
+  const scZ = z => -((z - zMnA) / zR) * SZ * 0.25 * autoScale;
 
   // Info de escala en overlay
-  const scInfo=document.getElementById('scale-info');
-  if(scInfo)scInfo.textContent='Escala vertical: '+autoScale.toFixed(1)+'×';
+  const scInfo = document.getElementById('scale-info');
+  if (scInfo) scInfo.textContent =
+    `Escala: ${autoScale.toFixed(0)}× | ΔMedia: ${diffMedia.toFixed(2)}m | A:${mediaA.toFixed(2)}m B:${mediaB.toFixed(2)}m`;
 
   // ── Superficie A (antes) — semitransparente azul oscuro ──
   const geoA=new THREE.PlaneGeometry(SZ,SZ,gW-1,gH-1);
@@ -1059,6 +1073,23 @@ function dms(deg,type){
 function var_navy(){return '#1a237e';}
 function prog(p){document.getElementById('pb').style.transform=`scaleX(${p})`;}
 function sl(ms){return new Promise(r=>setTimeout(r,ms));}
+// ── Inicialización de eventos de archivo ─────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('fi-a').addEventListener('change', function(e) {
+    if (e.target.files && e.target.files.length > 0) {
+      loadCSV('a', e.target.files[0]);
+      // Reset para poder seleccionar el mismo archivo de nuevo
+      e.target.value = '';
+    }
+  });
+  document.getElementById('fi-b').addEventListener('change', function(e) {
+    if (e.target.files && e.target.files.length > 0) {
+      loadCSV('b', e.target.files[0]);
+      e.target.value = '';
+    }
+  });
+});
+
 let tT;
 function showToast(msg,err=false){
   const t=document.getElementById('toast');t.textContent=msg;
