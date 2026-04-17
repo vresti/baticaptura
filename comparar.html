@@ -385,6 +385,66 @@ function idw(pts,x,y,pow){
   return swz/sw;
 }
 
+
+// ════════════════════════════════════════════════
+//  CONVEX HULL + MÁSCARA
+// ════════════════════════════════════════════════
+
+// Convex hull 2D — algoritmo de Graham scan
+function convexHull(pts) {
+  const p = pts.slice().sort((a,b) => a.x!==b.x ? a.x-b.x : a.y-b.y);
+  const n = p.length;
+  if(n < 3) return p;
+  const cross = (o,a,b) => (a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+  const lower = [], upper = [];
+  for(let i=0;i<n;i++){
+    while(lower.length>=2 && cross(lower[lower.length-2],lower[lower.length-1],p[i])<=0) lower.pop();
+    lower.push(p[i]);
+  }
+  for(let i=n-1;i>=0;i--){
+    while(upper.length>=2 && cross(upper[upper.length-2],upper[upper.length-1],p[i])<=0) upper.pop();
+    upper.push(p[i]);
+  }
+  upper.pop(); lower.pop();
+  return lower.concat(upper);
+}
+
+// ¿El punto (px,py) está dentro del convex hull?
+// Algoritmo: ray casting
+function inHull(hull, px, py) {
+  const n = hull.length;
+  let inside = false;
+  for(let i=0,j=n-1; i<n; j=i++){
+    const xi=hull[i].x, yi=hull[i].y;
+    const xj=hull[j].x, yj=hull[j].y;
+    if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi))
+      inside=!inside;
+  }
+  return inside;
+}
+
+// Construir máscara: true = celda dentro del hull (dato válido)
+function buildMask(hull, gW, gH, x0, W, y0, H, margin) {
+  const mask = new Uint8Array(gW*gH);
+  // Expandir el hull un poco (margin en metros) para incluir los bordes reales
+  for(let row=0;row<gH;row++){
+    for(let col=0;col<gW;col++){
+      const mx = x0+(col/(gW-1))*W;
+      const my = y0+(row/(gH-1))*H;
+      // Verificar con margen
+      let inside = false;
+      for(let dm=-margin; dm<=margin; dm+=margin/2){
+        for(let dn=-margin; dn<=margin; dn+=margin/2){
+          if(inHull(hull, mx+dm, my+dn)){ inside=true; break; }
+        }
+        if(inside) break;
+      }
+      mask[row*gW+col] = inside ? 1 : 0;
+    }
+  }
+  return mask;
+}
+
 // ════════════════════════════════════════════════
 //  COMPARAR
 // ════════════════════════════════════════════════
@@ -417,25 +477,38 @@ async function comparar() {
   const valsB=new Float32Array(gW*gH);
   const diff =new Float32Array(gW*gH);
 
-  // IDW grillas A y B
+  // Convex hull de todos los puntos — máscara de celdas válidas
+  window._mask=null; // reset
+  const hull = convexHull(allM);
+  const hullMargin = Math.max(W,H) / gN * 1.5; // margen = 1.5 celdas
+  const mask = buildMask(hull, gW, gH, x0, W, y0, H, hullMargin);
+  window._mask = mask; // disponible globalmente para el renderizador
+
+  // Profundidad media para rellenar celdas fuera del hull (invisible pero necesario)
+  const zMeanAll = d3.mean([...ptsA,...ptsB], p=>p.z);
+  const zMinReal = Math.min(d3.min(ptsA,p=>p.z), d3.min(ptsB,p=>p.z));
+  const zMaxReal = Math.max(d3.max(ptsA,p=>p.z), d3.max(ptsB,p=>p.z));
+
+  // IDW grillas A y B — solo celdas dentro del hull
   for(let c=0;c<8;c++){
     const r0=Math.round(c*gH/8), r1=Math.round((c+1)*gH/8);
     for(let row=r0;row<r1;row++)
       for(let col=0;col<gW;col++){
+        const idx=row*gW+col;
+        if(!mask[idx]){
+          // Fuera del hull: valor neutro (no se renderiza en 3D ni colorea)
+          valsA[idx]=zMeanAll;
+          valsB[idx]=zMeanAll;
+          diff[idx]=0;
+          continue;
+        }
         const mx=x0+(col/(gW-1))*W, my=y0+(row/(gH-1))*H;
-        valsA[row*gW+col]=idw(ptsA,mx,my,2);
-        valsB[row*gW+col]=idw(ptsB,mx,my,2);
-        diff[row*gW+col] =valsB[row*gW+col]-valsA[row*gW+col];
+        // Clampear al rango real
+        valsA[idx]=Math.max(zMinReal,Math.min(zMaxReal,idw(ptsA,mx,my,2)));
+        valsB[idx]=Math.max(zMinReal,Math.min(zMaxReal,idw(ptsB,mx,my,2)));
+        diff[idx]=valsB[idx]-valsA[idx];
       }
     prog(0.05+c*0.1); await sl(0);
-  }
-  // Clampear valores al rango real de los datos originales
-  const zMinReal=Math.min(d3.min(ptsA,p=>p.z), d3.min(ptsB,p=>p.z));
-  const zMaxReal=Math.max(d3.max(ptsA,p=>p.z), d3.max(ptsB,p=>p.z));
-  for(let i=0;i<valsA.length;i++){
-    valsA[i]=Math.max(zMinReal, Math.min(zMaxReal, valsA[i]));
-    valsB[i]=Math.max(zMinReal, Math.min(zMaxReal, valsB[i]));
-    diff[i]=valsB[i]-valsA[i];
   }
 
   prog(0.85);
@@ -495,11 +568,18 @@ async function genMapa2D(valsA,valsB,diff,gW,gH,W,H,x0,y0,dMax,lat0,lon0,ptsA,pt
   const fc=document.createElement('canvas');fc.width=gW;fc.height=gH;
   const fctx=fc.getContext('2d');
   const imd=fctx.createImageData(gW,gH);
+  const msk2d = window._mask;
   for(let row=0;row<gH;row++)
     for(let col=0;col<gW;col++){
-      const d=diff[row*gW+col];
-      const[r,g,b]=diffColor(d,dMax);
+      const idx=row*gW+col;
       const px=((gH-1-row)*gW+col)*4;
+      if(msk2d && !msk2d[idx]){
+        // Fuera del hull: transparente
+        imd.data[px]=232;imd.data[px+1]=228;imd.data[px+2]=220;imd.data[px+3]=0;
+        continue;
+      }
+      const d=diff[idx];
+      const[r,g,b]=diffColor(d,dMax);
       imd.data[px]=r;imd.data[px+1]=g;imd.data[px+2]=b;imd.data[px+3]=255;
     }
   fctx.putImageData(imd,0,0);
@@ -672,10 +752,15 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
   geoA.rotateX(-Math.PI/2);
   const posA=geoA.attributes.position;
   const colsA=[];
+  const msk = window._mask;
   for(let row=0;row<gH;row++)
     for(let col=0;col<gW;col++){
-      posA.setY(row*gW+col, scZ(valsA[row*gW+col]));
-      colsA.push(0.1,0.4,0.65); // azul
+      const idx=row*gW+col;
+      const inM = !msk || msk[idx];
+      // Fuera del hull: aplanar al nivel medio (se funde con el fondo)
+      posA.setY(idx, inM ? scZ(valsA[idx]) : scZ(zMnA));
+      if(inM) colsA.push(0.1,0.4,0.65);
+      else     colsA.push(0.0,0.0,0.0); // negro = invisible en fondo oscuro
     }
   geoA.setAttribute('color',new THREE.Float32BufferAttribute(colsA,3));
   geoA.computeVertexNormals();
@@ -699,12 +784,15 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
   const colsB=[];
   for(let row=0;row<gH;row++)
     for(let col=0;col<gW;col++){
-      const zA=valsA[row*gW+col], zB=valsB[row*gW+col];
-      posB.setY(row*gW+col, scZ(zB));
+      const idx=row*gW+col;
+      const inM = !msk || msk[idx];
+      const zA=valsA[idx], zB=valsB[idx];
+      posB.setY(idx, inM ? scZ(zB) : scZ(zMnA));
+      if(!inM){ colsB.push(0.0,0.0,0.0); continue; }
       const d=zB-zA;
-      if(d>0.05){colsB.push(0.0,0.5,0.8);} // dragado — azul brillante
-      else if(d<-0.05){colsB.push(0.8,0.1,0.1);} // sedimentado — rojo
-      else{colsB.push(0.6,0.7,0.6);} // sin cambio — gris verde
+      if(d>0.05){colsB.push(0.0,0.5,0.8);}
+      else if(d<-0.05){colsB.push(0.8,0.1,0.1);}
+      else{colsB.push(0.6,0.7,0.6);}
     }
   geoB.setAttribute('color',new THREE.Float32BufferAttribute(colsB,3));
   geoB.computeVertexNormals();
