@@ -378,9 +378,9 @@ async function generarTerreno() {
   const SZ = 100;
 
   initThree();
-  prog(0.2);
+  prog(0.15);
 
-  // ── Preparar datos batimétricos ANTES de construir el terreno ──
+  // ── Convertir puntos batimétricos a coordenadas de escena ──
   let batiPts = null;
   if(batiData && batiData.pts.length > 3) {
     const R=6371000;
@@ -391,47 +391,66 @@ async function generarTerreno() {
     }));
   }
 
-  // ── Terreno con alta resolución — deformable ──
-  prog(0.3);
+  prog(0.2);
+
+  // ── PASO 1: Terreno con ortofoto ──────────────────────────────
+  // Si hay batimetría, generar alphaMap con agujero donde está la laguna
   const terrW = mRes, terrH = Math.round(mRes*(H/W));
   const geoTerr = new THREE.PlaneGeometry(SZ, SZ*(H/W), terrW-1, terrH-1);
   geoTerr.rotateX(-Math.PI/2);
-  const pos = geoTerr.attributes.position;
 
-  // Deformar vértices del terreno donde hay batimetría (laguna = depresión)
+  // AlphaMap: blanco=visible, negro=transparente
+  let alphaTexture = null;
   if(batiPts) {
     const zDataMax = d3.max(batiPts,p=>p.depth)||4;
-    const scaleDepth = vSB * 3; // profundidad máxima en unidades Three.js
+    const ac = document.createElement('canvas');
+    ac.width = terrW; ac.height = terrH;
+    const actx = ac.getContext('2d');
+    // Empezar todo blanco (terreno visible)
+    actx.fillStyle = 'white';
+    actx.fillRect(0,0,terrW,terrH);
 
-    for(let i=0; i<pos.count; i++){
-      const vx = pos.getX(i);  // coord X del vértice
-      const vz = pos.getZ(i);  // coord Z del vértice
+    // Por cada pixel del alphaMap, verificar si está en zona de laguna
+    const imgD = actx.getImageData(0,0,terrW,terrH);
+    for(let row=0;row<terrH;row++){
+      for(let col=0;col<terrW;col++){
+        // Coordenada de escena de este pixel
+        const vx = (col/(terrW-1))*SZ - SZ/2;
+        const vz = (row/(terrH-1))*SZ*(H/W) - SZ/2*(H/W);
 
-      // IDW inverso con potencia baja = suave
-      let sw=0, swz=0;
-      for(const p of batiPts){
-        const d2=(p.x-vx)**2+(p.z-vz)**2;
-        if(d2<0.001){swz=p.depth;sw=1;break;}
-        const w=1/Math.pow(d2,0.8); sw+=w; swz+=w*p.depth;
-      }
-      const depthHere = swz/sw;
+        // IDW: ¿qué profundidad hay aquí?
+        let sw=0,swz=0;
+        for(const p of batiPts){
+          const d2=(p.x-vx)**2+(p.z-vz)**2;
+          if(d2<0.001){swz=p.depth;sw=1;break;}
+          const w=1/Math.pow(d2,0.8);sw+=w;swz+=w*p.depth;
+        }
+        const depth=swz/sw;
 
-      // Solo hundir dentro del área de la laguna
-      // (donde la profundidad interpolada es significativa)
-      if(depthHere > 0.3) {
-        const clampedDepth = Math.min(depthHere, zDataMax);
-        pos.setY(i, -(clampedDepth/zDataMax) * scaleDepth);
+        // Si hay profundidad significativa → perforar el terreno
+        if(depth > 0.25) {
+          // Fade suave en el borde de la laguna
+          const alpha = depth < 0.5 ? (depth-0.25)/0.25 : 1.0;
+          const px=(row*terrW+col)*4;
+          imgD.data[px]=imgD.data[px+1]=imgD.data[px+2]=Math.round((1-alpha)*255);
+          imgD.data[px+3]=255;
+        }
       }
     }
-    geoTerr.computeVertexNormals();
-    pos.needsUpdate = true;
+    actx.putImageData(imgD,0,0);
+    alphaTexture = new THREE.CanvasTexture(ac);
+    prog(0.45);
+  } else {
+    prog(0.3);
   }
 
-  // Textura de la ortofoto sobre el terreno deformado
   const matTerr = new THREE.MeshPhongMaterial({
     map: tifData.texture,
+    alphaMap: alphaTexture,
+    transparent: alphaTexture !== null,
     side: THREE.DoubleSide,
-    shininess: 8
+    shininess: 8,
+    depthWrite: true
   });
   const meshTerr = new THREE.Mesh(geoTerr, matTerr);
   scene.add(meshTerr);
@@ -445,25 +464,44 @@ async function generarTerreno() {
   scene.add(wireMesh);
   objects.wire = wireMesh;
 
-  prog(0.7);
+  prog(0.6);
   await sl(10);
 
-  // ── Colorear el interior de la laguna (batimetría sobre terreno) ──
+  // ── PASO 2: Laguna — malla batimétrica que llena el agujero ──
   if(batiPts) {
-    await colorearLaguna(batiPts, lat0, lon0, W, H, SZ, vSB);
+    await colorearLaguna(batiPts, SZ, H/W, vSB);
   }
 
-  // ── Espejo de agua en y=0 — tapa la laguna ──
-  const wGeo = new THREE.PlaneGeometry(SZ*1.05, SZ*1.05*(H/W));
-  wGeo.rotateX(-Math.PI/2);
-  const wMat = new THREE.MeshPhongMaterial({
-    color:0x1a6090, transparent:true, opacity:0.35,
-    side:THREE.DoubleSide, shininess:120, specular:0x88ddff
-  });
-  const wMesh = new THREE.Mesh(wGeo,wMat);
-  wMesh.position.y = 0.1; // justo en la superficie
-  scene.add(wMesh);
-  objects.agua = wMesh;
+  // ── PASO 3: Espejo de agua en y=0 — tapa el agujero ──
+  // Usamos el mismo alphaMap invertido para que solo cubra la laguna
+  if(batiPts) {
+    // Espejo local sobre la laguna
+    const sxMin=d3.min(batiPts,p=>p.x)-3, sxMax=d3.max(batiPts,p=>p.x)+3;
+    const szMin=d3.min(batiPts,p=>p.z)-3, szMax=d3.max(batiPts,p=>p.z)+3;
+    const lW=sxMax-sxMin, lH=Math.abs(szMax-szMin);
+    const wlGeo=new THREE.PlaneGeometry(lW,lH);
+    wlGeo.rotateX(-Math.PI/2);
+    const wlMat=new THREE.MeshPhongMaterial({
+      color:0x1a7090, transparent:true, opacity:0.55,
+      side:THREE.DoubleSide, shininess:150, specular:0xaaddff
+    });
+    const wlMesh=new THREE.Mesh(wlGeo,wlMat);
+    wlMesh.position.set((sxMin+sxMax)/2, 0.05, (szMin+szMax)/2);
+    scene.add(wlMesh);
+    objects.agua=wlMesh;
+  } else {
+    // Espejo global si no hay batimetría
+    const wGeo=new THREE.PlaneGeometry(SZ*1.05,SZ*1.05*(H/W));
+    wGeo.rotateX(-Math.PI/2);
+    const wMat=new THREE.MeshPhongMaterial({
+      color:0x1a4060, transparent:true, opacity:0.15,
+      side:THREE.DoubleSide, shininess:80
+    });
+    const wMesh=new THREE.Mesh(wGeo,wMat);
+    wMesh.position.y=0.05;
+    scene.add(wMesh);
+    objects.agua=wMesh;
+  }
 
   prog(0.9);
 
@@ -493,18 +531,18 @@ async function generarTerreno() {
 }
 
 // ─── Batimetría del canal ─────────────────────────────────────────────────────
-// ─── Colorear laguna — malla de color sobre el terreno deformado ────────────
-async function colorearLaguna(batiPts, lat0, lon0, W, H, SZ, vSB) {
+// ─── Colorear laguna — malla batimétrica que llena el agujero del terreno ───
+async function colorearLaguna(batiPts, SZ, aspect, vSB) {
   const zMax = d3.max(batiPts,p=>p.depth)||4;
   const zMin = d3.min(batiPts,p=>p.depth)||0;
   const zR   = zMax-zMin||1;
 
-  // Bounding box de la laguna en escena
-  const sxMin=d3.min(batiPts,p=>p.x)-2, sxMax=d3.max(batiPts,p=>p.x)+2;
-  const szMin=d3.min(batiPts,p=>p.z)-2, szMax=d3.max(batiPts,p=>p.z)+2;
+  // Bounding box con margen generoso para empalme suave
+  const sxMin=d3.min(batiPts,p=>p.x)-4, sxMax=d3.max(batiPts,p=>p.x)+4;
+  const szMin=d3.min(batiPts,p=>p.z)-4, szMax=d3.max(batiPts,p=>p.z)+4;
   const bW=sxMax-sxMin, bH=Math.abs(szMax-szMin);
 
-  const gN=100, gW=gN, gH=Math.max(4,Math.round(gN*bH/bW));
+  const gN=120, gW=gN, gH=Math.max(4,Math.round(gN*bH/bW));
   const geo=new THREE.PlaneGeometry(bW,bH,gW-1,gH-1);
   geo.rotateX(-Math.PI/2);
   const pos=geo.attributes.position;
@@ -536,12 +574,9 @@ async function colorearLaguna(batiPts, lat0, lon0, W, H, SZ, vSB) {
       const depth=Math.max(0,Math.min(zMax,swz/sw));
       const t=(depth-zMin)/zR;
 
-      // Solo hundir donde hay profundidad real
-      if(depth>0.3){
-        pos.setY(vi, -(depth/zMax)*scaleDepth - 0.05);
-      } else {
-        pos.setY(vi, 0.05); // orilla al ras
-      }
+      // Empalme suave: orilla=0, centro=profundidad máxima
+      const yVal = depth > 0.1 ? -(depth/zMax)*scaleDepth : 0;
+      pos.setY(vi, yVal);
       const[r,g,b]=palRGB(t);
       colors.push(r,g,b);
     }
