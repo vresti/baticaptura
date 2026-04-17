@@ -513,21 +513,26 @@ async function comparar() {
 
   prog(0.85);
 
-  // Estadísticas
+  // Estadísticas — solo celdas dentro del convex hull
   const cellArea = (W/gW)*(H/gH);
+  const mskVol   = window._mask;
   let volDrag=0, volSed=0, nDrag=0, nSed=0;
+  let volTotalA=0, volTotalB=0;
+  let nCeldasValidas=0;
+
   for(let i=0;i<diff.length;i++){
+    // Saltar celdas fuera del hull
+    if(mskVol && !mskVol[i]) continue;
+    nCeldasValidas++;
+    // Diferencia (dragado / sedimentado)
     if(diff[i]>0.05){ volDrag+=diff[i]*cellArea; nDrag++; }
     else if(diff[i]<-0.05){ volSed+=Math.abs(diff[i])*cellArea; nSed++; }
-  }
-  const dMax = Math.max(Math.abs(d3.max(diff)), Math.abs(d3.min(diff)));
-
-  // Volúmenes totales = suma de profundidad × área de celda
-  let volTotalA=0, volTotalB=0;
-  for(let i=0;i<valsA.length;i++){
+    // Volúmenes totales
     volTotalA += valsA[i] * cellArea;
     volTotalB += valsB[i] * cellArea;
   }
+  const dMax = Math.max(Math.abs(d3.max(diff)), Math.abs(d3.min(diff)));
+  console.log();
   buildStats(volDrag,volSed,cellArea,gW,gH,W,H,valsA,valsB,diff,dMax,volTotalA,volTotalB);
   buildLegend(dMax);
 
