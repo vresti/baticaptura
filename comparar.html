@@ -485,7 +485,7 @@ function initVolRenderer(W,H){
   // Controles mouse — misma lógica que el 3D superpuesto
   const c=document.getElementById('cvol');
   let vDrag=false,vRight=false,vPrev={x:0,y:0};
-  let vSph={theta:0.5,phi:0.8,radius:140},vTgt={x:0,y:0,z:0};
+  let vSph={theta:0.3,phi:1.2,radius:160},vTgt={x:0,y:-15,z:0}; // vista lateral
   const vUpdateCam=()=>{
     const{theta,phi,radius}=vSph;
     cameraVol.position.set(
@@ -1076,18 +1076,18 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
       const x0=(col/(gW-1))*SZ-SZ/2, x1=((col+1)/(gW-1))*SZ-SZ/2;
       const z0=(row/(gH-1))*SZ-SZ/2, z1=((row+1)/(gH-1))*SZ-SZ/2;
 
-      // Solo cara superior (B) — lo que se dragó vista desde arriba
+      // Cara superior (A=antes) — techo del volumen dragado
       volVertsTop.push(
-        x0,scZ(valsB[idx00]),z0, x1,scZ(valsB[idx10]),z0, x1,scZ(valsB[idx11]),z1,
-        x0,scZ(valsB[idx00]),z0, x1,scZ(valsB[idx11]),z1, x0,scZ(valsB[idx01]),z1
+        x0,scZ(valsA[idx00]),z0, x1,scZ(valsA[idx10]),z0, x1,scZ(valsA[idx11]),z1,
+        x0,scZ(valsA[idx00]),z0, x1,scZ(valsA[idx11]),z1, x0,scZ(valsA[idx01]),z1
       );
-      // Cara inferior (A) — el fondo original
+      // Cara inferior (B=después) — piso del volumen dragado (más profundo)
       volVertsBot.push(
-        x0,scZ(valsA[idx00]),z0, x1,scZ(valsA[idx11]),z1, x1,scZ(valsA[idx10]),z0,
-        x0,scZ(valsA[idx00]),z0, x0,scZ(valsA[idx01]),z1, x1,scZ(valsA[idx11]),z1
+        x0,scZ(valsB[idx00]),z0, x1,scZ(valsB[idx11]),z1, x1,scZ(valsB[idx10]),z0,
+        x0,scZ(valsB[idx00]),z0, x0,scZ(valsB[idx01]),z1, x1,scZ(valsB[idx11]),z1
       );
       for(let t=0;t<6;t++){
-        volCols.push(1.0,0.85,0.0); // amarillo arriba
+        volCols.push(1.0,0.85,0.0); // amarillo = techo
       }
     }
   }
@@ -1142,13 +1142,35 @@ function generarPerfil(valsA,valsB,diff,gW,gH,dMax) {
   const W2=Math.max(500,wrap.clientWidth-40);
   const H2=Math.max(300,wrap.clientHeight-40);
 
-  // Tomar fila del centro (eje del canal)
+  // Corte transversal: tomar columna del centro (corta N-S, atraviesa el canal)
+  // Si el canal corre E-O → cortar en col del medio
+  // Si el canal corre N-S → cortar en fila del medio
+  // Detectamos automáticamente: el corte con mayor variación = el correcto
+  const colMid=Math.floor(gW/2);
   const rowMid=Math.floor(gH/2);
+
+  const perfilPorCol=[], perfilPorFila=[];
+  for(let row=0;row<gH;row++) perfilPorCol.push(valsA[row*gW+colMid]);
+  for(let col=0;col<gW;col++) perfilPorFila.push(valsA[rowMid*gW+col]);
+
+  // Usar el corte con mayor rango de variación
+  const rangoCol=Math.max(...perfilPorCol)-Math.min(...perfilPorCol);
+  const rangoFila=Math.max(...perfilPorFila)-Math.min(...perfilPorFila);
+  const usarCol = rangoCol >= rangoFila;
+
   const profA=[], profB=[], diffs=[];
-  for(let col=0;col<gW;col++){
-    profA.push(valsA[rowMid*gW+col]);
-    profB.push(valsB[rowMid*gW+col]);
-    diffs.push(diff[rowMid*gW+col]);
+  if(usarCol){
+    for(let row=0;row<gH;row++){
+      profA.push(valsA[row*gW+colMid]);
+      profB.push(valsB[row*gW+colMid]);
+      diffs.push(diff[row*gW+colMid]);
+    }
+  } else {
+    for(let col=0;col<gW;col++){
+      profA.push(valsA[rowMid*gW+col]);
+      profB.push(valsB[rowMid*gW+col]);
+      diffs.push(diff[rowMid*gW+col]);
+    }
   }
 
   const ML=50,MR=30,MT=30,MB=40;
