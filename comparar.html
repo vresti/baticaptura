@@ -855,233 +855,245 @@ function expPNG(){
 // ═══ CERTIFICADO PDF P2 ════════════════════════════════════════
 async function generarCertificadoPDF(){
   if(!dataA||!dataB){showToast('Realizá la comparación primero',true);return;}
-  showToast('⏳ Generando certificado PDF…');
+  if(!window._perfil||!window._volumen){showToast('Completá la comparación primero',true);return;}
+  showToast('⏳ Preparando capturas…');
+  await sl(200);
+
+  // ── Pre-renderizar todas las vistas antes de capturar ──────────
+
+  // 1. Perfil — forzar generación si no está visible
+  const pw=document.getElementById('perfil-wrap');
+  if(!pw.querySelector('svg')){
+    generarPerfil(...window._perfil);
+    await sl(300);
+  }
+
+  // 2. Volumen — forzar init y render
+  const cvol=document.getElementById('cvol');
+  if(!rendVol){
+    const w=document.getElementById('cvol-wrap');
+    initVolRenderer(Math.max(400,w.offsetWidth||800),Math.max(300,w.offsetHeight||500));
+    await sl(200);
+  }
+  buildVolScene(...window._volumen);
+  await sl(400); // esperar que Three.js renderice
+
+  // 3. 3D superpuesto
+  if(!renderer){
+    const w=document.getElementById('c3d-wrap');
+    init3D(Math.max(400,w.offsetWidth||800),Math.max(300,w.offsetHeight||500));
+    await sl(200);
+  }
+  if(window._vol3d){build3Dscene(window._vol3d);}
+  if(renderer&&scene&&camera)renderer.render(scene,camera);
+  await sl(300);
+
+  showToast('⏳ Generando PDF…');
+  await sl(100);
 
   const{jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const PW=210,PH=297,M=15;
-  const NAVY=[26,35,126],GOLD=[201,162,39],TEAL=[26,143,232];
-  const DARK=[6,14,24],WHITE=[255,255,255],GRAY=[100,120,140];
-  const ORG=[220,120,30],GRN=[0,160,100],BLUE=[26,96,144];
+  const NAVY=[26,35,126],GOLD=[201,162,39],DARK=[6,14,24];
+  const WHITE=[255,255,255],GRAY=[100,120,140],LGRAY=[240,244,250];
+
+  // Helper: captura SVG con fondo blanco
+  const captureSVG=async(svgEl,maxH=150)=>{
+    if(!svgEl)return null;
+    try{
+      // Clonar SVG y agregar fondo blanco
+      const clone=svgEl.cloneNode(true);
+      clone.style.background='white';
+      const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      bg.setAttribute('width','100%');bg.setAttribute('height','100%');bg.setAttribute('fill','white');
+      clone.insertBefore(bg,clone.firstChild);
+      const str=new XMLSerializer().serializeToString(clone);
+      const blob=new Blob([str],{type:'image/svg+xml'});
+      const url=URL.createObjectURL(blob);
+      return await new Promise((res)=>{
+        const img=new Image();
+        img.onload=()=>{
+          const c=document.createElement('canvas');
+          const scale=2;
+          c.width=svgEl.width.baseVal.value*scale;
+          c.height=svgEl.height.baseVal.value*scale;
+          const ctx=c.getContext('2d');
+          ctx.fillStyle='white';ctx.fillRect(0,0,c.width,c.height);
+          ctx.scale(scale,scale);ctx.drawImage(img,0,0);
+          const iW=PW-M*2;
+          const iH=Math.min(maxH,iW*(svgEl.height.baseVal.value/svgEl.width.baseVal.value));
+          URL.revokeObjectURL(url);
+          res({data:c.toDataURL('image/jpeg',.95),iW,iH});
+        };
+        img.onerror=()=>{URL.revokeObjectURL(url);res(null);};
+        img.src=url;
+      });
+    }catch(e){return null;}
+  };
+
+  // Helper: captura canvas WebGL
+  const captureCanvas=(canvas,renderer,scene,camera,maxH=100)=>{
+    if(!canvas||canvas.width<10)return null;
+    try{
+      if(renderer&&scene&&camera)renderer.render(scene,camera);
+      const iW=PW-M*2,asp=canvas.width/canvas.height;
+      const iH=Math.min(maxH,iW/asp);
+      return{data:canvas.toDataURL('image/jpeg',.92),iW,iH};
+    }catch(e){return null;}
+  };
 
   // Helper: header de página
-  const pageHeader=(titulo)=>{
+  const hdr=(titulo)=>{
     doc.setFillColor(...DARK);doc.rect(0,0,PW,18,'F');
     doc.setFillColor(...GOLD);doc.rect(0,18,PW,.8,'F');
     doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(11);
     doc.text(titulo,PW/2,12,{align:'center'});
     doc.setTextColor(...GRAY);doc.setFontSize(7);
-    doc.text('BatiSistema — Certificado de Dragado',M,12);
+    doc.text('Sistema de Medicion Batimetrica',M,12);
   };
 
-  // Leer datos guardados
-  const volData=window._volumen;
-  const volA=volData?d3.mean(Array.from(volData[1]).filter((_,i)=>window._mask&&window._mask[i])):0;
-  const dMax=volData?volData[5]:0;
-
-  // ═══════ PÁGINA 1: PORTADA ════════════════════════════════════
+  // ══ PÁGINA 1: PORTADA ══════════════════════════════════════════
   doc.setFillColor(...DARK);doc.rect(0,0,PW,PH,'F');
-  doc.setFillColor(...NAVY);doc.rect(0,60,PW,100,'F');
-  doc.setFillColor(...GOLD);doc.rect(0,60,PW,1.5,'F');
+  doc.setFillColor(...NAVY);doc.rect(0,65,PW,95,'F');
+  doc.setFillColor(...GOLD);doc.rect(0,65,PW,1.5,'F');
   doc.setFillColor(...GOLD);doc.rect(0,159,PW,1.5,'F');
 
-  doc.setTextColor(...GOLD);doc.setFont('helvetica','bold');doc.setFontSize(9);
-  doc.text('BATISISTEMA',PW/2,45,{align:'center'});
-  doc.setFontSize(7);doc.setTextColor(150,180,210);
-  doc.text('SISTEMA DE RELEVAMIENTO BATIMÉTRICO — DELTA DEL TIGRE',PW/2,52,{align:'center'});
+  doc.setTextColor(...GOLD);doc.setFont('helvetica','bold');doc.setFontSize(18);
+  doc.text('Sistema de Medicion Batimetrica',PW/2,45,{align:'center'});
+  doc.setFontSize(8);doc.setTextColor(150,180,210);
+  doc.text('Relevamiento y certificacion de obras hidraulicas',PW/2,54,{align:'center'});
 
-  doc.setTextColor(...WHITE);doc.setFontSize(22);
-  doc.text('CERTIFICADO DE',PW/2,88,{align:'center'});
-  doc.setTextColor(...GOLD);doc.setFontSize(26);
-  doc.text('DRAGADO',PW/2,108,{align:'center'});
+  doc.setTextColor(...WHITE);doc.setFontSize(20);
+  doc.text('CERTIFICADO DE',PW/2,90,{align:'center'});
+  doc.setTextColor(...GOLD);doc.setFontSize(28);
+  doc.text('DRAGADO',PW/2,112,{align:'center'});
 
   doc.setTextColor(200,220,240);doc.setFontSize(8);
   const now=new Date();
-  doc.text('Emitido: '+now.toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'}),PW/2,125,{align:'center'});
+  doc.text('Emitido: '+now.toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'}),PW/2,128,{align:'center'});
 
-  // Cuadro de datos en portada
-  let y=175;
-  const datosPortada=[
-    ['Relevamiento A (ANTES):',dataA.name,'('+dataA.pts.length+' sondajes)'],
-    ['Relevamiento B (DESPUÉS):',dataB.name,'('+dataB.pts.length+' sondajes)'],
-  ];
-  datosPortada.forEach(([lbl,val,extra])=>{
-    doc.setFont('helvetica','bold');doc.setTextColor(...GOLD);doc.setFontSize(8);
+  let y=178;
+  [{lbl:'Relevamiento A (ANTES):',val:dataA.name,extra:'('+dataA.pts.length+' sondajes)'},
+   {lbl:'Relevamiento B (DESPUES):',val:dataB.name,extra:'('+dataB.pts.length+' sondajes)'}
+  ].forEach(({lbl,val,extra})=>{
+    doc.setFont('helvetica','bold');doc.setTextColor(...GOLD);doc.setFontSize(7.5);
     doc.text(lbl,M+5,y);
     doc.setFont('helvetica','normal');doc.setTextColor(200,220,240);
-    doc.text(val,M+65,y);
-    doc.setTextColor(100,140,180);doc.setFontSize(7);
-    doc.text(extra,M+65,y+5);
+    doc.text(val,M+60,y);
+    doc.setTextColor(100,140,180);doc.setFontSize(7);doc.text(extra,M+60,y+5);
     y+=14;
   });
 
-  // Firma portada
-  y=PH-45;
+  y=PH-42;
   doc.setDrawColor(...GOLD);doc.setLineWidth(.3);
   doc.line(M+20,y,M+80,y);doc.line(PW-M-80,y,PW-M-20,y);
   doc.setTextColor(...GOLD);doc.setFontSize(7);
   doc.text('Responsable del relevamiento',M+22,y+5);
-  doc.text('Firma y sello',PW-M-78,y+5);
+  doc.text('Firma y sello',PW-M-77,y+5);
   doc.setFont('helvetica','normal');doc.setTextColor(150,180,210);
   doc.text('Nombre: _________________________',M+22,y+11);
-  doc.text('Matrícula: ______________________',M+22,y+17);
+  doc.text('Matricula: ______________________',M+22,y+17);
 
-  // ═══════ PÁGINA 2: MAPA DE DIFERENCIAS ════════════════════════
-  doc.addPage();
-  pageHeader('MAPA DE DIFERENCIAS BATIMÉTRICAS');
+  // ══ PÁGINA 2: MAPA 2D CON FONDO BLANCO ════════════════════════
+  doc.addPage();hdr('MAPA DE DIFERENCIAS BATIMÉTRICAS');
   y=25;
 
-  // Capturar SVG del mapa 2D
+  // Construir canvas 2D con fondo blanco directamente
   if(svgEl2d){
-    try{
-      const svgStr=new XMLSerializer().serializeToString(svgEl2d);
-      const svgBlob=new Blob([svgStr],{type:'image/svg+xml'});
-      const svgUrl=URL.createObjectURL(svgBlob);
-      await new Promise((res,rej)=>{
-        const img=new Image();
-        img.onload=()=>{
-          const c=document.createElement('canvas');
-          c.width=svgEl2d.width.baseVal.value*2;c.height=svgEl2d.height.baseVal.value*2;
-          const ctx=c.getContext('2d');ctx.scale(2,2);ctx.drawImage(img,0,0);
-          const iData=c.toDataURL('image/jpeg',.92);
-          const iW=PW-M*2,iH=iW*(svgEl2d.height.baseVal.value/svgEl2d.width.baseVal.value);
-          doc.addImage(iData,'JPEG',M,y,iW,Math.min(iH,160));
-          y+=Math.min(iH,160)+6;
-          URL.revokeObjectURL(svgUrl);res();
-        };
-        img.onerror=rej;img.src=svgUrl;
-      });
-    }catch(e){y+=10;}
+    const cap=await captureSVG(svgEl2d,160);
+    if(cap){
+      doc.addImage(cap.data,'JPEG',M,y,cap.iW,cap.iH);
+      y+=cap.iH+5;
+    }
   }
 
-  // Leyenda diferencias
-  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(9);
-  doc.text('LEYENDA:',M,y);
-  const leyItems=[[[26,96,144],'Zona dragada (B > A)'],[[ 139,0,0],'Zona sedimentada (B < A)'],[[200,200,200],'Sin cambio significativo']];
+  // Leyenda con fondo claro
+  doc.setFillColor(245,248,252);doc.roundedRect(M,y,PW-M*2,14,2,2,'F');
+  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(8);
+  doc.text('LEYENDA:',M+4,y+9);
   let lx=M+30;
-  leyItems.forEach(([col,lbl])=>{
-    doc.setFillColor(...col);doc.rect(lx,y-3.5,10,5,'F');
-    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,80);
-    doc.text(lbl,lx+12,y);lx+=65;
+  [{col:[26,96,144],lbl:'Zona dragada (B > A)'},{col:[139,0,0],lbl:'Zona sedimentada (B < A)'},{col:[200,200,200],lbl:'Sin cambio'}].forEach(({col,lbl})=>{
+    doc.setFillColor(...col);doc.rect(lx,y+4,12,5,'F');
+    doc.setFont('helvetica','normal');doc.setTextColor(40,40,80);doc.setFontSize(7.5);
+    doc.text(lbl,lx+14,y+8.5);lx+=60;
   });
 
-  // ═══════ PÁGINA 3: VISTAS 3D ══════════════════════════════════
-  doc.addPage();
-  pageHeader('COMPARACIÓN BATIMÉTRICA 3D');
+  // ══ PÁGINA 3: VISTAS 3D ═══════════════════════════════════════
+  doc.addPage();hdr('COMPARACIÓN BATIMÉTRICA 3D');
   y=25;
 
-  // Capturar canvas 3D superpuesto
-  const c3d=document.getElementById('c3d');
-  if(c3d&&c3d.width>10){
-    try{
-      if(renderer&&scene&&camera)renderer.render(scene,camera);
-      const imgData=c3d.toDataURL('image/jpeg',.90);
-      const asp=c3d.width/c3d.height,maxW=PW-M*2,maxH=100;
-      let iW=maxW,iH=maxW/asp;if(iH>maxH){iH=maxH;iW=maxH*asp;}
-      doc.addImage(imgData,'JPEG',(PW-iW)/2,y,iW,iH);
-      doc.setFont('helvetica','italic');doc.setTextColor(...GRAY);doc.setFontSize(7);
-      doc.text('Figura 1: Superficie antes (naranja) y después (verde) del dragado',PW/2,y+iH+4,{align:'center'});
-      y+=iH+12;
-    }catch(e){}
+  const c3dCap=captureCanvas(document.getElementById('c3d'),renderer,scene,camera,100);
+  if(c3dCap){
+    doc.addImage(c3dCap.data,'JPEG',(PW-c3dCap.iW)/2,y,c3dCap.iW,c3dCap.iH);
+    doc.setFont('helvetica','italic');doc.setTextColor(...GRAY);doc.setFontSize(7);
+    doc.text('Figura 1: Superficie antes (naranja) y despues (verde) del dragado',PW/2,y+c3dCap.iH+4,{align:'center'});
+    y+=c3dCap.iH+12;
   }
 
-  // Capturar canvas volumen dragado
-  const cvol=document.getElementById('cvol');
-  if(cvol&&cvol.width>10){
-    try{
-      if(rendVol&&sceneVol&&cameraVol)rendVol.render(sceneVol,cameraVol);
-      const imgData=cvol.toDataURL('image/jpeg',.90);
-      const asp=cvol.width/cvol.height,maxW=PW-M*2,maxH=100;
-      let iW=maxW,iH=maxW/asp;if(iH>maxH){iH=maxH;iW=maxH*asp;}
-      doc.addImage(imgData,'JPEG',(PW-iW)/2,y,iW,iH);
-      doc.setFont('helvetica','italic');doc.setTextColor(...GRAY);doc.setFontSize(7);
-      doc.text('Figura 2: Volumen de material dragado (naranja=fondo anterior, azul=fondo nuevo)',PW/2,y+iH+4,{align:'center'});
-    }catch(e){}
+  const cvolCap=captureCanvas(document.getElementById('cvol'),rendVol,sceneVol,cameraVol,100);
+  if(cvolCap){
+    doc.addImage(cvolCap.data,'JPEG',(PW-cvolCap.iW)/2,y,cvolCap.iW,cvolCap.iH);
+    doc.setFont('helvetica','italic');doc.setTextColor(...GRAY);doc.setFontSize(7);
+    doc.text('Figura 2: Solido del material dragado (naranja=fondo anterior, azul=fondo nuevo)',PW/2,y+cvolCap.iH+4,{align:'center'});
   }
 
-  // ═══════ PÁGINA 4: PERFIL TRANSVERSAL ═════════════════════════
-  doc.addPage();
-  pageHeader('PERFIL TRANSVERSAL DEL CANAL');
+  // ══ PÁGINA 4: PERFIL TRANSVERSAL ══════════════════════════════
+  doc.addPage();hdr('PERFIL TRANSVERSAL DEL CANAL');
   y=25;
 
-  const pw=document.getElementById('perfil-wrap');
-  if(pw&&pw.querySelector('svg')){
-    try{
-      const svgP=pw.querySelector('svg');
-      const svgStr=new XMLSerializer().serializeToString(svgP);
-      const svgBlob=new Blob([svgStr],{type:'image/svg+xml'});
-      const svgUrl=URL.createObjectURL(svgBlob);
-      await new Promise((res,rej)=>{
-        const img=new Image();
-        img.onload=()=>{
-          const c=document.createElement('canvas');
-          c.width=svgP.width.baseVal.value*2;c.height=svgP.height.baseVal.value*2;
-          const ctx=c.getContext('2d');ctx.scale(2,2);ctx.drawImage(img,0,0);
-          const iData=c.toDataURL('image/jpeg',.92);
-          const iW=PW-M*2,iH=iW*(svgP.height.baseVal.value/svgP.width.baseVal.value);
-          doc.addImage(iData,'JPEG',M,y,iW,Math.min(iH,150));
-          y+=Math.min(iH,150)+6;
-          URL.revokeObjectURL(svgUrl);res();
-        };
-        img.onerror=rej;img.src=svgUrl;
-      });
-    }catch(e){y+=10;}
+  const perfilSVG=pw.querySelector('svg');
+  if(perfilSVG){
+    const cap=await captureSVG(perfilSVG,155);
+    if(cap){
+      doc.addImage(cap.data,'JPEG',M,y,cap.iW,cap.iH);
+      y+=cap.iH+5;
+    }
   }
   doc.setFont('helvetica','italic');doc.setTextColor(...GRAY);doc.setFontSize(7.5);
-  doc.text('Línea azul punteada = perfil ANTES | Línea verde = perfil DESPUÉS | Área coloreada = volumen dragado',PW/2,y,{align:'center'});
+  doc.text('Linea azul punteada = perfil ANTES | Linea verde = perfil DESPUES | Area coloreada = volumen dragado',PW/2,y,{align:'center'});
 
-  // ═══════ PÁGINA 5: CÁLCULO DE VOLUMEN ═════════════════════════
-  doc.addPage();
-  pageHeader('CÁLCULO Y CERTIFICACIÓN DEL VOLUMEN DRAGADO');
+  // ══ PÁGINA 5: VOLUMEN Y CERTIFICACIÓN ═════════════════════════
+  doc.addPage();hdr('CÁLCULO Y CERTIFICACIÓN DEL VOLUMEN DRAGADO');
   y=28;
 
-  // Leer stats del DOM
-  const volRow=document.getElementById('stats-big');
-  const volNums=volRow?volRow.querySelectorAll('.vol-num'):[];
-  const volA_txt=volNums[0]?volNums[0].textContent:'—';
-  const volB_txt=volNums[1]?volNums[1].textContent:'—';
-  const volDif_txt=volNums[2]?volNums[2].textContent:'—';
-  const statVals=volRow?volRow.querySelectorAll('.stat-v'):[];
-  const area_txt=statVals[0]?statVals[0].textContent:'—';
-  const maxDrag_txt=statVals[1]?statVals[1].textContent:'—';
-  const media_txt=statVals[2]?statVals[2].textContent:'—';
+  // Leer valores del DOM
+  const volNums=document.querySelectorAll('#stats-big .vol-num');
+  const vA=volNums[0]?volNums[0].textContent.trim():'—';
+  const vB=volNums[1]?volNums[1].textContent.trim():'—';
+  const vD=volNums[2]?volNums[2].textContent.trim():'—';
+  const statVs=document.querySelectorAll('#stats-big .stat-v');
+  const area=statVs[0]?statVs[0].textContent.trim():'—';
+  const maxD=statVs[1]?statVs[1].textContent.trim():'—';
+  const media=statVs[2]?statVs[2].textContent.trim().replace(/[^0-9.,>m ]/g,' '):'—';
 
-  // Cuadro principal de volumen
+  // Cuadro resultado
   doc.setFillColor(...NAVY);doc.roundedRect(M,y,PW-M*2,42,3,3,'F');
   doc.setTextColor(...GOLD);doc.setFont('helvetica','bold');doc.setFontSize(10);
   doc.text('RESULTADO DEL DRAGADO',PW/2,y+9,{align:'center'});
-
-  // Tres columnas
-  const cols3=[
-    {lbl:'VOLUMEN INICIAL (A)',val:volA_txt,col:[26,143,232]},
-    {lbl:'VOLUMEN FINAL (B)',val:volB_txt,col:[0,200,120]},
-    {lbl:'MATERIAL DRAGADO',val:volDif_txt,col:[255,208,96]},
-  ];
   const cw=(PW-M*2)/3;
-  cols3.forEach(({lbl,val,col},i)=>{
+  [{lbl:'VOLUMEN INICIAL (A)',val:vA,col:[26,143,232]},
+   {lbl:'VOLUMEN FINAL (B)',val:vB,col:[0,200,120]},
+   {lbl:'MATERIAL DRAGADO',val:vD,col:[255,208,96]}
+  ].forEach(({lbl,val,col},i)=>{
     const cx=M+i*cw+cw/2;
-    doc.setTextColor(...col);doc.setFontSize(14);doc.text(val,cx,y+24,{align:'center'});
+    doc.setTextColor(...col);doc.setFontSize(13);doc.text(val,cx,y+24,{align:'center'});
     doc.setTextColor(180,200,220);doc.setFontSize(6.5);doc.text(lbl,cx,y+31,{align:'center'});
   });
-
-  // Separadores
   doc.setDrawColor(50,70,120);doc.setLineWidth(.3);
   [1,2].forEach(i=>doc.line(M+cw*i,y+12,M+cw*i,y+38));
   y+=50;
 
-  // Datos adicionales
+  // Datos complementarios
   doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(10);
   doc.text('DATOS COMPLEMENTARIOS',M,y);y+=6;
-  const dats=[
-    ['Área relevada',area_txt],
-    ['Máxima diferencia de dragado',maxDrag_txt],
-    ['Profundidad media A → B',media_txt],
-    ['Método de cálculo','TIN Prismatoid (Triangulación de Delaunay)'],
-    ['Sistema de referencia','WGS84 (EPSG:4326)'],
-    ['Referencia de nivel','Cero del Hidrómetro de San Isidro'],
-  ];
-  dats.forEach(([lbl,val],i)=>{
-    if(i%2===0)doc.setFillColor(240,243,250);else doc.setFillColor(250,252,255);
+  [{lbl:'Area relevada',val:area},
+   {lbl:'Maxima diferencia de dragado',val:maxD},
+   {lbl:'Profundidad media (Antes / Despues)',val:media},
+   {lbl:'Metodo de calculo',val:'TIN Prismatoid (Triangulacion de Delaunay)'},
+   {lbl:'Sistema de referencia',val:'WGS84 (EPSG:4326)'},
+   {lbl:'Referencia de nivel',val:'Cero del Hidrometro de San Isidro'},
+  ].forEach(({lbl,val},i)=>{
+    doc.setFillColor(i%2===0?240:248,i%2===0?243:250,i%2===0?250:255);
     doc.rect(M,y,PW-M*2,8,'F');
     doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(8.5);
     doc.text(lbl,M+3,y+5.5);
@@ -1090,54 +1102,47 @@ async function generarCertificadoPDF(){
     y+=8;
   });
 
-  // Cálculo de pago
-  y+=8;
-  doc.setFillColor(255,248,220);doc.roundedRect(M,y,PW-M*2,38,3,3,'F');
-  doc.setDrawColor(...GOLD);doc.setLineWidth(.5);doc.roundedRect(M,y,PW-M*2,38,3,3,'S');
-  doc.setFont('helvetica','bold');doc.setTextColor(100,70,0);doc.setFontSize(9);
-  doc.text('CÁLCULO DE PAGO',M+5,y+8);
-  doc.setFont('helvetica','normal');doc.setFontSize(8.5);
-  doc.text('Volumen dragado:',M+5,y+17);
-  doc.text(volDif_txt+' m³',PW/2-10,y+17,{align:'right'});
-  doc.text('Precio unitario ($/m³):',M+5,y+25);doc.text('$___________',PW/2-10,y+25,{align:'right'});
-  doc.setLineWidth(.3);doc.setDrawColor(180,140,0);doc.line(M+5,y+30,PW-M-5,y+30);
-  doc.setFont('helvetica','bold');doc.setFontSize(10);
-  doc.text('TOTAL:',M+5,y+37);doc.text('$___________',PW-M-5,y+37,{align:'right'});
-  y+=46;
+  // Metodología
+  y+=6;
+  doc.setFillColor(230,235,248);doc.roundedRect(M,y,PW-M*2,32,3,3,'F');
+  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(9);
+  doc.text('METODOLOGIA',M+5,y+8);
+  doc.setFont('helvetica','normal');doc.setTextColor(40,50,100);doc.setFontSize(8);
+  ['Interpolacion: Triangulacion de Delaunay (TIN) — estandar internacional.',
+   'Volumen: Metodo Prismatoid — suma de prismas triangulares (compatible Hypack).',
+   'Profundidades referidas al nivel de aguas bajas ordinarias (NABO).',
+  ].forEach((line,i)=>{doc.text('• '+line,M+5,y+16+i*7,{maxWidth:PW-M*2-10});});
+  y+=38;
 
-  // ═══════ DECLARACIÓN Y FIRMA ══════════════════════════════════
-  y+=4;
-  doc.setFillColor(230,235,245);doc.roundedRect(M,y,PW-M*2,28,3,3,'F');
-  doc.setFont('helvetica','italic');doc.setTextColor(40,50,100);doc.setFontSize(8);
-  const declaracion='El profesional abajo firmante certifica que los datos batimétricos consignados en este documento fueron relevados con instrumental calibrado, procesados mediante triangulación de Delaunay y verificados con los puntos originales de sondaje. La diferencia de volumen calculada representa el material efectivamente extraído durante el proceso de dragado.';
-  doc.text(declaracion,M+4,y+7,{maxWidth:PW-M*2-8});
+  // Declaración y firma
+  doc.setFillColor(245,247,255);doc.roundedRect(M,y,PW-M*2,24,3,3,'F');
+  doc.setFont('helvetica','italic');doc.setTextColor(40,50,100);doc.setFontSize(7.5);
+  doc.text('El profesional abajo firmante certifica que los datos batimetricos consignados fueron relevados con instrumental calibrado, procesados mediante triangulacion de Delaunay y verificados contra los puntos originales de sondaje.',M+4,y+7,{maxWidth:PW-M*2-8});
+  y+=30;
 
-  y+=36;
   doc.setDrawColor(...NAVY);doc.setLineWidth(.4);
-  doc.line(M+15,y+15,M+75,y+15);doc.line(PW-M-75,y+15,PW-M-15,y+15);
+  doc.line(M+15,y+15,M+80,y+15);doc.line(PW-M-80,y+15,PW-M-15,y+15);
   doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(8);
-  doc.text('Firma y sello del responsable',M+17,y+20);
-  doc.text('Fecha y lugar',PW-M-72,y+20);
+  doc.text('Firma y sello del responsable',M+17,y+21);
+  doc.text('Fecha y lugar',PW-M-77,y+21);
   doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);doc.setFontSize(7);
-  doc.text('Nombre: _________________________',M+17,y+27);
-  doc.text('Matrícula: ______________________',M+17,y+33);
+  doc.text('Nombre: _________________________',M+17,y+28);
+  doc.text('Matricula: ______________________',M+17,y+34);
 
-  // Pie de todas las páginas
-  const totalPages=doc.internal.getNumberOfPages();
-  for(let i=1;i<=totalPages;i++){
+  // Numeración de páginas
+  const total=doc.internal.getNumberOfPages();
+  for(let i=1;i<=total;i++){
     doc.setPage(i);
     doc.setFillColor(...DARK);doc.rect(0,PH-8,PW,8,'F');
     doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);doc.setFontSize(6.5);
-    doc.text('BatiSistema — vresti.github.io/baticaptura',M,PH-3);
-    doc.text(`Pág. ${i} / ${totalPages}`,PW/2,PH-3,{align:'center'});
-    doc.text(new Date().toLocaleString('es-AR'),PW-M,PH-3,{align:'right'});
+    doc.text('Sistema de Medicion Batimetrica',M,PH-3);
+    doc.text('Pag. '+i+' / '+total,PW/2,PH-3,{align:'center'});
+    doc.text(now.toLocaleString('es-AR'),PW-M,PH-3,{align:'right'});
   }
 
-  const nombre='Certificado_Dragado_'+new Date().toISOString().substring(0,10)+'.pdf';
-  doc.save(nombre);
-  showToast('✓ Certificado PDF generado');
+  doc.save('Certificado_Dragado_'+now.toISOString().substring(0,10)+'.pdf');
+  showToast('✓ Certificado PDF listo');
 }
-
 
 function expCSV(){showToast('Export CSV próximamente');}
 
