@@ -766,6 +766,101 @@ function volumenTIN(tris,pts){
 //  VOLUMEN 3D — Forma del material dragado
 // ════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════
+//  VOLUMEN DRAGADO 3D
+// ════════════════════════════════════════════════
+function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
+  if(!rendVol||!sceneVol||!cameraVol) return;
+  if(!diff||!diff.length) return;
+
+  // Limpiar meshes anteriores
+  const toRemove=[];
+  sceneVol.traverse(o=>{if(o.isMesh||o.isGridHelper)toRemove.push(o);});
+  toRemove.forEach(o=>sceneVol.remove(o));
+
+  const msk=window._mask;
+  const SZ=100;
+
+  // Escala vertical adaptiva
+  const mediaA=d3.mean(Array.from(valsA).filter((_,i)=>!msk||msk[i]))||1;
+  const mediaB=d3.mean(Array.from(valsB).filter((_,i)=>!msk||msk[i]))||1;
+  const diffMedia=Math.abs(mediaB-mediaA)||0.5;
+  const autoScale=Math.min(20,Math.max(6,0.6*(dMax||1)/diffMedia));
+  const scD=v=>-(Math.max(0,v)/(dMax||1))*SZ*0.25*autoScale;
+
+  // Paleta negro→rojo→naranja→amarillo
+  const palVol=t=>{
+    t=Math.max(0,Math.min(1,t));
+    const s=[[0.1,0,0],[0.8,0,0],[1,0.4,0],[1,0.85,0]];
+    const n=s.length-1,i=Math.floor(t*n),f=t*n-i;
+    return[s[i][0]+(s[i+1][0]-s[i][0])*f,
+           s[i][1]+(s[i+1][1]-s[i][1])*f,
+           s[i][2]+(s[i+1][2]-s[i][2])*f];
+  };
+
+  const umbral=(dMax||1)*0.25;
+  console.log('buildVolScene dMax:'+dMax.toFixed(2)+' umbral:'+umbral.toFixed(2));
+
+  const verts=[], cols=[];
+
+  for(let row=0;row<gH-1;row++){
+    for(let col=0;col<gW-1;col++){
+      const i00=row*gW+col, i10=row*gW+col+1;
+      const i01=(row+1)*gW+col, i11=(row+1)*gW+col+1;
+      if(msk&&(!msk[i00]||!msk[i10]||!msk[i01]||!msk[i11])) continue;
+
+      const d00=Math.max(0,diff[i00]), d10=Math.max(0,diff[i10]);
+      const d01=Math.max(0,diff[i01]), d11=Math.max(0,diff[i11]);
+      const dAvg=(d00+d10+d01+d11)/4;
+      if(dAvg<umbral) continue;
+
+      const x0=(col/(gW-1))*SZ-SZ/2, x1=((col+1)/(gW-1))*SZ-SZ/2;
+      const z0=(row/(gH-1))*SZ-SZ/2, z1=((row+1)/(gH-1))*SZ-SZ/2;
+
+      // Cara superior plana en y=0
+      verts.push(x0,0,z0, x1,0,z0, x1,0,z1);
+      verts.push(x0,0,z0, x1,0,z1, x0,0,z1);
+      // Cara inferior — profundidad del dragado
+      verts.push(x0,scD(d00),z0, x1,scD(d11),z1, x1,scD(d10),z0);
+      verts.push(x0,scD(d00),z0, x0,scD(d01),z1, x1,scD(d11),z1);
+
+      const t=dAvg/(dMax||1);
+      const[r,g,b]=palVol(t);
+      for(let k=0;k<6;k++) cols.push(r*0.5,g*0.5,b*0.5);
+      for(let k=0;k<6;k++) cols.push(r,g,b);
+    }
+  }
+
+  console.log('Vértices volumen:',verts.length/3);
+  if(verts.length===0){showToast('Sin zona dragada significativa',true);return;}
+
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+  geo.computeVertexNormals();
+  sceneVol.add(new THREE.Mesh(geo,new THREE.MeshPhongMaterial({
+    vertexColors:true,side:THREE.DoubleSide,
+    shininess:60,specular:0x441100,transparent:true,opacity:0.95
+  })));
+
+  // Grilla
+  const grid=new THREE.GridHelper(SZ,10,0x1a2a4a,0x1a2a4a);
+  grid.position.y=scD(dMax)*1.1;
+  sceneVol.add(grid);
+
+  // Auto centrado
+  const boxV=new THREE.Box3();
+  sceneVol.traverse(o=>{if(o.isMesh)boxV.expandByObject(o);});
+  if(!boxV.isEmpty()){
+    const cV=new THREE.Vector3(),sV=new THREE.Vector3();
+    boxV.getCenter(cV);boxV.getSize(sV);
+    cameraVol.position.set(cV.x+sV.length()*0.8,cV.y+sV.length()*0.5,cV.z+sV.length()*1.0);
+    cameraVol.lookAt(cV.x,cV.y,cV.z);
+  }
+
+  showToast('✓ Volumen 3D — '+Math.round(verts.length/12)+' celdas dragadas');
+}
+
 function initVolRenderer(W,H){
   rendVol=new THREE.WebGLRenderer({canvas:document.getElementById('cvol'),antialias:true});
   rendVol.setPixelRatio(Math.min(window.devicePixelRatio,2));
