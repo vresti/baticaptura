@@ -714,8 +714,8 @@ async function comparar() {
   const allM  = [...ptsA,...ptsB];
   const xMn=d3.min(allM,p=>p.x), xMx=d3.max(allM,p=>p.x);
   const yMn=d3.min(allM,p=>p.y), yMx=d3.max(allM,p=>p.y);
-  const xP=(xMx-xMn)*0.02+1, yP=(yMx-yMn)*0.02+1;
-  const x0=xMn-xP,x1=xMx+xP,y0=yMn-yP,y1=yMx+yP;
+  // Sin padding — grilla exactamente sobre los datos reales
+  const x0=xMn, x1=xMx, y0=yMn, y1=yMx;
   const W=x1-x0, H=y1-y0;
 
   const gW=gN, gH=Math.max(4,Math.round(gN*H/W));
@@ -753,8 +753,9 @@ async function comparar() {
         // TIN baricéntrico — sin picos
         const zA=tinInterp(trisA,mx,my,null);
         const zB=tinInterp(trisB,mx,my,null);
-        valsA[idx]=zA!==null?Math.max(zMinReal,Math.min(zMaxReal,zA)):zMeanAll;
-        valsB[idx]=zB!==null?Math.max(zMinReal,Math.min(zMaxReal,zB)):zMeanAll;
+        // Fuera del TIN → zMinReal (lecho plano en el borde, sin extrapolación)
+        valsA[idx]=zA!==null?Math.max(zMinReal,Math.min(zMaxReal,zA)):zMinReal;
+        valsB[idx]=zB!==null?Math.max(zMinReal,Math.min(zMaxReal,zB)):zMinReal;
         diff[idx]=valsB[idx]-valsA[idx];
       }
     prog(0.12+c*0.09); await sl(0);
