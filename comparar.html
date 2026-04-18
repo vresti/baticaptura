@@ -484,7 +484,7 @@ function initVolRenderer(W,H){
   // Controles mouse — misma lógica que el 3D superpuesto
   const c=document.getElementById('cvol');
   let vDrag=false,vRight=false,vPrev={x:0,y:0};
-  let vSph={theta:0.6,phi:0.9,radius:160},vTgt={x:0,y:-10,z:0};
+  let vSph={theta:0.5,phi:0.8,radius:140},vTgt={x:0,y:0,z:0};
   const vUpdateCam=()=>{
     const{theta,phi,radius}=vSph;
     cameraVol.position.set(
@@ -508,14 +508,28 @@ function initVolRenderer(W,H){
   c.addEventListener('contextmenu',e=>e.preventDefault());
 
   vUpdateCam();
+  window.addEventListener('resize',()=>{
+    const ma=document.querySelector('.main-area');
+    if(!rendVol||!ma)return;
+    const nW=Math.max(400,ma.clientWidth-20), nH=Math.max(300,ma.clientHeight-60);
+    cameraVol.aspect=nW/nH; cameraVol.updateProjectionMatrix();
+    rendVol.setSize(nW,nH);
+  });
   (function renderVol(){requestAnimationFrame(renderVol);if(rendVol&&sceneVol&&cameraVol)rendVol.render(sceneVol,cameraVol);})();
 }
 
 function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
-  if(!rendVol||!sceneVol||!cameraVol)return;
+  if(!rendVol||!sceneVol||!cameraVol){
+    console.warn('Renderer de volumen no inicializado');
+    return;
+  }
+  if(!diff||!diff.length){console.warn('Sin datos de diferencia');return;}
+  console.log('buildVolScene: gW='+gW+' gH='+gH+' dMax='+dMax.toFixed(2));
 
-  // Limpiar escena
-  while(sceneVol.children.length>3)sceneVol.remove(sceneVol.children[3]);
+  // Limpiar meshes (dejar las 3 luces)
+  const toRemove=[];
+  sceneVol.traverse(obj=>{if(obj.isMesh||obj.isLineSegments||obj.isGridHelper)toRemove.push(obj);});
+  toRemove.forEach(obj=>sceneVol.remove(obj));
 
   const msk=window._mask;
   const SZ=100;
@@ -588,7 +602,11 @@ function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
     }
   }
 
-  if(verts.length===0)return;
+  console.log('Vértices generados:', verts.length/3);
+  if(verts.length===0){
+    showToast('Sin zona dragada en los datos',true);
+    return;
+  }
 
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
@@ -773,6 +791,7 @@ async function comparar() {
 
   // Guardar para tab volumen 3D
   window._pendingVol=[diff,valsA,valsB,gW,gH,dMax];
+  window._lastVolArgs=[diff,valsA,valsB,gW,gH,dMax];
   prog(1); setTimeout(()=>prog(0),600);
 
   document.getElementById('stats-panel').style.display='';
@@ -1365,20 +1384,27 @@ function setTab(id) {
 
   if(id==='volumen'){
     setTimeout(()=>{
-      const wrap=document.getElementById('cvol-wrap');
-      const W=Math.max(400,wrap.clientWidth||800);
-      const H=Math.max(300,wrap.clientHeight||500);
-      if(!rendVol) initVolRenderer(W,H);
-      else {
+      // Tomar dimensiones del main-area (siempre visible)
+      const mainArea=document.querySelector('.main-area');
+      const W=Math.max(500, (mainArea?mainArea.clientWidth:900)-20);
+      const H=Math.max(400, (mainArea?mainArea.clientHeight:600)-60);
+      if(!rendVol){
+        initVolRenderer(W,H);
+      } else {
         cameraVol.aspect=W/H;
         cameraVol.updateProjectionMatrix();
         rendVol.setSize(W,H);
       }
-      if(window._pendingVol){
-        buildVolScene(...window._pendingVol);
-        window._pendingVol=null;
-      }
-    },80);
+      // Esperar que el renderer esté listo
+      setTimeout(()=>{
+        if(window._pendingVol){
+          buildVolScene(...window._pendingVol);
+          window._pendingVol=null;
+        } else if(window._lastVolArgs){
+          buildVolScene(...window._lastVolArgs);
+        }
+      },50);
+    },150);
   }
 }
 
