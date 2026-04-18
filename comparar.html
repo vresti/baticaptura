@@ -386,6 +386,67 @@ function idw(pts,x,y,pow){
 }
 
 
+
+// ════════════════════════════════════════════════
+//  TIN — Triangulación de Delaunay
+// ════════════════════════════════════════════════
+function circumcircle(ax,ay,bx,by,cx,cy){
+  const D=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
+  if(Math.abs(D)<1e-10)return null;
+  const ux=((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/D;
+  const uy=((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D;
+  return{x:ux,y:uy,r:Math.sqrt((ax-ux)**2+(ay-uy)**2)};
+}
+
+function delaunay(pts){
+  if(pts.length<3)return[];
+  const xMin=Math.min(...pts.map(p=>p.x))-1,xMax=Math.max(...pts.map(p=>p.x))+1;
+  const yMin=Math.min(...pts.map(p=>p.y))-1,yMax=Math.max(...pts.map(p=>p.y))+1;
+  const dx=xMax-xMin,dy=yMax-yMin;
+  const st=[{x:xMin-dx,y:yMin-dy,_s:true},{x:xMax+dx*2,y:yMin-dy,_s:true},{x:xMin-dx,y:yMax+dy*2,_s:true}];
+  const all=[...pts,...st]; const n=pts.length;
+  let tris=[{a:n,b:n+1,c:n+2}];
+  for(let i=0;i<n;i++){
+    const p=all[i],bad=[],edges=[];
+    for(const t of tris){
+      const cc=circumcircle(all[t.a].x,all[t.a].y,all[t.b].x,all[t.b].y,all[t.c].x,all[t.c].y);
+      if(cc&&(p.x-cc.x)**2+(p.y-cc.y)**2<=cc.r*cc.r+1e-10){bad.push(t);edges.push([t.a,t.b],[t.b,t.c],[t.c,t.a]);}
+    }
+    const poly=edges.filter(e=>!edges.some(f=>f!==e&&f[0]===e[1]&&f[1]===e[0]));
+    for(const t of bad)tris=tris.filter(x=>x!==t);
+    for(const e of poly)tris.push({a:e[0],b:e[1],c:i});
+  }
+  return tris.filter(t=>!all[t.a]._s&&!all[t.b]._s&&!all[t.c]._s).map(t=>({a:t.a,b:t.b,c:t.c,pts:all}));
+}
+
+function tinInterp(tris,px,py,fb){
+  for(const t of tris){
+    const ax=t.pts[t.a].x,ay=t.pts[t.a].y,bx=t.pts[t.b].x,by=t.pts[t.b].y,cx=t.pts[t.c].x,cy=t.pts[t.c].y;
+    const d=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy);
+    if(Math.abs(d)<1e-10)continue;
+    const u=((by-cy)*(px-cx)+(cx-bx)*(py-cy))/d;
+    const v=((cy-ay)*(px-cx)+(ax-cx)*(py-cy))/d;
+    const w=1-u-v;
+    if(u>=-0.001&&v>=-0.001&&w>=-0.001)
+      return u*t.pts[t.a].z+v*t.pts[t.b].z+w*t.pts[t.c].z;
+  }
+  return fb;
+}
+
+// Volumen TIN exacto (método de prismas triangulares)
+function volumenTIN(tris,pts){
+  let vol=0;
+  for(const t of tris){
+    const ax=t.pts[t.a].x,ay=t.pts[t.a].y;
+    const bx=t.pts[t.b].x,by=t.pts[t.b].y;
+    const cx=t.pts[t.c].x,cy=t.pts[t.c].y;
+    const area=Math.abs((bx-ax)*(cy-ay)-(cx-ax)*(by-ay))/2;
+    const zmean=(t.pts[t.a].z+t.pts[t.b].z+t.pts[t.c].z)/3;
+    vol+=area*zmean;
+  }
+  return vol;
+}
+
 // ════════════════════════════════════════════════
 //  CONVEX HULL + MÁSCARA
 // ════════════════════════════════════════════════
@@ -489,47 +550,47 @@ async function comparar() {
   const zMinReal = Math.min(d3.min(ptsA,p=>p.z), d3.min(ptsB,p=>p.z));
   const zMaxReal = Math.max(d3.max(ptsA,p=>p.z), d3.max(ptsB,p=>p.z));
 
-  // IDW grillas A y B — solo celdas dentro del hull
+  // ── TIN para A y B — interpolación exacta sin picos ──────────
+  prog(0.12);
+  const trisA = delaunay(ptsA);
+  const trisB = delaunay(ptsB);
+
   for(let c=0;c<8;c++){
     const r0=Math.round(c*gH/8), r1=Math.round((c+1)*gH/8);
     for(let row=r0;row<r1;row++)
       for(let col=0;col<gW;col++){
         const idx=row*gW+col;
         if(!mask[idx]){
-          // Fuera del hull: valor neutro (no se renderiza en 3D ni colorea)
-          valsA[idx]=zMeanAll;
-          valsB[idx]=zMeanAll;
-          diff[idx]=0;
+          valsA[idx]=zMeanAll; valsB[idx]=zMeanAll; diff[idx]=0;
           continue;
         }
         const mx=x0+(col/(gW-1))*W, my=y0+(row/(gH-1))*H;
-        // Clampear al rango real
-        valsA[idx]=Math.max(zMinReal,Math.min(zMaxReal,idw(ptsA,mx,my,2)));
-        valsB[idx]=Math.max(zMinReal,Math.min(zMaxReal,idw(ptsB,mx,my,2)));
+        // TIN baricéntrico — sin picos
+        const zA=tinInterp(trisA,mx,my,null);
+        const zB=tinInterp(trisB,mx,my,null);
+        valsA[idx]=zA!==null?Math.max(zMinReal,Math.min(zMaxReal,zA)):zMeanAll;
+        valsB[idx]=zB!==null?Math.max(zMinReal,Math.min(zMaxReal,zB)):zMeanAll;
         diff[idx]=valsB[idx]-valsA[idx];
       }
-    prog(0.05+c*0.1); await sl(0);
+    prog(0.12+c*0.09); await sl(0);
   }
 
   prog(0.85);
 
-  // Estadísticas — solo celdas dentro del convex hull
-  const cellArea = (W/gW)*(H/gH);
-  const mskVol   = window._mask;
-  let volDrag=0, volSed=0, nDrag=0, nSed=0;
-  let volTotalA=0, volTotalB=0;
-  let nCeldasValidas=0;
+  // ── Volumen exacto por método TIN (prismas triangulares) ──────
+  // Más preciso que la grilla — usa los triángulos reales
+  const volTotalA = volumenTIN(trisA, ptsA);
+  const volTotalB = volumenTIN(trisB, ptsB);
 
+  // Diferencia en grilla para mapa de colores
+  const cellArea = (W/gW)*(H/gH);
+  const mskVol = window._mask;
+  let volDrag=0, volSed=0, nDrag=0, nSed=0, nCeldasValidas=0;
   for(let i=0;i<diff.length;i++){
-    // Saltar celdas fuera del hull
     if(mskVol && !mskVol[i]) continue;
     nCeldasValidas++;
-    // Diferencia (dragado / sedimentado)
     if(diff[i]>0.05){ volDrag+=diff[i]*cellArea; nDrag++; }
     else if(diff[i]<-0.05){ volSed+=Math.abs(diff[i])*cellArea; nSed++; }
-    // Volúmenes totales
-    volTotalA += valsA[i] * cellArea;
-    volTotalB += valsB[i] * cellArea;
   }
   const dMax = Math.max(Math.abs(d3.max(diff)), Math.abs(d3.min(diff)));
   console.log();
@@ -752,37 +813,38 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
   if (scInfo) scInfo.textContent =
     `Escala: ${autoScale.toFixed(0)}× | ΔMedia: ${diffMedia.toFixed(2)}m | A:${mediaA.toFixed(2)}m B:${mediaB.toFixed(2)}m`;
 
-  // ── Superficie A (antes) — semitransparente azul oscuro ──
+  const msk = window._mask;
+
+  // ── Superficie A (ANTES) — NARANJA/OCRE semitransparente ──────
+  // Color diferenciador: naranja cálido = "antes del dragado"
   const geoA=new THREE.PlaneGeometry(SZ,SZ,gW-1,gH-1);
   geoA.rotateX(-Math.PI/2);
   const posA=geoA.attributes.position;
   const colsA=[];
-  const msk = window._mask;
   for(let row=0;row<gH;row++)
     for(let col=0;col<gW;col++){
       const idx=row*gW+col;
       const inM = !msk || msk[idx];
-      // Fuera del hull: aplanar al nivel medio (se funde con el fondo)
       posA.setY(idx, inM ? scZ(valsA[idx]) : scZ(zMnA));
-      if(inM) colsA.push(0.1,0.4,0.65);
-      else     colsA.push(0.0,0.0,0.0); // negro = invisible en fondo oscuro
+      if(inM) colsA.push(0.95, 0.55, 0.05); // naranja dorado
+      else     colsA.push(0.0, 0.0, 0.0);
     }
   geoA.setAttribute('color',new THREE.Float32BufferAttribute(colsA,3));
   geoA.computeVertexNormals();
   const matA=new THREE.MeshPhongMaterial({
-    vertexColors:true, transparent:true, opacity:0.6,
-    side:THREE.DoubleSide, shininess:30
+    vertexColors:true, transparent:true, opacity:0.65,
+    side:THREE.DoubleSide, shininess:20
   });
-  const meshA=new THREE.Mesh(geoA,matA);
-  scene.add(meshA);
+  scene.add(new THREE.Mesh(geoA,matA));
 
-  // Wireframe de A para que se vea aunque B esté encima
+  // Borde de A para verla aunque B esté encima
   const wireA=new THREE.WireframeGeometry(geoA);
   const lineA3=new THREE.LineSegments(wireA,
-    new THREE.LineBasicMaterial({color:0x3060aa,transparent:true,opacity:0.15}));
+    new THREE.LineBasicMaterial({color:0xff8800,transparent:true,opacity:0.12}));
   scene.add(lineA3);
 
-  // ── Superficie B (después) — semitransparente verde ──
+  // ── Superficie B (DESPUÉS) — VERDE AGUA semitransparente ─────
+  // Color diferenciador: verde esmeralda = "después del dragado"
   const geoB=new THREE.PlaneGeometry(SZ,SZ,gW-1,gH-1);
   geoB.rotateX(-Math.PI/2);
   const posB=geoB.attributes.position;
@@ -794,24 +856,80 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
       const zA=valsA[idx], zB=valsB[idx];
       posB.setY(idx, inM ? scZ(zB) : scZ(zMnA));
       if(!inM){ colsB.push(0.0,0.0,0.0); continue; }
-      const d=zB-zA;
-      if(d>0.05){colsB.push(0.0,0.5,0.8);}
-      else if(d<-0.05){colsB.push(0.8,0.1,0.1);}
-      else{colsB.push(0.6,0.7,0.6);}
+      colsB.push(0.0, 0.85, 0.55); // verde esmeralda
     }
   geoB.setAttribute('color',new THREE.Float32BufferAttribute(colsB,3));
   geoB.computeVertexNormals();
   const matB=new THREE.MeshPhongMaterial({
-    vertexColors:true, transparent:true, opacity:0.90,
-    side:THREE.DoubleSide, shininess:60, specular:0x224488
+    vertexColors:true, transparent:true, opacity:0.75,
+    side:THREE.DoubleSide, shininess:40, specular:0x004422
   });
   scene.add(new THREE.Mesh(geoB,matB));
+
+  // ── VOLUMEN DRAGADO — relleno entre A y B ────────────────────
+  // Construir paredes laterales + techo que cierran el volumen entre superficies
+  // Usamos una grilla de quads verticales celda por celda
+  const volGeo = new THREE.BufferGeometry();
+  const volVerts=[], volCols=[];
+
+  for(let row=0;row<gH-1;row++){
+    for(let col=0;col<gW-1;col++){
+      // Los 4 vértices del quad en grilla A y B
+      const idx00=row*gW+col, idx10=row*gW+col+1;
+      const idx01=(row+1)*gW+col, idx11=(row+1)*gW+col+1;
+
+      if(msk&&(!msk[idx00]||!msk[idx10]||!msk[idx01]||!msk[idx11])) continue;
+
+      const yA00=scZ(valsA[idx00]), yA10=scZ(valsA[idx10]);
+      const yA01=scZ(valsA[idx01]), yA11=scZ(valsA[idx11]);
+      const yB00=scZ(valsB[idx00]), yB10=scZ(valsB[idx10]);
+      const yB01=scZ(valsB[idx01]), yB11=scZ(valsB[idx11]);
+
+      // Solo dibujar si hay diferencia significativa (zona dragada)
+      const dAvg=((valsB[idx00]+valsB[idx10]+valsB[idx01]+valsB[idx11])-
+                  (valsA[idx00]+valsA[idx10]+valsA[idx01]+valsA[idx11]))/4;
+      if(dAvg < 0.05) continue;
+
+      // Posiciones X,Z de los 4 vértices
+      const x0=(col/(gW-1))*SZ-SZ/2,   x1=((col+1)/(gW-1))*SZ-SZ/2;
+      const z0=(row/(gH-1))*SZ-SZ/2,   z1=((row+1)/(gH-1))*SZ-SZ/2;
+
+      // Dos triángulos que forman el quad del volumen (entre A y B)
+      // Triángulo 1: B00, A00, B10
+      // Triángulo 2: A00, A10, B10
+      // Triángulo 3: B01, A01, B11
+      // Triángulo 4: A01, A11, B11
+      // Cara superior (B) y cara inferior (A) cierran el volumen
+
+      // Cara superior — B
+      volVerts.push(x0,yB00,z0, x1,yB10,z0, x1,yB11,z1);
+      volVerts.push(x0,yB00,z0, x1,yB11,z1, x0,yB01,z1);
+      // Cara inferior — A
+      volVerts.push(x0,yA00,z0, x1,yA11,z1, x1,yA10,z0);
+      volVerts.push(x0,yA00,z0, x0,yA01,z1, x1,yA11,z1);
+
+      // Color: amarillo brillante para el volumen dragado
+      for(let t=0;t<8;t++) volCols.push(1.0, 0.85, 0.0);
+    }
+  }
+
+  if(volVerts.length > 0){
+    volGeo.setAttribute('position', new THREE.Float32BufferAttribute(volVerts,3));
+    volGeo.setAttribute('color',    new THREE.Float32BufferAttribute(volCols,3));
+    volGeo.computeVertexNormals();
+    const volMat = new THREE.MeshPhongMaterial({
+      vertexColors:true, transparent:true, opacity:0.75,
+      side:THREE.DoubleSide, shininess:80, specular:0xffdd00,
+      emissive:0x443300, emissiveIntensity:0.2
+    });
+    scene.add(new THREE.Mesh(volGeo,volMat));
+  }
 
   // ── Espejo de agua ──
   const wGeo=new THREE.PlaneGeometry(SZ*1.1,SZ*1.1);
   wGeo.rotateX(-Math.PI/2);
   const wMat=new THREE.MeshPhongMaterial({
-    color:0x1a6090, transparent:true, opacity:0.25, side:THREE.DoubleSide
+    color:0x1a6090, transparent:true, opacity:0.20, side:THREE.DoubleSide
   });
   const wMesh=new THREE.Mesh(wGeo,wMat); wMesh.position.y=0.5;
   scene.add(wMesh);
@@ -819,8 +937,6 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
   // Grid
   const grid=new THREE.GridHelper(SZ,10,0x334466,0x334466);
   grid.position.y=scZ(zMxB)*1.05; scene.add(grid);
-
-  // (plano de referencia eliminado — generaba confusión visual)
 
   tgt={x:0,y:scZ((zMnA+zMxB)/2)/2,z:0};
   sph={theta:0.7,phi:1.0,radius:180};
