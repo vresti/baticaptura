@@ -799,7 +799,7 @@ function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
            s[i][2]+(s[i+1][2]-s[i][2])*f];
   };
 
-  const umbral=(dMax||1)*0.25;
+  const umbral=(dMax||1)*0.50; // 50% — solo zona realmente dragada
   console.log('buildVolScene dMax:'+dMax.toFixed(2)+' umbral:'+umbral.toFixed(2));
 
   const verts=[], cols=[];
@@ -839,9 +839,9 @@ function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
   geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
   geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
   geo.computeVertexNormals();
-  sceneVol.add(new THREE.Mesh(geo,new THREE.MeshPhongMaterial({
+  sceneVol.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({
     vertexColors:true,side:THREE.DoubleSide,
-    shininess:60,specular:0x441100,transparent:true,opacity:0.95
+    transparent:true,opacity:0.95
   })));
 
   // Grilla
