@@ -1561,11 +1561,16 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
   });
   scene.add(new THREE.Mesh(geoB,matB));
 
-  // ── VOLUMEN DRAGADO — relleno entre A y B ────────────────────
-  // Construir paredes laterales + techo que cierran el volumen entre superficies
-  // Usamos una grilla de quads verticales celda por celda
-  // ── Volumen dragado — solo caras superior e inferior ──────────
-  // Sin paredes laterales = visualmente limpio
+  // ── VOLUMEN DRAGADO — solo caras superior e inferior ─────────
+  // scD local para convertir diferencia en metros a unidades escena
+  const scDlocal=v=>-(Math.max(0,v)/dMax)*SZ*0.25*autoScale;
+  // Paleta rojo→amarillo para el volumen
+  const palVolLocal=t=>{
+    t=Math.max(0,Math.min(1,t));
+    const s=[[0.1,0,0],[0.8,0,0],[1,0.4,0],[1,0.85,0]];
+    const n=s.length-1,i=Math.floor(t*n),f=t*n-i;
+    return[s[i][0]+(s[i+1][0]-s[i][0])*f,s[i][1]+(s[i+1][1]-s[i][1])*f,s[i][2]+(s[i+1][2]-s[i][2])*f];
+  };
   const volVertsTop=[], volVertsBot=[], volCols=[];
 
   for(let row=0;row<gH-1;row++){
@@ -1574,26 +1579,25 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
       const idx01=(row+1)*gW+col, idx11=(row+1)*gW+col+1;
       if(msk&&(!msk[idx00]||!msk[idx10]||!msk[idx01]||!msk[idx11])) continue;
 
-      const dAvg=((valsB[idx00]+valsB[idx10]+valsB[idx01]+valsB[idx11])-
-                  (valsA[idx00]+valsA[idx10]+valsA[idx01]+valsA[idx11]))/4;
-      if(dAvg < dMax*0.08) continue; // solo diferencias > 8% del máximo
+      const d00=Math.max(0,valsB[idx00]-valsA[idx00]);
+      const d10=Math.max(0,valsB[idx10]-valsA[idx10]);
+      const d01=Math.max(0,valsB[idx01]-valsA[idx01]);
+      const d11=Math.max(0,valsB[idx11]-valsA[idx11]);
+      const dAvg=(d00+d10+d01+d11)/4;
+      if(dAvg < dMax*0.08) continue;
 
       const x0=(col/(gW-1))*SZ-SZ/2, x1=((col+1)/(gW-1))*SZ-SZ/2;
       const z0=(row/(gH-1))*SZ-SZ/2, z1=((row+1)/(gH-1))*SZ-SZ/2;
 
-      // Cara superior plana en y=0 (superficie del agua = techo del dragado)
-      volVertsTop.push(
-        x0,0,z0, x1,0,z0, x1,0,z1,
-        x0,0,z0, x1,0,z1, x0,0,z1
-      );
-      // Cara inferior = profundidad del dragado hacia abajo
-      const y00b=scD(d00),y10b=scD(d10),y01b=scD(d01),y11b=scD(d11);
+      volVertsTop.push(x0,0,z0, x1,0,z0, x1,0,z1, x0,0,z0, x1,0,z1, x0,0,z1);
+      // Cara inferior = profundidad del dragado
+      const y00b=scDlocal(d00),y10b=scDlocal(d10),y01b=scDlocal(d01),y11b=scDlocal(d11);
       volVertsBot.push(
         x0,y00b,z0, x1,y11b,z1, x1,y10b,z0,
         x0,y00b,z0, x0,y01b,z1, x1,y11b,z1
       );
       const t2=(dAvg/dMax);
-      const[rv,gv,bv]=palVol(t2);
+      const[rv,gv,bv]=palVolLocal(t2);
       for(let k=0;k<6;k++) volCols.push(rv*0.5,gv*0.5,bv*0.5); // techo más oscuro
     }
   }
@@ -1648,8 +1652,8 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
     box.getCenter(center);
     box.getSize(size);
     tgt={x:center.x, y:center.y, z:center.z};
-    // Radio para ver todo + 20% de margen
-    sph={theta:0.7, phi:1.0, radius:size.length()*1.2};
+    // Radio para ver todo + 30% de margen, ángulo más lateral
+    sph={theta:0.7, phi:0.85, radius:size.length()*1.5};
   } else {
     tgt={x:0,y:scZ((zMnA+zMxB)/2)/2,z:0};
     sph={theta:0.7,phi:1.0,radius:180};
