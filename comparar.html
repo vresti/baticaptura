@@ -7,506 +7,140 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@300;400;600&display=swap');
-
-:root {
-  --bg:     #f0ece4;
-  --paper:  #faf7f0;
-  --navy:   #1a237e;
-  --navy2:  #283593;
-  --gold:   #c9a227;
-  --border: #b8b0a0;
-  --text:   #1a1a2e;
-  --dim:    #6a6a7a;
-  --panel:  #eee8dc;
-  --dragado:#1a6090;
-  --sedim:  #8B0000;
-  --neutro: #e8e0d0;
+:root{
+  --bg:#0a1628;--panel:#0d1f3c;--bord:rgba(26,99,180,.3);
+  --blu:#1a8fe8;--amb:#ffd060;--txt:#ccdaea;--dim:#6a8aaa;
+  --nav:#1a237e;--grn:#00e5a0;--org:#ff8c00;--red:#ef5350;
 }
-
-* { box-sizing:border-box; margin:0; padding:0; }
-body { background:var(--bg); color:var(--text); font-family:'Exo 2',sans-serif; min-height:100vh; }
-body::before { content:''; position:fixed; inset:0;
-  background-image:linear-gradient(rgba(26,35,126,0.03) 1px,transparent 1px),
-  linear-gradient(90deg,rgba(26,35,126,0.03) 1px,transparent 1px);
-  background-size:30px 30px; pointer-events:none; z-index:0; }
-
-.layout { position:relative; z-index:1; display:grid;
-  grid-template-columns:300px 1fr; grid-template-rows:auto 1fr; min-height:100vh; }
-
-/* HEADER */
-header { grid-column:1/-1; background:var(--navy); color:white;
-  padding:12px 20px; display:flex; align-items:center; justify-content:space-between;
-  border-bottom:3px solid var(--gold); }
-.logo-title { font-family:'Orbitron',monospace; font-size:14px; font-weight:900;
-  letter-spacing:4px; color:var(--gold); }
-.logo-sub { font-size:9px; color:rgba(255,255,255,0.5); letter-spacing:2px; margin-top:2px; }
-.header-info { font-family:'Share Tech Mono',monospace; font-size:10px;
-  color:rgba(255,255,255,0.4); text-align:right; }
-
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+  font-family:'Exo 2',sans-serif;font-size:13px;}
+.layout{display:grid;grid-template-columns:290px 1fr;grid-template-rows:44px 1fr;height:100vh;}
+header{grid-column:1/-1;background:#060e18;border-bottom:2px solid var(--nav);
+  display:flex;align-items:center;justify-content:space-between;padding:0 16px;}
+.logo{font-family:'Orbitron',monospace;font-size:12px;font-weight:900;letter-spacing:4px;color:var(--amb);}
+.logo-sub{font-size:7px;letter-spacing:2px;color:var(--dim);margin-top:1px;}
+.hinfo{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);}
 /* SIDEBAR */
-.sidebar { background:var(--paper); border-right:1px solid var(--border);
-  padding:14px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
-
-.panel { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px; }
-.panel-title { font-size:8px; letter-spacing:3px; color:var(--navy); text-transform:uppercase;
-  margin-bottom:10px; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:6px; }
-
-/* Upload doble */
-.upload-pair { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.upload-slot { display:block; border:2px dashed var(--border); border-radius:6px; cursor:pointer; padding:12px 8px;
-  text-align:center; cursor:pointer; transition:all 0.2s; background:white; }
-.upload-slot:hover { border-color:var(--navy); }
-.upload-slot.loaded-a { border-color:#1a6090; background:rgba(26,96,144,0.05); }
-.upload-slot.loaded-b { border-color:#8B0000; background:rgba(139,0,0,0.05); }
-.upload-slot.drag { border-color:var(--navy); background:rgba(26,35,126,0.05); }
-.slot-icon { font-size:20px; margin-bottom:4px; }
-.slot-label { font-size:9px; letter-spacing:2px; color:var(--dim); font-weight:600; }
-.slot-name { font-size:9px; color:var(--navy); margin-top:3px;
-  font-family:'Share Tech Mono',monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.slot-pts { font-size:8px; color:var(--dim); }
-
-/* Controles */
-.ctrl { display:flex; flex-direction:column; gap:5px; margin-bottom:8px; }
-.ctrl-lbl { font-size:8px; letter-spacing:2px; color:var(--dim); }
-.ctrl select { width:100%; background:white; border:1px solid var(--border);
-  border-radius:4px; padding:5px 8px; font-size:11px;
-  font-family:'Share Tech Mono',monospace; color:var(--text); outline:none; }
-input[type=range] { width:100%; accent-color:var(--navy); cursor:pointer; }
-
-/* Botones */
-.btn-primary { width:100%; padding:10px; background:var(--navy); color:white; border:none;
-  border-radius:6px; font-family:'Orbitron',monospace; font-size:10px;
-  letter-spacing:3px; cursor:pointer; transition:all 0.2s; }
-.btn-primary:hover { background:var(--navy2); }
-.btn-primary:disabled { opacity:0.35; cursor:not-allowed; }
-.btn-sec { width:100%; padding:7px; margin-bottom:5px; background:white;
-  color:var(--navy); border:1px solid var(--navy); border-radius:5px;
-  font-size:10px; letter-spacing:1px; cursor:pointer; font-family:'Exo 2',sans-serif;
-  font-weight:600; transition:all 0.2s; }
-.btn-sec:hover { background:rgba(26,35,126,0.06); }
-
-/* Estadísticas */
-.stats-big { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
-.stat { background:white; border:1px solid var(--border); border-radius:5px;
-  padding:8px; text-align:center; }
-.stat-val { font-family:'Orbitron',monospace; font-size:15px; font-weight:700; }
-.stat-val.dragado { color:var(--dragado); }
-.stat-val.sedim   { color:var(--sedim); }
-.stat-val.neutro  { color:var(--navy); }
-.stat-val.balance { color:#2e7d32; }
-.stat-lbl { font-size:7px; letter-spacing:2px; color:var(--dim); margin-top:2px; }
-
-/* Leyenda diferencias */
-.leyenda-diff { display:flex; flex-direction:column; gap:2px; }
-.ld-item { display:flex; align-items:center; gap:6px; }
-.ld-sw { width:22px; height:12px; border-radius:2px; flex-shrink:0; }
-.ld-lb { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--text); }
-
-/* VISTA PRINCIPAL */
-.main-area { display:flex; flex-direction:column; min-height:0; flex:1; }
-
-/* Tabs de vista */
-.view-tabs { display:flex; background:white; border-bottom:1px solid var(--border);
-  padding:0 16px; gap:0; flex-shrink:0; }
-.vtab { padding:10px 18px; cursor:pointer; font-size:11px; font-weight:600;
-  letter-spacing:1px; border-bottom:3px solid transparent;
-  color:var(--dim); transition:all 0.2s; font-family:'Exo 2',sans-serif; }
-.vtab.active { color:var(--navy); border-bottom-color:var(--navy); }
-.vtab:hover { color:var(--navy); }
-
-/* Paneles de vista */
-.view-panel { flex:1; min-height:0; display:none; position:relative; overflow:hidden; }
-.view-panel.active { display:flex; flex-direction:column; }
-
-/* SVG 2D */
-#map2d-wrap { flex:1; display:flex; align-items:center;
-  justify-content:center; padding:16px; overflow:auto; }
-
-/* Canvas 3D */
-#c3d-wrap { flex:1; position:relative; overflow:hidden; }
-#c3d { display:block; width:100%; height:100%; }
-.overlay3d { position:absolute; bottom:14px; left:50%;
-  transform:translateX(-50%); background:rgba(10,26,40,0.8);
-  border:1px solid rgba(26,35,126,0.4); border-radius:16px;
-  padding:5px 14px; font-family:'Share Tech Mono',monospace;
-  font-size:10px; color:rgba(200,220,234,0.7); pointer-events:none; white-space:nowrap; }
-
-/* Perfil */
-#perfil-wrap { flex:1; display:flex; align-items:center;
-  justify-content:center; padding:16px; overflow:auto; }
-
-/* Progress */
-.prog-bar { position:absolute; top:0; left:0; right:0; height:3px;
-  background:var(--gold); transform-origin:left; transform:scaleX(0);
-  transition:transform 0.3s; z-index:20; }
-
-/* Empty */
-.empty { display:flex; flex-direction:column; align-items:center;
-  justify-content:center; flex:1; gap:12px; color:var(--dim);
-  text-align:center; padding:40px; }
-.empty-icon { font-size:60px; opacity:0.25; }
-.empty-title { font-family:'Orbitron',monospace; font-size:14px;
-  color:var(--navy); opacity:0.4; letter-spacing:3px; }
-.empty-sub { font-size:12px; max-width:280px; line-height:1.6; }
-
-/* Toast */
-.toast { position:fixed; bottom:20px; right:20px; background:var(--navy);
-  color:white; border:1px solid var(--gold); border-radius:8px;
-  padding:9px 14px; font-size:11px; font-family:'Share Tech Mono',monospace;
-  transform:translateY(60px); opacity:0; transition:all 0.3s; z-index:1000; }
-.toast.show { transform:translateY(0); opacity:1; }
-.toast.err  { border-color:#ef5350; }
-
-</style>
-</head>
-<body>
-
-<div class="layout">
-<header>
-  <div>
-    <div class="logo-title">⚖ BatiComparar</div>
-    <div class="logo-sub">COMPARACIÓN BATIMÉTRICA — BATISISTEMA</div>
-  </div>
-  <div class="header-info" id="hinfo">
-    Sin datos · <a href="index.html" style="color:var(--gold);text-decoration:none">← HUB</a>
-  </div>
-</header>
-
-<!-- SIDEBAR -->
-<aside class="sidebar">
-
-  <!-- Upload par -->
-  <div class="panel">
-    <div class="panel-title">▸ Relevamientos</div>
-    <div class="upload-pair">
-
-      <!-- Slot A -->
-      <label class="upload-slot" id="slot-a" for="fi-a"
-           ondragover="dov(event,'a')" ondragleave="dlv('a')" ondrop="ddp(event,'a')">
-        <div class="slot-icon">📘</div>
-        <div class="slot-label" style="color:#1a6090">ANTES</div>
-        <div class="slot-name" id="name-a">Cargá CSV</div>
-        <div class="slot-pts" id="pts-a"></div>
-      </label>
-      <input type="file" id="fi-a" accept=".csv" style="display:none" onchange="loadCSV('a',this.files[0])"/>
-
-      <!-- Slot B -->
-      <label class="upload-slot" id="slot-b" for="fi-b"
-           ondragover="dov(event,'b')" ondragleave="dlv('b')" ondrop="ddp(event,'b')">
-        <div class="slot-icon">📗</div>
-        <div class="slot-label" style="color:#8B0000">DESPUÉS</div>
-        <div class="slot-name" id="name-b">Cargá CSV</div>
-        <div class="slot-pts" id="pts-b"></div>
-      </label>
-      <input type="file" id="fi-b" accept=".csv" style="display:none" onchange="loadCSV('b',this.files[0])"/>
-
-    </div>
-  </div>
-
-  <!-- Config -->
-  <div class="panel">
-    <div class="panel-title">▸ Configuración</div>
-    <div class="ctrl">
-      <div class="ctrl-lbl">Resolución IDW</div>
-      <select id="gr">
-        <option value="80">Rápida (80×80)</option>
-        <option value="120" selected>Normal (120×120)</option>
-        <option value="200">Alta (200×200)</option>
-      </select>
-    </div>
-    <div class="ctrl">
-      <div class="ctrl-lbl">Escala 3D: <span id="vsv">8×</span></div>
-      <input type="range" id="vs" min="1" max="20" step="0.5" value="8"
-             oninput="document.getElementById('vsv').textContent=this.value+'×'"/>
-    </div>
-  </div>
-
-  <button class="btn-primary" id="btn-gen" onclick="comparar()" disabled>▶ COMPARAR</button>
-
-  <!-- Estadísticas -->
-  <div class="panel" id="stats-panel" style="display:none">
-    <div class="panel-title">▸ Resultados</div>
-    <div class="stats-big" id="stats-big"></div>
-    <div id="stats-detalle" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);line-height:1.8"></div>
-  </div>
-
-  <!-- Leyenda diferencias -->
-  <div class="panel" id="ley-panel" style="display:none">
-    <div class="panel-title">▸ Diferencia (m)</div>
-    <div class="leyenda-diff" id="ley-items"></div>
-  </div>
-
-  <!-- Export -->
-  <div class="panel" id="exp-panel" style="display:none">
-    <div class="panel-title">▸ Exportar</div>
-    <button class="btn-sec" onclick="expPNG()">↓ PNG mapa diferencias</button>
-    <button class="btn-sec" onclick="expCSVdiff()">↓ CSV diferencias por punto</button>
-  </div>
-
-</aside>
-
-<!-- VISTA PRINCIPAL -->
-<main class="main-area">
-
-  <!-- TABS -->
-  <div class="view-tabs" id="view-tabs" style="display:none">
-    <div class="vtab active" onclick="setTab('diff2d')">🗺 DIFERENCIAS 2D</div>
-    <div class="vtab" onclick="setTab('3d')">🌊 3D SUPERPUESTO</div>
-    <div class="vtab" onclick="setTab('perfil')">📈 PERFIL DE CORTE</div>
-    <div class="vtab" onclick="setTab('volumen')">🟡 VOLUMEN DRAGADO</div>
-  </div>
-
-  <!-- Panel diferencias 2D -->
-  <div class="view-panel active" id="panel-diff2d">
-    <div class="prog-bar" id="pb"></div>
-    <div id="map2d-wrap">
-      <div class="empty" id="empty-state">
-        <div class="empty-icon">⚖</div>
-        <div class="empty-title">SIN DATOS</div>
-        <div class="empty-sub">
-          Cargá el relevamiento ANTES y DESPUÉS y presioná COMPARAR
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Panel 3D -->
-  <div class="view-panel" id="panel-3d">
-    <div id="c3d-wrap">
-      <canvas id="c3d"></canvas>
-      <div class="overlay3d">🖱 Rotar · Scroll zoom · Derecho mover &nbsp;|&nbsp; <span id="scale-info" style="color:var(--gold)"></span></div>
-    </div>
-  </div>
-
-  <!-- Panel volumen 3D -->
-  <div class="view-panel" id="panel-volumen">
-    <div id="cvol-wrap" style="flex:1;position:relative;overflow:hidden;">
-      <canvas id="cvol" style="display:block;width:100%;height:100%;"></canvas>
-      <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
-        background:rgba(10,26,40,0.8);border:1px solid rgba(26,35,126,0.4);border-radius:16px;
-        padding:5px 14px;font-family:'Share Tech Mono',monospace;font-size:10px;
-        color:rgba(200,220,234,0.7);pointer-events:none;white-space:nowrap;">
-        🖱 Rotar · Scroll zoom · Derecho mover &nbsp;|&nbsp;
-        <span style="color:#ffd060">Forma del material dragado en 3D</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Panel perfil -->
-  <div class="view-panel" id="panel-perfil">
-    <div id="perfil-wrap"></div>
-  </div>
-
-</main>
-</div>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BatiComparar — Comparación Batimétrica</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@300;400;600&display=swap');
-
-:root {
-  --bg:     #f0ece4;
-  --paper:  #faf7f0;
-  --navy:   #1a237e;
-  --navy2:  #283593;
-  --gold:   #c9a227;
-  --border: #b8b0a0;
-  --text:   #1a1a2e;
-  --dim:    #6a6a7a;
-  --panel:  #eee8dc;
-  --dragado:#1a6090;
-  --sedim:  #8B0000;
-  --neutro: #e8e0d0;
-}
-
-* { box-sizing:border-box; margin:0; padding:0; }
-body { background:var(--bg); color:var(--text); font-family:'Exo 2',sans-serif; min-height:100vh; }
-body::before { content:''; position:fixed; inset:0;
-  background-image:linear-gradient(rgba(26,35,126,0.03) 1px,transparent 1px),
-  linear-gradient(90deg,rgba(26,35,126,0.03) 1px,transparent 1px);
-  background-size:30px 30px; pointer-events:none; z-index:0; }
-
-.layout { position:relative; z-index:1; display:grid;
-  grid-template-columns:300px 1fr; grid-template-rows:auto 1fr; min-height:100vh; }
-
-/* HEADER */
-header { grid-column:1/-1; background:var(--navy); color:white;
-  padding:12px 20px; display:flex; align-items:center; justify-content:space-between;
-  border-bottom:3px solid var(--gold); }
-.logo-title { font-family:'Orbitron',monospace; font-size:14px; font-weight:900;
-  letter-spacing:4px; color:var(--gold); }
-.logo-sub { font-size:9px; color:rgba(255,255,255,0.5); letter-spacing:2px; margin-top:2px; }
-.header-info { font-family:'Share Tech Mono',monospace; font-size:10px;
-  color:rgba(255,255,255,0.4); text-align:right; }
-
-/* SIDEBAR */
-.sidebar { background:var(--paper); border-right:1px solid var(--border);
-  padding:14px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
-
-.panel { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px; }
-.panel-title { font-size:8px; letter-spacing:3px; color:var(--navy); text-transform:uppercase;
-  margin-bottom:10px; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:6px; }
-
-/* Upload doble */
-.upload-pair { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.upload-slot { display:block; border:2px dashed var(--border); border-radius:6px; cursor:pointer; padding:12px 8px;
-  text-align:center; cursor:pointer; transition:all 0.2s; background:white; }
-.upload-slot:hover { border-color:var(--navy); }
-.upload-slot.loaded-a { border-color:#1a6090; background:rgba(26,96,144,0.05); }
-.upload-slot.loaded-b { border-color:#8B0000; background:rgba(139,0,0,0.05); }
-.upload-slot.drag { border-color:var(--navy); background:rgba(26,35,126,0.05); }
-.slot-icon { font-size:20px; margin-bottom:4px; }
-.slot-label { font-size:9px; letter-spacing:2px; color:var(--dim); font-weight:600; }
-.slot-name { font-size:9px; color:var(--navy); margin-top:3px;
-  font-family:'Share Tech Mono',monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.slot-pts { font-size:8px; color:var(--dim); }
-
-/* Controles */
-.ctrl { display:flex; flex-direction:column; gap:5px; margin-bottom:8px; }
-.ctrl-lbl { font-size:8px; letter-spacing:2px; color:var(--dim); }
-.ctrl select { width:100%; background:white; border:1px solid var(--border);
-  border-radius:4px; padding:5px 8px; font-size:11px;
-  font-family:'Share Tech Mono',monospace; color:var(--text); outline:none; }
-input[type=range] { width:100%; accent-color:var(--navy); cursor:pointer; }
-
-/* Botones */
-.btn-primary { width:100%; padding:10px; background:var(--navy); color:white; border:none;
-  border-radius:6px; font-family:'Orbitron',monospace; font-size:10px;
-  letter-spacing:3px; cursor:pointer; transition:all 0.2s; }
-.btn-primary:hover { background:var(--navy2); }
-.btn-primary:disabled { opacity:0.35; cursor:not-allowed; }
-.btn-sec { width:100%; padding:7px; margin-bottom:5px; background:white;
-  color:var(--navy); border:1px solid var(--navy); border-radius:5px;
-  font-size:10px; letter-spacing:1px; cursor:pointer; font-family:'Exo 2',sans-serif;
-  font-weight:600; transition:all 0.2s; }
-.btn-sec:hover { background:rgba(26,35,126,0.06); }
-
-/* Estadísticas */
-.stats-big { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
-.stat { background:white; border:1px solid var(--border); border-radius:5px;
-  padding:8px; text-align:center; }
-.stat-val { font-family:'Orbitron',monospace; font-size:15px; font-weight:700; }
-.stat-val.dragado { color:var(--dragado); }
-.stat-val.sedim   { color:var(--sedim); }
-.stat-val.neutro  { color:var(--navy); }
-.stat-val.balance { color:#2e7d32; }
-.stat-lbl { font-size:7px; letter-spacing:2px; color:var(--dim); margin-top:2px; }
-
-/* Leyenda diferencias */
-.leyenda-diff { display:flex; flex-direction:column; gap:2px; }
-.ld-item { display:flex; align-items:center; gap:6px; }
-.ld-sw { width:22px; height:12px; border-radius:2px; flex-shrink:0; }
-.ld-lb { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--text); }
-
-/* VISTA PRINCIPAL */
-.main-area { display:flex; flex-direction:column; min-height:0; flex:1; }
-
-/* Tabs de vista */
-.view-tabs { display:flex; background:white; border-bottom:1px solid var(--border);
-  padding:0 16px; gap:0; flex-shrink:0; }
-.vtab { padding:10px 18px; cursor:pointer; font-size:11px; font-weight:600;
-  letter-spacing:1px; border-bottom:3px solid transparent;
-  color:var(--dim); transition:all 0.2s; font-family:'Exo 2',sans-serif; }
-.vtab.active { color:var(--navy); border-bottom-color:var(--navy); }
-.vtab:hover { color:var(--navy); }
-
-/* Paneles de vista */
-.view-panel { flex:1; min-height:0; display:none; position:relative; overflow:hidden; }
-.view-panel.active { display:flex; flex-direction:column; }
-
-/* SVG 2D */
-#map2d-wrap { flex:1; display:flex; align-items:center;
-  justify-content:center; padding:16px; overflow:auto; }
-
-/* Canvas 3D */
-#c3d-wrap { flex:1; position:relative; overflow:hidden; }
-#c3d { display:block; width:100%; height:100%; }
-.overlay3d { position:absolute; bottom:14px; left:50%;
-  transform:translateX(-50%); background:rgba(10,26,40,0.8);
-  border:1px solid rgba(26,35,126,0.4); border-radius:16px;
-  padding:5px 14px; font-family:'Share Tech Mono',monospace;
-  font-size:10px; color:rgba(200,220,234,0.7); pointer-events:none; white-space:nowrap; }
-
-/* Perfil */
-#perfil-wrap { flex:1; display:flex; align-items:center;
-  justify-content:center; padding:16px; overflow:auto; }
-
-/* Progress */
-.prog-bar { position:absolute; top:0; left:0; right:0; height:3px;
-  background:var(--gold); transform-origin:left; transform:scaleX(0);
-  transition:transform 0.3s; z-index:20; }
-
-/* Empty */
-.empty { display:flex; flex-direction:column; align-items:center;
-  justify-content:center; flex:1; gap:12px; color:var(--dim);
-  text-align:center; padding:40px; }
-.empty-icon { font-size:60px; opacity:0.25; }
-.empty-title { font-family:'Orbitron',monospace; font-size:14px;
-  color:var(--navy); opacity:0.4; letter-spacing:3px; }
-.empty-sub { font-size:12px; max-width:280px; line-height:1.6; }
-
-/* Toast */
-.toast { position:fixed; bottom:20px; right:20px; background:var(--navy);
-  color:white; border:1px solid var(--gold); border-radius:8px;
-  padding:9px 14px; font-size:11px; font-family:'Share Tech Mono',monospace;
-  transform:translateY(60px); opacity:0; transition:all 0.3s; z-index:1000; }
-.toast.show { transform:translateY(0); opacity:1; }
-.toast.err  { border-color:#ef5350; }
+.sidebar{background:var(--panel);border-right:1px solid var(--bord);
+  padding:10px 8px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.sec{background:rgba(0,0,0,.2);border:1px solid var(--bord);border-radius:5px;padding:8px 10px;}
+.sec-title{font-size:7px;letter-spacing:3px;color:var(--blu);text-transform:uppercase;
+  margin-bottom:7px;font-weight:600;}
+/* Upload */
+.up-pair{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.up-slot{display:block;border:2px dashed var(--bord);border-radius:5px;padding:8px 4px;
+  text-align:center;cursor:pointer;transition:all .2s;}
+.up-slot:hover,.up-slot:focus{border-color:var(--blu);}
+.up-slot.ok-a{border-color:var(--blu);border-style:solid;}
+.up-slot.ok-b{border-color:var(--red);border-style:solid;}
+.up-ico{font-size:16px;}
+.up-lbl{font-size:8px;letter-spacing:2px;font-weight:600;margin-top:2px;}
+.up-name{font-size:8px;color:var(--amb);font-family:'Share Tech Mono',monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.up-pts{font-size:7px;color:var(--dim);}
+/* Controls */
+.ctrl{margin-bottom:6px;}
+.ctrl-lbl{font-size:8px;letter-spacing:2px;color:var(--dim);margin-bottom:3px;}
+.ctrl select{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--bord);
+  border-radius:4px;color:var(--txt);padding:4px 6px;font-size:10px;
+  font-family:'Share Tech Mono',monospace;outline:none;}
+input[type=range]{width:100%;accent-color:var(--blu);cursor:pointer;}
+/* Buttons */
+.btn-go{width:100%;padding:9px;background:var(--nav);color:white;border:none;
+  border-radius:5px;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;
+  cursor:pointer;transition:background .2s;}
+.btn-go:hover{background:#283593;}
+.btn-go:disabled{opacity:.3;cursor:not-allowed;}
+.btn-exp{width:100%;padding:6px;margin-bottom:4px;background:rgba(26,99,180,.15);
+  color:var(--blu);border:1px solid var(--bord);border-radius:4px;
+  font-size:10px;cursor:pointer;}
+/* Stats */
+.vol-row{background:rgba(0,0,0,.3);border:1px solid var(--bord);border-radius:5px;
+  padding:8px;text-align:center;margin-bottom:6px;}
+.vol-eq{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:4px;}
+.vol-num{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;}
+.vol-lbl{font-size:6px;letter-spacing:2px;color:var(--dim);margin-top:1px;}
+.stat2{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.stat-b{background:rgba(0,0,0,.3);border:1px solid var(--bord);border-radius:4px;
+  padding:6px;text-align:center;}
+.stat-v{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;}
+.stat-l{font-size:6px;letter-spacing:2px;color:var(--dim);margin-top:1px;}
+/* Legend */
+.ld-item{display:flex;align-items:center;gap:5px;margin-bottom:2px;}
+.ld-sw{width:20px;height:10px;border-radius:2px;}
+.ld-lb{font-family:'Share Tech Mono',monospace;font-size:8px;}
+/* MAIN */
+.main{display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.tabs{display:flex;background:#060e18;border-bottom:1px solid var(--bord);flex-shrink:0;}
+.vtab{padding:8px 14px;cursor:pointer;font-size:10px;font-weight:600;letter-spacing:1px;
+  border-bottom:3px solid transparent;color:var(--dim);transition:all .2s;}
+.vtab.active{color:var(--amb);border-bottom-color:var(--amb);}
+.view-panel{flex:1;min-height:0;display:none;position:relative;overflow:hidden;}
+.view-panel.active{display:flex;flex-direction:column;}
+#map2d-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:10px;}
+#c3d-wrap,#cvol-wrap{flex:1;position:relative;}
+#c3d,#cvol{display:block;width:100%;height:100%;}
+#perfil-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:10px;}
+.hint3d{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  background:rgba(6,14,24,.85);border:1px solid var(--bord);border-radius:14px;
+  padding:4px 12px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);
+  pointer-events:none;white-space:nowrap;}
+.pb{position:absolute;top:0;left:0;right:0;height:3px;background:var(--amb);
+  transform-origin:left;transform:scaleX(0);transition:transform .3s;z-index:10;}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;color:var(--dim);text-align:center;padding:40px;}
+.empty-ico{font-size:52px;opacity:.2;}
+.empty-ttl{font-family:'Orbitron',monospace;font-size:11px;color:var(--blu);opacity:.4;letter-spacing:3px;}
+.toast{position:fixed;bottom:18px;right:18px;background:#0d1f3c;color:var(--txt);
+  border:1px solid var(--amb);border-radius:7px;padding:7px 13px;font-size:10px;
+  font-family:'Share Tech Mono',monospace;transform:translateY(60px);opacity:0;
+  transition:all .3s;z-index:9999;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.err{border-color:var(--red);}
 </style>
 </head>
 <body>
 <div class="toast" id="toast"></div>
 
 <div class="layout">
+
 <header>
   <div>
-    <div class="logo-title">⚖ BatiComparar</div>
+    <div class="logo">⚖ BatiComparar</div>
     <div class="logo-sub">COMPARACIÓN BATIMÉTRICA — BATISISTEMA</div>
   </div>
-  <div class="header-info" id="hinfo">
-    Sin datos · <a href="index.html" style="color:var(--gold);text-decoration:none">← HUB</a>
-  </div>
+  <div class="hinfo" id="hinfo">Sin datos | <a href="index.html" style="color:var(--amb);text-decoration:none">← HUB</a></div>
 </header>
 
-<!-- SIDEBAR -->
 <aside class="sidebar">
 
-  <!-- Upload par -->
-  <div class="panel">
-    <div class="panel-title">▸ Relevamientos</div>
-    <div class="upload-pair">
-
-      <!-- Slot A -->
-      <label class="upload-slot" id="slot-a" for="fi-a"
-           ondragover="dov(event,'a')" ondragleave="dlv('a')" ondrop="ddp(event,'a')">
-        <div class="slot-icon">📘</div>
-        <div class="slot-label" style="color:#1a6090">ANTES</div>
-        <div class="slot-name" id="name-a">Cargá CSV</div>
-        <div class="slot-pts" id="pts-a"></div>
+  <div class="sec">
+    <div class="sec-title">▸ Relevamientos</div>
+    <div class="up-pair">
+      <label class="up-slot" id="slot-a" for="fi-a">
+        <div class="up-ico">📘</div>
+        <div class="up-lbl" style="color:var(--blu)">ANTES</div>
+        <div class="up-name" id="name-a">Cargá CSV</div>
+        <div class="up-pts" id="pts-a"></div>
       </label>
-      <input type="file" id="fi-a" accept=".csv" style="display:none" onchange="loadCSV('a',this.files[0])"/>
+      <input type="file" id="fi-a" accept=".csv" style="display:none">
 
-      <!-- Slot B -->
-      <label class="upload-slot" id="slot-b" for="fi-b"
-           ondragover="dov(event,'b')" ondragleave="dlv('b')" ondrop="ddp(event,'b')">
-        <div class="slot-icon">📗</div>
-        <div class="slot-label" style="color:#8B0000">DESPUÉS</div>
-        <div class="slot-name" id="name-b">Cargá CSV</div>
-        <div class="slot-pts" id="pts-b"></div>
+      <label class="up-slot" id="slot-b" for="fi-b">
+        <div class="up-ico">📗</div>
+        <div class="up-lbl" style="color:var(--red)">DESPUÉS</div>
+        <div class="up-name" id="name-b">Cargá CSV</div>
+        <div class="up-pts" id="pts-b"></div>
       </label>
-      <input type="file" id="fi-b" accept=".csv" style="display:none" onchange="loadCSV('b',this.files[0])"/>
-
+      <input type="file" id="fi-b" accept=".csv" style="display:none">
     </div>
   </div>
 
-  <!-- Config -->
-  <div class="panel">
-    <div class="panel-title">▸ Configuración</div>
+  <div class="sec">
+    <div class="sec-title">▸ Configuración</div>
     <div class="ctrl">
-      <div class="ctrl-lbl">Resolución IDW</div>
+      <div class="ctrl-lbl">Resolución grilla</div>
       <select id="gr">
         <option value="80">Rápida (80×80)</option>
         <option value="120" selected>Normal (120×120)</option>
@@ -514,197 +148,117 @@ input[type=range] { width:100%; accent-color:var(--navy); cursor:pointer; }
       </select>
     </div>
     <div class="ctrl">
-      <div class="ctrl-lbl">Escala 3D: <span id="vsv">8×</span></div>
-      <input type="range" id="vs" min="1" max="20" step="0.5" value="8"
-             oninput="document.getElementById('vsv').textContent=this.value+'×'"/>
+      <div class="ctrl-lbl">Escala 3D: <span id="vsv">4×</span></div>
+      <input type="range" id="vs" min="1" max="20" step=".5" value="4"
+        oninput="document.getElementById('vsv').textContent=this.value+'×'">
     </div>
   </div>
 
-  <button class="btn-primary" id="btn-gen" onclick="comparar()" disabled>▶ COMPARAR</button>
+  <button class="btn-go" id="btn-gen" onclick="comparar()" disabled>▶ COMPARAR</button>
 
-  <!-- Estadísticas -->
-  <div class="panel" id="stats-panel" style="display:none">
-    <div class="panel-title">▸ Resultados</div>
-    <div class="stats-big" id="stats-big"></div>
-    <div id="stats-detalle" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);line-height:1.8"></div>
+  <div class="sec" id="stats-panel" style="display:none">
+    <div class="sec-title">▸ Resultados</div>
+    <div id="stats-big"></div>
+    <div id="stats-det" style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim);line-height:1.8;margin-top:5px"></div>
   </div>
 
-  <!-- Leyenda diferencias -->
-  <div class="panel" id="ley-panel" style="display:none">
-    <div class="panel-title">▸ Diferencia (m)</div>
-    <div class="leyenda-diff" id="ley-items"></div>
+  <div class="sec" id="ley-panel" style="display:none">
+    <div class="sec-title">▸ Diferencia (m)</div>
+    <div id="ley-items"></div>
   </div>
 
-  <!-- Export -->
-  <div class="panel" id="exp-panel" style="display:none">
-    <div class="panel-title">▸ Exportar</div>
-    <button class="btn-sec" onclick="expPNG()">↓ PNG mapa diferencias</button>
-    <button class="btn-sec" onclick="expCSVdiff()">↓ CSV diferencias por punto</button>
+  <div class="sec" id="exp-panel" style="display:none">
+    <div class="sec-title">▸ Exportar</div>
+    <button class="btn-exp" onclick="expPNG()">↓ PNG mapa diferencias</button>
+    <button class="btn-exp" onclick="expCSV()">↓ CSV diferencias por punto</button>
   </div>
 
 </aside>
 
-<!-- VISTA PRINCIPAL -->
-<main class="main-area">
+<main class="main">
 
-  <!-- TABS -->
-  <div class="view-tabs" id="view-tabs" style="display:none">
+  <div class="tabs" id="tabs" style="display:none">
     <div class="vtab active" onclick="setTab('diff2d')">🗺 DIFERENCIAS 2D</div>
     <div class="vtab" onclick="setTab('3d')">🌊 3D SUPERPUESTO</div>
-    <div class="vtab" onclick="setTab('perfil')">📈 PERFIL DE CORTE</div>
+    <div class="vtab" onclick="setTab('perfil')">📈 PERFIL</div>
     <div class="vtab" onclick="setTab('volumen')">🟡 VOLUMEN DRAGADO</div>
   </div>
 
-  <!-- Panel diferencias 2D -->
   <div class="view-panel active" id="panel-diff2d">
-    <div class="prog-bar" id="pb"></div>
+    <div class="pb" id="pb"></div>
     <div id="map2d-wrap">
       <div class="empty" id="empty-state">
-        <div class="empty-icon">⚖</div>
-        <div class="empty-title">SIN DATOS</div>
-        <div class="empty-sub">
-          Cargá el relevamiento ANTES y DESPUÉS y presioná COMPARAR
-        </div>
+        <div class="empty-ico">⚖</div>
+        <div class="empty-ttl">SIN DATOS</div>
+        <div>Cargá los CSV ANTES y DESPUÉS y presioná COMPARAR</div>
       </div>
     </div>
   </div>
 
-  <!-- Panel 3D -->
   <div class="view-panel" id="panel-3d">
     <div id="c3d-wrap">
       <canvas id="c3d"></canvas>
-      <div class="overlay3d">🖱 Rotar · Scroll zoom · Derecho mover &nbsp;|&nbsp; <span id="scale-info" style="color:var(--gold)"></span></div>
+      <div class="hint3d">🖱 Rotar · Scroll zoom · Derecho mover</div>
     </div>
   </div>
 
-  <!-- Panel volumen 3D -->
-  <div class="view-panel" id="panel-volumen">
-    <div id="cvol-wrap" style="flex:1;position:relative;overflow:hidden;">
-      <canvas id="cvol" style="display:block;width:100%;height:100%;"></canvas>
-      <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
-        background:rgba(10,26,40,0.8);border:1px solid rgba(26,35,126,0.4);border-radius:16px;
-        padding:5px 14px;font-family:'Share Tech Mono',monospace;font-size:10px;
-        color:rgba(200,220,234,0.7);pointer-events:none;white-space:nowrap;">
-        🖱 Rotar · Scroll zoom · Derecho mover &nbsp;|&nbsp;
-        <span style="color:#ffd060">Forma del material dragado en 3D</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Panel perfil -->
   <div class="view-panel" id="panel-perfil">
     <div id="perfil-wrap"></div>
+  </div>
+
+  <div class="view-panel" id="panel-volumen">
+    <div id="cvol-wrap">
+      <canvas id="cvol"></canvas>
+      <div class="hint3d">🖱 Rotar · Scroll zoom · Derecho mover &nbsp;|&nbsp; <span style="color:var(--amb)">Forma del material dragado en 3D</span></div>
+    </div>
   </div>
 
 </main>
 </div>
 
 <script>
+// ═══ ESTADO ═══════════════════════════════════════════════════
+let dataA=null,dataB=null,svgEl2d=null;
+let renderer=null,scene=null,camera=null;
+let rendVol=null,sceneVol=null,cameraVol=null;
+let isDrag=false,isRight=false,prevM={x:0,y:0};
+let sph={theta:.6,phi:.85,radius:180},tgt={x:0,y:0,z:0};
+let vDrag=false,vRight=false,vPrev={x:0,y:0};
+let vSph={theta:.4,phi:.9,radius:160},vTgt={x:0,y:0,z:0};
 
-// ════════════════════════════════════════════════
-//  ESTADO
-// ════════════════════════════════════════════════
-let dataA = null, dataB = null;
-let svgEl2d = null;
-let renderer=null, scene=null, camera=null;
-let rendVol=null, sceneVol=null, cameraVol=null;
-let isDrag=false, isRight=false, prevM={x:0,y:0};
-let sph={theta:0.6,phi:1.1,radius:180}, tgt={x:0,y:0,z:0};
-
-// Paleta de diferencias: rojo = dragado, azul = sedimentado
-function diffColor(d, dMax) {
-  const t = Math.max(-1, Math.min(1, d / (dMax||1)));
-  if (t > 0) {
-    // Dragado — azul (más profundo después)
-    const r = Math.round(240 - t*180);
-    const g = Math.round(240 - t*150);
-    const b = Math.round(240 + t*15);
-    return [r,g,b];
-  } else {
-    // Sedimentación — rojo/marrón (más somero después)
-    const at = Math.abs(t);
-    const r = Math.round(240 - at*100 + at*100);
-    const g = Math.round(240 - at*200);
-    const b = Math.round(240 - at*200);
-    return [Math.min(255,r),Math.max(0,g),Math.max(0,b)];
-  }
-}
-
-function diffCSS(d, dMax) {
-  const [r,g,b] = diffColor(d,dMax);
-  return `rgb(${r},${g},${b})`;
-}
-
-// ════════════════════════════════════════════════
-//  CARGA CSV
-// ════════════════════════════════════════════════
-function dov(e,s){e.preventDefault();document.getElementById('slot-'+s).classList.add('drag');}
-function dlv(s){document.getElementById('slot-'+s).classList.remove('drag');}
-function ddp(e,s){e.preventDefault();dlv(s);loadCSV(s,e.dataTransfer.files[0]);}
-
-function loadCSV(slot, file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => parseCSV(slot, file.name, e.target.result);
-  reader.readAsText(file);
-}
-
-function parseCSV(slot, filename, text) {
-  const rows = d3.csvParse(text);
-  const UC   = rows.columns.map(c => c.trim().toUpperCase());
-  const fc   = (...ns) => { for(const n of ns){const i=UC.findIndex(c=>c===n||c.includes(n));if(i>=0)return rows.columns[i];} return null; };
-  const latC = fc('LATITUD','LAT');
-  const lonC = fc('LONGITUD','LON');
-  const prC  = fc('FINAL_M','FINAL','PROF_M','PROF','Z','DEPTH');
-
-  if (!latC||!lonC||!prC) { showToast(`Sin columnas LAT/LON/PROF en ${filename}`,true); return; }
-
-  const pts = [];
-  rows.forEach(row => {
-    const lat=parseFloat(row[latC]), lon=parseFloat(row[lonC]), z=parseFloat(row[prC]);
-    if (!isNaN(lat)&&!isNaN(lon)&&!isNaN(z)) pts.push({lat,lon,z});
+// ═══ ARCHIVOS ══════════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  ['a','b'].forEach(s=>{
+    document.getElementById('fi-'+s).addEventListener('change',function(){
+      if(this.files[0])loadCSV(s,this.files[0]);this.value='';
+    });
   });
-  if (!pts.length) { showToast(`Sin puntos válidos en ${filename}`,true); return; }
+});
 
-  if (slot==='a') {
-    dataA = { name:filename, pts };
-    document.getElementById('slot-a').className='upload-slot loaded-a';
-    document.getElementById('name-a').textContent = filename.length>18?filename.substring(0,16)+'…':filename;
-    document.getElementById('pts-a').textContent  = pts.length+' puntos';
-  } else {
-    dataB = { name:filename, pts };
-    document.getElementById('slot-b').className='upload-slot loaded-b';
-    document.getElementById('name-b').textContent = filename.length>18?filename.substring(0,16)+'…':filename;
-    document.getElementById('pts-b').textContent  = pts.length+' puntos';
-  }
-
-  document.getElementById('btn-gen').disabled = !(dataA&&dataB);
-  if (dataA&&dataB) showToast('✓ Ambos relevamientos cargados — presioná COMPARAR');
-  else showToast(`✓ ${filename} — ${pts.length} puntos`);
+function loadCSV(slot,file){
+  const r=new FileReader();
+  r.onload=e=>parseCSV(slot,file.name,e.target.result);
+  r.readAsText(file);
+}
+function parseCSV(slot,name,text){
+  const rows=d3.csvParse(text);
+  const UC=rows.columns.map(c=>c.trim().toUpperCase());
+  const fc=(...ns)=>{for(const n of ns){const i=UC.findIndex(c=>c===n||c.includes(n));if(i>=0)return rows.columns[i];}return null;};
+  const latC=fc('LATITUD','LAT'),lonC=fc('LONGITUD','LON');
+  const prC=fc('FINAL_M','FINAL','PROF_M','PROF','Z','DEPTH');
+  if(!latC||!lonC||!prC){showToast('Sin columnas válidas en '+name,true);return;}
+  const pts=rows.map(r=>({lat:+r[latC],lon:+r[lonC],z:+r[prC]})).filter(p=>!isNaN(p.lat)&&!isNaN(p.z));
+  if(!pts.length){showToast('Sin puntos en '+name,true);return;}
+  const obj={name,pts};
+  if(slot==='a'){dataA=obj;document.getElementById('slot-a').className='up-slot ok-a';}
+  else{dataB=obj;document.getElementById('slot-b').className='up-slot ok-b';}
+  document.getElementById('name-'+slot).textContent=name.length>16?name.slice(0,14)+'…':name;
+  document.getElementById('pts-'+slot).textContent=pts.length+' puntos';
+  document.getElementById('btn-gen').disabled=!(dataA&&dataB);
+  showToast('✓ '+name+' ('+pts.length+' pts)');
 }
 
-// ════════════════════════════════════════════════
-//  PROYECCIÓN Y IDW
-// ════════════════════════════════════════════════
-function toM(lat,lon,lat0,lon0){
-  const R=6371000;
-  return {x:(lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180, y:(lat-lat0)*R*Math.PI/180};
-}
-function idw(pts,x,y,pow){
-  let sw=0,swz=0;
-  for(const p of pts){
-    const d2=(p.x-x)**2+(p.y-y)**2;
-    if(d2<0.01)return p.z;
-    const w=1/Math.pow(d2,pow/2); sw+=w; swz+=w*p.z;
-  }
-  return swz/sw;
-}
-
-
-
-// ════════════════════════════════════════════════
-//  TIN — Triangulación de Delaunay
-// ════════════════════════════════════════════════
+// ═══ TIN DELAUNAY ══════════════════════════════════════════════
 function circumcircle(ax,ay,bx,by,cx,cy){
   const D=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
   if(Math.abs(D)<1e-10)return null;
@@ -712,14 +266,13 @@ function circumcircle(ax,ay,bx,by,cx,cy){
   const uy=((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D;
   return{x:ux,y:uy,r:Math.sqrt((ax-ux)**2+(ay-uy)**2)};
 }
-
 function delaunay(pts){
   if(pts.length<3)return[];
-  const xMin=Math.min(...pts.map(p=>p.x))-1,xMax=Math.max(...pts.map(p=>p.x))+1;
-  const yMin=Math.min(...pts.map(p=>p.y))-1,yMax=Math.max(...pts.map(p=>p.y))+1;
-  const dx=xMax-xMin,dy=yMax-yMin;
-  const st=[{x:xMin-dx,y:yMin-dy,_s:true},{x:xMax+dx*2,y:yMin-dy,_s:true},{x:xMin-dx,y:yMax+dy*2,_s:true}];
-  const all=[...pts,...st]; const n=pts.length;
+  const xMn=Math.min(...pts.map(p=>p.x))-1,xMx=Math.max(...pts.map(p=>p.x))+1;
+  const yMn=Math.min(...pts.map(p=>p.y))-1,yMx=Math.max(...pts.map(p=>p.y))+1;
+  const dx=xMx-xMn,dy=yMx-yMn;
+  const st=[{x:xMn-dx,y:yMn-dy,_s:true},{x:xMx+dx*2,y:yMn-dy,_s:true},{x:xMn-dx,y:yMx+dy*2,_s:true}];
+  const all=[...pts,...st];const n=pts.length;
   let tris=[{a:n,b:n+1,c:n+2}];
   for(let i=0;i<n;i++){
     const p=all[i],bad=[],edges=[];
@@ -733,7 +286,6 @@ function delaunay(pts){
   }
   return tris.filter(t=>!all[t.a]._s&&!all[t.b]._s&&!all[t.c]._s).map(t=>({a:t.a,b:t.b,c:t.c,pts:all}));
 }
-
 function tinInterp(tris,px,py,fb){
   for(const t of tris){
     const ax=t.pts[t.a].x,ay=t.pts[t.a].y,bx=t.pts[t.b].x,by=t.pts[t.b].y,cx=t.pts[t.c].x,cy=t.pts[t.c].y;
@@ -742,1049 +294,527 @@ function tinInterp(tris,px,py,fb){
     const u=((by-cy)*(px-cx)+(cx-bx)*(py-cy))/d;
     const v=((cy-ay)*(px-cx)+(ax-cx)*(py-cy))/d;
     const w=1-u-v;
-    if(u>=-0.001&&v>=-0.001&&w>=-0.001)
-      return u*t.pts[t.a].z+v*t.pts[t.b].z+w*t.pts[t.c].z;
+    if(u>=-1e-3&&v>=-1e-3&&w>=-1e-3)return u*t.pts[t.a].z+v*t.pts[t.b].z+w*t.pts[t.c].z;
   }
   return fb;
 }
-
-// Volumen TIN exacto (método de prismas triangulares)
-function volumenTIN(tris,pts){
+function volTIN(tris){
   let vol=0;
   for(const t of tris){
-    const ax=t.pts[t.a].x,ay=t.pts[t.a].y;
-    const bx=t.pts[t.b].x,by=t.pts[t.b].y;
-    const cx=t.pts[t.c].x,cy=t.pts[t.c].y;
-    const area=Math.abs((bx-ax)*(cy-ay)-(cx-ax)*(by-ay))/2;
-    const zmean=(t.pts[t.a].z+t.pts[t.b].z+t.pts[t.c].z)/3;
-    vol+=area*zmean;
+    const ax=t.pts[t.a].x,ay=t.pts[t.a].y,bx=t.pts[t.b].x,by=t.pts[t.b].y,cx=t.pts[t.c].x,cy=t.pts[t.c].y;
+    vol+=Math.abs((bx-ax)*(cy-ay)-(cx-ax)*(by-ay))/2*(t.pts[t.a].z+t.pts[t.b].z+t.pts[t.c].z)/3;
   }
   return vol;
 }
 
+// ═══ HULL + MÁSCARA ════════════════════════════════════════════
+function convexHull(pts){
+  const p=pts.slice().sort((a,b)=>a.x!==b.x?a.x-b.x:a.y-b.y);
+  const n=p.length;if(n<3)return p;
+  const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+  const lo=[],hi=[];
+  for(let i=0;i<n;i++){while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],p[i])<=0)lo.pop();lo.push(p[i]);}
+  for(let i=n-1;i>=0;i--){while(hi.length>=2&&cross(hi[hi.length-2],hi[hi.length-1],p[i])<=0)hi.pop();hi.push(p[i]);}
+  hi.pop();lo.pop();return lo.concat(hi);
+}
+function inHull(hull,px,py){
+  const n=hull.length;let inside=false;
+  for(let i=0,j=n-1;i<n;j=i++){
+    const xi=hull[i].x,yi=hull[i].y,xj=hull[j].x,yj=hull[j].y;
+    if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))inside=!inside;
+  }
+  return inside;
+}
 
-// ════════════════════════════════════════════════
-//  VOLUMEN 3D — Forma del material dragado
-// ════════════════════════════════════════════════
+// ═══ PROYECCIÓN ════════════════════════════════════════════════
+function toM(lat,lon,lat0,lon0){
+  const R=6371000;
+  return{x:(lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180,y:(lat-lat0)*R*Math.PI/180};
+}
 
-// ════════════════════════════════════════════════
-//  VOLUMEN DRAGADO 3D
-// ════════════════════════════════════════════════
-function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
-  if(!rendVol||!sceneVol||!cameraVol) return;
-  if(!diff||!diff.length) return;
+// ═══ COLOR DIFERENCIAS ═════════════════════════════════════════
+function diffColor(d,dMax){
+  const t=Math.max(-1,Math.min(1,d/(dMax||1)));
+  if(t>0)return[Math.round(240-t*180),Math.round(240-t*150),Math.round(240+t*15)];
+  const at=Math.abs(t);return[Math.min(255,Math.round(140+at*115)),Math.max(0,Math.round(240-at*200)),Math.max(0,Math.round(240-at*200))];
+}
 
-  // Limpiar meshes anteriores
-  const toRemove=[];
-  sceneVol.traverse(o=>{if(o.isMesh||o.isGridHelper)toRemove.push(o);});
-  toRemove.forEach(o=>sceneVol.remove(o));
+// ═══ COMPARAR ══════════════════════════════════════════════════
+async function comparar(){
+  if(!dataA||!dataB)return;
+  prog(.05);document.getElementById('btn-gen').disabled=true;
+  document.getElementById('empty-state').style.display='none';
+  await sl(30);
 
+  const gN=+document.getElementById('gr').value;
+  const vSc=+document.getElementById('vs').value;
+  const allPts=[...dataA.pts,...dataB.pts];
+  const lat0=d3.mean(allPts,p=>p.lat),lon0=d3.mean(allPts,p=>p.lon);
+
+  const ptsA=dataA.pts.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,z:p.z};});
+  const ptsB=dataB.pts.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,z:p.z};});
+  const allM=[...ptsA,...ptsB];
+
+  const x0=d3.min(allM,p=>p.x),x1=d3.max(allM,p=>p.x);
+  const y0=d3.min(allM,p=>p.y),y1=d3.max(allM,p=>p.y);
+  const W=x1-x0,H=y1-y0;
+  const gW=gN,gH=Math.max(4,Math.round(gN*H/W));
+
+  const hull=convexHull(allM);
+  const mg=Math.max(W,H)/gN*1.5;
+  const mask=new Uint8Array(gW*gH);
+  for(let row=0;row<gH;row++)
+    for(let col=0;col<gW;col++){
+      const mx=x0+(col/(gW-1))*W,my=y0+(row/(gH-1))*H;
+      mask[row*gW+col]=inHull(hull,mx,my)?1:0;
+    }
+  window._mask=mask;
+
+  const valsA=new Float32Array(gW*gH);
+  const valsB=new Float32Array(gW*gH);
+  const diff=new Float32Array(gW*gH);
+  const zMn=d3.min(allM,p=>p.z),zMx=d3.max(allM,p=>p.z);
+  const zMean=d3.mean(allM,p=>p.z);
+
+  prog(.12);
+  const trisA=delaunay(ptsA),trisB=delaunay(ptsB);
+
+  for(let c=0;c<8;c++){
+    const r0=Math.round(c*gH/8),r1=Math.round((c+1)*gH/8);
+    for(let row=r0;row<r1;row++)
+      for(let col=0;col<gW;col++){
+        const idx=row*gW+col;
+        if(!mask[idx]){valsA[idx]=zMean;valsB[idx]=zMean;diff[idx]=0;continue;}
+        const mx=x0+(col/(gW-1))*W,my=y0+(row/(gH-1))*H;
+        const zA=tinInterp(trisA,mx,my,null);
+        const zB=tinInterp(trisB,mx,my,null);
+        valsA[idx]=zA!==null?Math.max(zMn,Math.min(zMx,zA)):zMn;
+        valsB[idx]=zB!==null?Math.max(zMn,Math.min(zMx,zB)):zMn;
+        diff[idx]=valsB[idx]-valsA[idx];
+      }
+    prog(.12+c*.09);await sl(0);
+  }
+
+  const volA=volTIN(trisA),volB=volTIN(trisB);
+  const dMax=Math.max(1e-6,d3.max(diff.map(Math.abs)));
+  const balance=volB-volA;
+  const cellA=(W/gW)*(H/gH);
+  let nDrag=0,nSed=0;
+  for(let i=0;i<diff.length;i++){if(!mask[i])continue;if(diff[i]>.05)nDrag++;else if(diff[i]<-.05)nSed++;}
+
+  // Stats
+  const sb=document.getElementById('stats-big');
+  sb.innerHTML=`<div class="vol-row"><div class="vol-eq">
+    <div><div class="vol-num" style="color:var(--blu)">${Math.round(volA).toLocaleString('es-AR')} m³</div><div class="vol-lbl">VOL. INICIAL</div></div>
+    <div style="color:var(--dim);font-size:16px">−</div>
+    <div><div class="vol-num" style="color:var(--grn)">${Math.round(volB).toLocaleString('es-AR')} m³</div><div class="vol-lbl">VOL. FINAL</div></div>
+    <div style="color:var(--dim);font-size:16px">=</div>
+    <div style="background:rgba(26,143,232,.1);border-radius:4px;padding:4px">
+    <div class="vol-num" style="color:var(--amb)">${balance>0?'+':''}${Math.round(Math.abs(balance)).toLocaleString('es-AR')} m³</div>
+    <div class="vol-lbl">${balance>0?'DRAGADO':'SEDIMENT.'}</div></div>
+  </div></div>
+  <div class="stat2">
+    <div class="stat-b"><div class="stat-v" style="color:var(--dim)">${(W*H/10000).toFixed(2)} ha</div><div class="stat-l">ÁREA</div></div>
+    <div class="stat-b"><div class="stat-v" style="color:var(--blu)">+${dMax.toFixed(2)} m</div><div class="stat-l">MÁX DRAGADO</div></div>
+    <div class="stat-b"><div class="stat-v" style="font-size:9px;color:var(--txt)">${d3.mean(valsA).toFixed(2)}→${d3.mean(valsB).toFixed(2)} m</div><div class="stat-l">PROF. MEDIA</div></div>
+    <div class="stat-b"><div class="stat-v" style="color:var(--red)">${nSed>0?Math.round(nSed*cellA)+' m³':'0'}</div><div class="stat-l">SEDIMENT.</div></div>
+  </div>`;
+  document.getElementById('stats-det').innerHTML=
+    `Celdas dragadas: ${nDrag}<br>Área celda: ${cellA.toFixed(1)} m²`;
+
+  // Leyenda
+  const ley=document.getElementById('ley-items');ley.innerHTML='';
+  [dMax*.85,dMax*.4,0,-dMax*.4,-dMax*.85].forEach(d=>{
+    const[r,g,b]=diffColor(d,dMax);
+    ley.innerHTML+=`<div class="ld-item"><div class="ld-sw" style="background:rgb(${r},${g},${b})"></div>
+      <div class="ld-lb">${(d>=0?'+':'')+d.toFixed(2)}m ${d>.05?'drag.':d<-.05?'sed.':'='}</div></div>`;
+  });
+
+  // Guardar para tabs
+  window._mask=mask;
+  window._vol3d={valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax};
+  window._perfil=[valsA,valsB,diff,gW,gH,dMax];
+  window._volumen=[diff,valsA,valsB,gW,gH,dMax];
+
+  await genMapa2D(valsA,valsB,diff,gW,gH,W,H,x0,y0,dMax,ptsA,ptsB);
+  prog(1);setTimeout(()=>prog(0),600);
+  ['stats-panel','ley-panel','exp-panel'].forEach(id=>document.getElementById(id).style.display='');
+  document.getElementById('tabs').style.display='';
+  document.getElementById('btn-gen').disabled=false;
+  document.getElementById('hinfo').innerHTML=
+    `${dataA.pts.length}+${dataB.pts.length} pts | <a href="index.html" style="color:var(--amb);text-decoration:none">← HUB</a>`;
+  showToast('✓ Comparación completada');
+}
+
+// ═══ MAPA 2D ═══════════════════════════════════════════════════
+async function genMapa2D(valsA,valsB,diff,gW,gH,W,H,x0,y0,dMax,ptsA,ptsB){
+  const wrap=document.getElementById('map2d-wrap');
+  const SVW=Math.max(400,wrap.clientWidth-24);
+  const SVH=Math.max(300,wrap.clientHeight-24);
+  const ML=60,MR=20,MT=45,MB=45;
+  const PW=SVW-ML-MR,PH=SVH-MT-MB;
+  const asp=W/H;
+  let pW=PW,pH=PH;
+  if(asp>PW/PH)pH=Math.round(PW/asp);else pW=Math.round(PH*asp);
+  const ox=(PW-pW)/2,oy=(PH-pH)/2;
   const msk=window._mask;
-  const SZ=100;
 
-  // Escala vertical adaptiva
-  const mediaA=d3.mean(Array.from(valsA).filter((_,i)=>!msk||msk[i]))||1;
-  const mediaB=d3.mean(Array.from(valsB).filter((_,i)=>!msk||msk[i]))||1;
-  const diffMedia=Math.abs(mediaB-mediaA)||0.5;
-  const autoScale=Math.min(20,Math.max(6,0.6*(dMax||1)/diffMedia));
-  const scD=v=>-(Math.max(0,v)/(dMax||1))*SZ*0.25*autoScale;
+  const fc=document.createElement('canvas');fc.width=gW;fc.height=gH;
+  const fctx=fc.getContext('2d');
+  const imd=fctx.createImageData(gW,gH);
+  for(let row=0;row<gH;row++)
+    for(let col=0;col<gW;col++){
+      const idx=row*gW+col,px=((gH-1-row)*gW+col)*4;
+      if(msk&&!msk[idx]){imd.data[px+3]=0;continue;}
+      const[r,g,b]=diffColor(diff[idx],dMax);
+      imd.data[px]=r;imd.data[px+1]=g;imd.data[px+2]=b;imd.data[px+3]=255;
+    }
+  fctx.putImageData(imd,0,0);
+  const fillURL=fc.toDataURL();
+
+  wrap.innerHTML='';
+  svgEl2d=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svgEl2d.setAttribute('width',SVW);svgEl2d.setAttribute('height',SVH);
+  svgEl2d.style.cssText='max-width:100%;background:#0a1628;';
+  wrap.appendChild(svgEl2d);
+  const svg=d3.select(svgEl2d);
+  const g=svg.append('g').attr('transform',`translate(${ML},${MT})`);
+
+  svg.append('defs').append('clipPath').attr('id','cp')
+    .append('rect').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH);
+
+  g.append('rect').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH).attr('fill','#1a2a3a');
+  g.append('g').attr('clip-path','url(#cp)')
+    .append('image').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH)
+    .attr('href',fillURL).attr('preserveAspectRatio','none');
+
+  const cx2=col=>ox+(col/gW)*pW,cy2=row=>oy+pH-(row/gH)*pH;
+  const cPath=d3.geoPath().projection(d3.geoTransform({point:function(px,py){this.stream.point(cx2(px),cy2(py));}}));
+  const thr=d3.range(-dMax,dMax+.25,.25).filter(v=>Math.abs(v)>.05);
+  const cont=d3.contours().size([gW,gH]).thresholds(thr).smooth(true)(diff);
+  g.append('g').attr('clip-path','url(#cp)').selectAll('path').data(cont).join('path')
+    .attr('d',cPath).attr('fill','none').attr('stroke','rgba(255,255,255,.15)').attr('stroke-width',.5);
+
+  const z0c=d3.contours().size([gW,gH]).thresholds([0]).smooth(true)(diff);
+  g.append('g').attr('clip-path','url(#cp)').selectAll('path').data(z0c).join('path')
+    .attr('d',cPath).attr('fill','none').attr('stroke','rgba(255,255,255,.7)').attr('stroke-width',1.5).attr('stroke-dasharray','5,3');
+
+  ptsA.forEach(p=>{
+    const sx=ox+(p.x-x0)/W*pW,sy=oy+pH-(p.y-y0)/H*pH;
+    g.append('circle').attr('cx',sx).attr('cy',sy).attr('r',1.8).attr('fill','none').attr('stroke','#60aaff').attr('stroke-width',.8).attr('clip-path','url(#cp)');
+  });
+  ptsB.forEach(p=>{
+    const sx=ox+(p.x-x0)/W*pW,sy=oy+pH-(p.y-y0)/H*pH;
+    g.append('circle').attr('cx',sx).attr('cy',sy).attr('r',1.4).attr('fill','var(--grn)').attr('clip-path','url(#cp)');
+  });
+  g.append('rect').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH).attr('fill','none').attr('stroke','var(--nav)').attr('stroke-width',1.5);
+
+  svg.append('text').attr('x',SVW/2).attr('y',16).attr('text-anchor','middle').attr('font-family','monospace').attr('font-size','10px').attr('font-weight','bold').attr('fill','var(--amb)').attr('letter-spacing','2').text('MAPA DE DIFERENCIAS BATIMÉTRICAS');
+  svg.append('text').attr('x',SVW/2).attr('y',30).attr('text-anchor','middle').attr('font-family','monospace').attr('font-size','7px').attr('fill','var(--dim)').text('ANTES: '+dataA.name+'  |  DESPUÉS: '+dataB.name);
+
+  // Norte
+  const ng=svg.append('g').attr('transform',`translate(${ML+ox+pW-20},${MT+oy+20})`);
+  const R=11;
+  ng.append('polygon').attr('points',`0,${-R} ${R*.35},${R*.3} 0,${R*.1}`).attr('fill','var(--nav)');
+  ng.append('polygon').attr('points',`0,${-R} ${-R*.35},${R*.3} 0,${R*.1}`).attr('fill','rgba(255,255,255,.3)');
+  ng.append('polygon').attr('points',`0,${R} ${R*.35},${-R*.3} 0,${-R*.1}`).attr('fill','var(--red)');
+  ng.append('polygon').attr('points',`0,${R} ${-R*.35},${-R*.3} 0,${-R*.1}`).attr('fill','rgba(255,255,255,.3)');
+  ng.append('circle').attr('r',2.5).attr('fill','white').attr('stroke','var(--nav)').attr('stroke-width',.8);
+  ng.append('text').attr('x',0).attr('y',-R-3).attr('text-anchor','middle').attr('font-family','monospace').attr('font-size','7px').attr('font-weight','bold').attr('fill','white').text('N');
+
+  // Escala
+  const ppm=pW/W,rawM=W*.18;
+  const niceM=[1,2,5,10,25,50,100,200,500,1000].find(v=>v>=rawM*.4)||50;
+  const barPx=niceM*ppm,lbl=niceM>=1000?niceM/1000+'km':niceM+'m';
+  const sg=svg.append('g').attr('transform',`translate(${ML+ox},${MT+oy+pH+26})`);
+  sg.append('rect').attr('x',0).attr('y',0).attr('width',barPx/2).attr('height',4).attr('fill','var(--nav)');
+  sg.append('rect').attr('x',barPx/2).attr('y',0).attr('width',barPx/2).attr('height',4).attr('fill','white').attr('stroke','var(--nav)').attr('stroke-width',.5);
+  ['0',lbl].forEach((t,i)=>{sg.append('text').attr('x',i*barPx).attr('y',-3).attr('text-anchor','middle').attr('font-family','monospace').attr('font-size','6px').attr('fill','var(--txt)').text(t);});
+}
+
+// ═══ 3D SUPERPUESTO ════════════════════════════════════════════
+function init3D(W,H){
+  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c3d'),antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(W,H);renderer.setClearColor(0x060e18);
+  scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x060e18,.004);
+  camera=new THREE.PerspectiveCamera(50,W/H,.1,2000);
+  scene.add(new THREE.AmbientLight(0xffffff,1.0));
+  const d1=new THREE.DirectionalLight(0xffffff,.8);d1.position.set(80,120,60);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x8899cc,.5);d2.position.set(-60,40,-80);scene.add(d2);
+  const c=document.getElementById('c3d');
+  c.addEventListener('mousedown',e=>{isDrag=true;isRight=e.button===2;prevM={x:e.clientX,y:e.clientY};});
+  c.addEventListener('mousemove',e=>{
+    if(!isDrag)return;const dx=e.clientX-prevM.x,dy=e.clientY-prevM.y;prevM={x:e.clientX,y:e.clientY};
+    if(isRight){tgt.x-=dx*.15;tgt.z+=dy*.15;}else{sph.theta-=dx*.005;sph.phi=Math.max(.05,Math.min(Math.PI*.95,sph.phi-dy*.005));}
+    updCam();
+  });
+  c.addEventListener('mouseup',()=>{isDrag=false;isRight=false;});
+  c.addEventListener('mouseleave',()=>isDrag=false);
+  c.addEventListener('wheel',e=>{e.preventDefault();sph.radius=Math.max(30,Math.min(600,sph.radius+e.deltaY*.25));updCam();},{passive:false});
+  c.addEventListener('contextmenu',e=>e.preventDefault());
+  (function r(){requestAnimationFrame(r);renderer&&renderer.render(scene,camera);})();
+}
+function updCam(){
+  const{theta,phi,radius}=sph;
+  camera.position.set(tgt.x+radius*Math.sin(phi)*Math.sin(theta),tgt.y+radius*Math.cos(phi),tgt.z+radius*Math.sin(phi)*Math.cos(theta));
+  camera.lookAt(tgt.x,tgt.y,tgt.z);
+}
+function clearScene(){
+  while(scene.children.length)scene.remove(scene.children[0]);
+  scene.add(new THREE.AmbientLight(0xffffff,1.0));
+  const d1=new THREE.DirectionalLight(0xffffff,.8);d1.position.set(80,120,60);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x8899cc,.5);d2.position.set(-60,40,-80);scene.add(d2);
+}
+function build3Dscene({valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax}){
+  if(!renderer)return;clearScene();
+  const msk=window._mask,SZ=100;
+  const zMnA=d3.min(valsA),zMxB=d3.max(valsB),zR=zMxB-zMnA||1;
+  const mA=d3.mean(Array.from(valsA).filter((_,i)=>!msk||msk[i]))||1;
+  const mB=d3.mean(Array.from(valsB).filter((_,i)=>!msk||msk[i]))||1;
+  const dM=Math.abs(mB-mA)||.5;
+  const aS=Math.min(20,Math.max(vSc,Math.ceil(.6*zR/dM)));
+  const scZ=z=>-((z-zMnA)/zR)*SZ*.25*aS;
+
+  function makeSurf(vals,r,g,b,op){
+    const geo=new THREE.PlaneGeometry(SZ,SZ,gW-1,gH-1);
+    geo.rotateX(-Math.PI/2);const pos=geo.attributes.position,cols=[];
+    for(let row=0;row<gH;row++)for(let col=0;col<gW;col++){
+      const idx=row*gW+col,inM=!msk||msk[idx];
+      pos.setY(idx,inM?scZ(vals[idx]):scZ(zMnA));
+      inM?cols.push(r,g,b):cols.push(0,0,0);
+    }
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+    geo.computeVertexNormals();
+    scene.add(new THREE.Mesh(geo,new THREE.MeshPhongMaterial({vertexColors:true,transparent:true,opacity:op,side:THREE.DoubleSide,shininess:30})));
+  }
+  makeSurf(valsA,.95,.55,.05,.65); // naranja = antes
+  makeSurf(valsB,0,.85,.55,.75);   // verde = después
+
+  const wGeo=new THREE.PlaneGeometry(SZ*1.05,SZ*1.05);wGeo.rotateX(-Math.PI/2);
+  const wMesh=new THREE.Mesh(wGeo,new THREE.MeshPhongMaterial({color:0x1a6090,transparent:true,opacity:.18,side:THREE.DoubleSide}));
+  wMesh.position.y=.5;scene.add(wMesh);
+  const grid=new THREE.GridHelper(SZ,10,0x334466,0x334466);grid.position.y=scZ(zMxB)*1.05;scene.add(grid);
+
+  const box=new THREE.Box3();scene.traverse(o=>{if(o.isMesh)box.expandByObject(o);});
+  if(!box.isEmpty()){
+    const c=new THREE.Vector3(),s=new THREE.Vector3();box.getCenter(c);box.getSize(s);
+    tgt={x:c.x,y:c.y,z:c.z};sph={theta:.7,phi:.85,radius:s.length()*1.5};
+  }
+  updCam();
+}
+
+// ═══ PERFIL ════════════════════════════════════════════════════
+function generarPerfil(valsA,valsB,diff,gW,gH,dMax){
+  const wrap=document.getElementById('perfil-wrap');
+  const W2=Math.max(400,wrap.clientWidth-30),H2=Math.max(280,wrap.clientHeight-30);
+  const ML=52,MR=20,MT=35,MB=35,PW=W2-ML-MR,PH=H2-MT-MB;
+
+  const colMid=Math.floor(gW/2),rowMid=Math.floor(gH/2);
+  const byC=[],byR=[];
+  for(let row=0;row<gH;row++)byC.push(valsA[row*gW+colMid]);
+  for(let col=0;col<gW;col++)byR.push(valsA[rowMid*gW+col]);
+  const rC=Math.max(...byC)-Math.min(...byC),rR=Math.max(...byR)-Math.min(...byR);
+  const usarC=rC>=rR;
+  const profA=[],profB=[],diffs=[];
+  if(usarC){for(let row=0;row<gH;row++){profA.push(valsA[row*gW+colMid]);profB.push(valsB[row*gW+colMid]);diffs.push(diff[row*gW+colMid]);}}
+  else{for(let col=0;col<gW;col++){profA.push(valsA[rowMid*gW+col]);profB.push(valsB[rowMid*gW+col]);diffs.push(diff[rowMid*gW+col]);}}
+
+  const allV=[...profA,...profB];
+  const zMn=d3.min(allV)-.3,zMx=d3.max(allV)+.3;
+  const scX=d3.scaleLinear().domain([0,profA.length-1]).range([0,PW]);
+  const scY=d3.scaleLinear().domain([zMn,zMx]).range([PH,0]);
+
+  wrap.innerHTML='';
+  const svgP=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svgP.setAttribute('width',W2);svgP.setAttribute('height',H2);
+  svgP.style.cssText='max-width:100%;background:#0a1628;';
+  wrap.appendChild(svgP);
+  const svg=d3.select(svgP);
+  const g=svg.append('g').attr('transform',`translate(${ML},${MT})`);
+
+  const defs=svg.append('defs');
+  const grad=defs.append('linearGradient').attr('id','bgG').attr('x1','0').attr('y1','0').attr('x2','0').attr('y2','1');
+  grad.append('stop').attr('offset','0%').attr('stop-color','#0d3050');
+  grad.append('stop').attr('offset','100%').attr('stop-color','#060e18');
+  g.append('rect').attr('width',PW).attr('height',PH).attr('fill','url(#bgG)');
+
+  for(let i=0;i<profA.length-1;i++){
+    const[r,gg,b]=diffColor(diffs[i],dMax);
+    const yT=Math.min(scY(profA[i]),scY(profB[i]));
+    const yB=Math.max(scY(profA[i]),scY(profB[i]));
+    if(yB-yT<1)continue;
+    g.append('rect').attr('x',scX(i)).attr('y',yT).attr('width',scX(i+1)-scX(i)+1).attr('height',yB-yT).attr('fill',`rgba(${r},${gg},${b},.7)`);
+  }
+
+  const ln=d3.line().x((_,i)=>scX(i)).y(d=>scY(d)).curve(d3.curveCatmullRom);
+  g.append('path').datum(profA).attr('d',ln).attr('fill','none').attr('stroke','#60aaff').attr('stroke-width',2.5).attr('stroke-dasharray','6,3');
+  g.append('path').datum(profB).attr('d',ln).attr('fill','none').attr('stroke','var(--grn)').attr('stroke-width',2.5);
+
+  g.append('g').call(d3.axisLeft(scY).ticks(5).tickFormat(d=>d.toFixed(1)+'m')).attr('font-size','8px').attr('font-family','monospace').attr('color','var(--txt)');
+  g.append('rect').attr('width',PW).attr('height',PH).attr('fill','none').attr('stroke','var(--nav)').attr('stroke-width',1);
+
+  svg.append('text').attr('x',W2/2).attr('y',18).attr('text-anchor','middle').attr('font-family','monospace').attr('font-size','9px').attr('font-weight','bold').attr('fill','var(--amb)').text('PERFIL TRANSVERSAL — EJE DEL CANAL');
+  [{c:'#60aaff',t:'ANTES (A)'},{c:'var(--grn)',t:'DESPUÉS (B)'}].forEach((it,i)=>{
+    svg.append('line').attr('x1',W2-140+i*70).attr('x2',W2-122+i*70).attr('y1',H2-14).attr('y2',H2-14).attr('stroke',it.c).attr('stroke-width',2);
+    svg.append('text').attr('x',W2-119+i*70).attr('y',H2-11).attr('font-family','monospace').attr('font-size','8px').attr('fill',it.c).text(it.t);
+  });
+}
+
+// ═══ VOLUMEN DRAGADO 3D ════════════════════════════════════════
+function initVolRenderer(W,H){
+  rendVol=new THREE.WebGLRenderer({canvas:document.getElementById('cvol'),antialias:true});
+  rendVol.setPixelRatio(Math.min(devicePixelRatio,2));rendVol.setSize(W,H);rendVol.setClearColor(0x060e18);
+  sceneVol=new THREE.Scene();
+  cameraVol=new THREE.PerspectiveCamera(50,W/H,.1,2000);
+  sceneVol.add(new THREE.AmbientLight(0xffffff,2.0));
+  [new THREE.DirectionalLight(0xffffff,1.5),new THREE.DirectionalLight(0xffffff,1.0),new THREE.DirectionalLight(0xffffff,1.0)].forEach((l,i)=>{
+    [[60,80,40],[-40,-30,60],[0,-80,0]][i].forEach((v,j)=>l.position.setComponent(j,v));
+    sceneVol.add(l);
+  });
+  const c=document.getElementById('cvol');
+  c.addEventListener('mousedown',e=>{vDrag=true;vRight=e.button===2;vPrev={x:e.clientX,y:e.clientY};});
+  c.addEventListener('mousemove',e=>{
+    if(!vDrag)return;const dx=e.clientX-vPrev.x,dy=e.clientY-vPrev.y;vPrev={x:e.clientX,y:e.clientY};
+    if(vRight){vTgt.x-=dx*.15;vTgt.z+=dy*.15;}else{vSph.theta-=dx*.005;vSph.phi=Math.max(.05,Math.min(Math.PI*.95,vSph.phi-dy*.005));}
+    updVolCam();
+  });
+  c.addEventListener('mouseup',()=>{vDrag=false;vRight=false;});
+  c.addEventListener('mouseleave',()=>vDrag=false);
+  c.addEventListener('wheel',e=>{e.preventDefault();vSph.radius=Math.max(30,Math.min(600,vSph.radius+e.deltaY*.25));updVolCam();},{passive:false});
+  c.addEventListener('contextmenu',e=>e.preventDefault());
+  updVolCam();
+  (function r(){requestAnimationFrame(r);rendVol&&rendVol.render(sceneVol,cameraVol);})();
+}
+function updVolCam(){
+  const{theta,phi,radius}=vSph;
+  cameraVol.position.set(vTgt.x+radius*Math.sin(phi)*Math.sin(theta),vTgt.y+radius*Math.cos(phi),vTgt.z+radius*Math.sin(phi)*Math.cos(theta));
+  cameraVol.lookAt(vTgt.x,vTgt.y,vTgt.z);
+}
+
+function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
+  if(!rendVol||!sceneVol||!cameraVol)return;
+  const toRm=[];sceneVol.traverse(o=>{if(o.isMesh||o.isGridHelper)toRm.push(o);});
+  toRm.forEach(o=>sceneVol.remove(o));
+
+  const msk=window._mask,SZ=100;
+  const mA=d3.mean(Array.from(valsA).filter((_,i)=>!msk||msk[i]))||1;
+  const mB=d3.mean(Array.from(valsB).filter((_,i)=>!msk||msk[i]))||1;
+  const dM=Math.abs(mB-mA)||.5;
+  const aS=Math.min(20,Math.max(6,.6*(dMax||1)/dM));
+  const scD=v=>-(Math.max(0,v)/(dMax||1))*SZ*.25*aS;
 
   // Paleta negro→rojo→naranja→amarillo
-  const palVol=t=>{
+  const pal=t=>{
     t=Math.max(0,Math.min(1,t));
-    const s=[[0.1,0,0],[0.8,0,0],[1,0.4,0],[1,0.85,0]];
+    const s=[[.05,0,0],[.8,0,0],[1,.4,0],[1,.85,0]];
     const n=s.length-1,i=Math.floor(t*n),f=t*n-i;
-    return[s[i][0]+(s[i+1][0]-s[i][0])*f,
-           s[i][1]+(s[i+1][1]-s[i][1])*f,
-           s[i][2]+(s[i+1][2]-s[i][2])*f];
+    return[s[i][0]+(s[i+1][0]-s[i][0])*f,s[i][1]+(s[i+1][1]-s[i][1])*f,s[i][2]+(s[i+1][2]-s[i][2])*f];
   };
 
-  const umbral=(dMax||1)*0.50; // 50% — solo zona realmente dragada
-  console.log('buildVolScene dMax:'+dMax.toFixed(2)+' umbral:'+umbral.toFixed(2));
-
-  const verts=[], cols=[];
+  const umbral=(dMax||1)*.40;
+  const verts=[],cols=[];
 
   for(let row=0;row<gH-1;row++){
     for(let col=0;col<gW-1;col++){
-      const i00=row*gW+col, i10=row*gW+col+1;
-      const i01=(row+1)*gW+col, i11=(row+1)*gW+col+1;
-      if(msk&&(!msk[i00]||!msk[i10]||!msk[i01]||!msk[i11])) continue;
-
-      const d00=Math.max(0,diff[i00]), d10=Math.max(0,diff[i10]);
-      const d01=Math.max(0,diff[i01]), d11=Math.max(0,diff[i11]);
+      const i00=row*gW+col,i10=row*gW+col+1,i01=(row+1)*gW+col,i11=(row+1)*gW+col+1;
+      if(msk&&(!msk[i00]||!msk[i10]||!msk[i01]||!msk[i11]))continue;
+      const d00=Math.max(0,diff[i00]),d10=Math.max(0,diff[i10]);
+      const d01=Math.max(0,diff[i01]),d11=Math.max(0,diff[i11]);
       const dAvg=(d00+d10+d01+d11)/4;
-      if(dAvg<umbral) continue;
+      if(dAvg<umbral)continue;
 
-      const x0=(col/(gW-1))*SZ-SZ/2, x1=((col+1)/(gW-1))*SZ-SZ/2;
-      const z0=(row/(gH-1))*SZ-SZ/2, z1=((row+1)/(gH-1))*SZ-SZ/2;
+      const x0=(col/(gW-1))*SZ-SZ/2,x1=((col+1)/(gW-1))*SZ-SZ/2;
+      const z0=(row/(gH-1))*SZ-SZ/2,z1=((row+1)/(gH-1))*SZ-SZ/2;
 
       // Cara superior plana en y=0
-      verts.push(x0,0,z0, x1,0,z0, x1,0,z1);
-      verts.push(x0,0,z0, x1,0,z1, x0,0,z1);
-      // Cara inferior — profundidad del dragado
-      verts.push(x0,scD(d00),z0, x1,scD(d11),z1, x1,scD(d10),z0);
-      verts.push(x0,scD(d00),z0, x0,scD(d01),z1, x1,scD(d11),z1);
+      verts.push(x0,0,z0,x1,0,z0,x1,0,z1,x0,0,z0,x1,0,z1,x0,0,z1);
+      // Cara inferior con la forma del dragado
+      verts.push(x0,scD(d00),z0,x1,scD(d11),z1,x1,scD(d10),z0);
+      verts.push(x0,scD(d00),z0,x0,scD(d01),z1,x1,scD(d11),z1);
 
       const t=dAvg/(dMax||1);
-      const[r,g,b]=palVol(t);
-      for(let k=0;k<6;k++) cols.push(r*0.5,g*0.5,b*0.5);
-      for(let k=0;k<6;k++) cols.push(r,g,b);
+      const[r,g,b]=pal(t);
+      for(let k=0;k<6;k++)cols.push(r*.35,g*.35,b*.35); // techo oscuro
+      for(let k=0;k<6;k++)cols.push(r,g,b);              // piso brillante
     }
   }
 
-  console.log('Vértices volumen:',verts.length/3);
-  if(verts.length===0){showToast('Sin zona dragada significativa',true);return;}
+  if(!verts.length){showToast('Sin zona dragada significativa',true);return;}
 
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
   geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
   geo.computeVertexNormals();
+
+  // MeshBasicMaterial: no depende de luz, siempre visible y brillante
   sceneVol.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({
-    vertexColors:true,side:THREE.DoubleSide,
-    transparent:true,opacity:0.95
+    vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:.97
   })));
 
-  // Grilla
   const grid=new THREE.GridHelper(SZ,10,0x1a2a4a,0x1a2a4a);
-  grid.position.y=scD(dMax)*1.1;
-  sceneVol.add(grid);
+  grid.position.y=scD(dMax)*1.1;sceneVol.add(grid);
 
-  // Auto centrado
-  const boxV=new THREE.Box3();
-  sceneVol.traverse(o=>{if(o.isMesh)boxV.expandByObject(o);});
-  if(!boxV.isEmpty()){
-    const cV=new THREE.Vector3(),sV=new THREE.Vector3();
-    boxV.getCenter(cV);boxV.getSize(sV);
-    cameraVol.position.set(cV.x+sV.length()*0.8,cV.y+sV.length()*0.5,cV.z+sV.length()*1.0);
-    cameraVol.lookAt(cV.x,cV.y,cV.z);
-  }
-
-  showToast('✓ Volumen 3D — '+Math.round(verts.length/12)+' celdas dragadas');
-}
-
-function initVolRenderer(W,H){
-  rendVol=new THREE.WebGLRenderer({canvas:document.getElementById('cvol'),antialias:true});
-  rendVol.setPixelRatio(Math.min(window.devicePixelRatio,2));
-  rendVol.setSize(W,H);
-  rendVol.setClearColor(0x060e18);
-  sceneVol=new THREE.Scene();
-  sceneVol.fog=new THREE.FogExp2(0x060e18,0.004);
-  cameraVol=new THREE.PerspectiveCamera(50,W/H,0.1,2000);
-
-  // Luces
-  sceneVol.add(new THREE.AmbientLight(0x334466,0.8));
-  const d1=new THREE.DirectionalLight(0xffffff,1.0);d1.position.set(60,80,40);sceneVol.add(d1);
-  const d2=new THREE.DirectionalLight(0x4477aa,0.5);d2.position.set(-40,30,-60);sceneVol.add(d2);
-
-  // Controles mouse — misma lógica que el 3D superpuesto
-  const c=document.getElementById('cvol');
-  let vDrag=false,vRight=false,vPrev={x:0,y:0};
-  let vSph={theta:0.3,phi:1.2,radius:160},vTgt={x:0,y:-15,z:0}; // vista lateral
-  const vUpdateCam=()=>{
-    const{theta,phi,radius}=vSph;
-    cameraVol.position.set(
-      vTgt.x+radius*Math.sin(phi)*Math.sin(theta),
-      vTgt.y+radius*Math.cos(phi),
-      vTgt.z+radius*Math.sin(phi)*Math.cos(theta)
-    );
-    cameraVol.lookAt(vTgt.x,vTgt.y,vTgt.z);
-  };
-  c.addEventListener('mousedown',e=>{vDrag=true;vRight=e.button===2;vPrev={x:e.clientX,y:e.clientY};});
-  c.addEventListener('mousemove',e=>{
-    if(!vDrag)return;
-    const dx=e.clientX-vPrev.x,dy=e.clientY-vPrev.y;vPrev={x:e.clientX,y:e.clientY};
-    if(vRight){vTgt.x-=dx*0.15;vTgt.z+=dy*0.15;}
-    else{vSph.theta-=dx*0.005;vSph.phi=Math.max(0.05,Math.min(Math.PI*0.95,vSph.phi-dy*0.005));}
-    vUpdateCam();
-  });
-  c.addEventListener('mouseup',()=>{vDrag=false;vRight=false;});
-  c.addEventListener('mouseleave',()=>{vDrag=false;});
-  c.addEventListener('wheel',e=>{e.preventDefault();vSph.radius=Math.max(30,Math.min(500,vSph.radius+e.deltaY*0.2));vUpdateCam();},{passive:false});
-  c.addEventListener('contextmenu',e=>e.preventDefault());
-
-  vUpdateCam();
-  window.addEventListener('resize',()=>{
-    const ma=document.querySelector('.main-area');
-    if(!rendVol||!ma)return;
-    const nW=Math.max(400,ma.clientWidth-20), nH=Math.max(300,ma.clientHeight-60);
-    cameraVol.aspect=nW/nH; cameraVol.updateProjectionMatrix();
-    rendVol.setSize(nW,nH);
-  });
-  (function renderVol(){requestAnimationFrame(renderVol);if(rendVol&&sceneVol&&cameraVol)rendVol.render(sceneVol,cameraVol);})();
-}
-
-
-
-// ════════════════════════════════════════════════
-//  CONVEX HULL + MÁSCARA
-// ════════════════════════════════════════════════
-
-// Convex hull 2D — algoritmo de Graham scan
-function convexHull(pts) {
-  const p = pts.slice().sort((a,b) => a.x!==b.x ? a.x-b.x : a.y-b.y);
-  const n = p.length;
-  if(n < 3) return p;
-  const cross = (o,a,b) => (a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
-  const lower = [], upper = [];
-  for(let i=0;i<n;i++){
-    while(lower.length>=2 && cross(lower[lower.length-2],lower[lower.length-1],p[i])<=0) lower.pop();
-    lower.push(p[i]);
-  }
-  for(let i=n-1;i>=0;i--){
-    while(upper.length>=2 && cross(upper[upper.length-2],upper[upper.length-1],p[i])<=0) upper.pop();
-    upper.push(p[i]);
-  }
-  upper.pop(); lower.pop();
-  return lower.concat(upper);
-}
-
-// ¿El punto (px,py) está dentro del convex hull?
-// Algoritmo: ray casting
-function inHull(hull, px, py) {
-  const n = hull.length;
-  let inside = false;
-  for(let i=0,j=n-1; i<n; j=i++){
-    const xi=hull[i].x, yi=hull[i].y;
-    const xj=hull[j].x, yj=hull[j].y;
-    if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi))
-      inside=!inside;
-  }
-  return inside;
-}
-
-// Construir máscara: true = celda dentro del hull (dato válido)
-function buildMask(hull, gW, gH, x0, W, y0, H, margin) {
-  const mask = new Uint8Array(gW*gH);
-  // Expandir el hull un poco (margin en metros) para incluir los bordes reales
-  for(let row=0;row<gH;row++){
-    for(let col=0;col<gW;col++){
-      const mx = x0+(col/(gW-1))*W;
-      const my = y0+(row/(gH-1))*H;
-      // Verificar con margen
-      let inside = false;
-      for(let dm=-margin; dm<=margin; dm+=margin/2){
-        for(let dn=-margin; dn<=margin; dn+=margin/2){
-          if(inHull(hull, mx+dm, my+dn)){ inside=true; break; }
-        }
-        if(inside) break;
-      }
-      mask[row*gW+col] = inside ? 1 : 0;
-    }
-  }
-  return mask;
-}
-
-// ════════════════════════════════════════════════
-//  COMPARAR
-// ════════════════════════════════════════════════
-async function comparar() {
-  if (!dataA||!dataB) return;
-  prog(0.05);
-  document.getElementById('btn-gen').disabled=true;
-  document.getElementById('empty-state').style.display='none';
-  await sl(30);
-
-  const gN   = parseInt(document.getElementById('gr').value);
-  const vSc  = parseFloat(document.getElementById('vs').value);
-  const allPts = [...dataA.pts, ...dataB.pts];
-  const lat0 = d3.mean(allPts,p=>p.lat), lon0=d3.mean(allPts,p=>p.lon);
-
-  // Convertir a metros
-  const ptsA = dataA.pts.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,z:p.z};});
-  const ptsB = dataB.pts.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,z:p.z};});
-
-  // Bounding box unificado
-  const allM  = [...ptsA,...ptsB];
-  const xMn=d3.min(allM,p=>p.x), xMx=d3.max(allM,p=>p.x);
-  const yMn=d3.min(allM,p=>p.y), yMx=d3.max(allM,p=>p.y);
-  // Sin padding — grilla exactamente sobre los datos reales
-  const x0=xMn, x1=xMx, y0=yMn, y1=yMx;
-  const W=x1-x0, H=y1-y0;
-
-  const gW=gN, gH=Math.max(4,Math.round(gN*H/W));
-  const valsA=new Float32Array(gW*gH);
-  const valsB=new Float32Array(gW*gH);
-  const diff =new Float32Array(gW*gH);
-
-  // Convex hull de todos los puntos — máscara de celdas válidas
-  window._mask=null; // reset
-  const hull = convexHull(allM);
-  const hullMargin = Math.max(W,H) / gN * 1.5; // margen = 1.5 celdas
-  const mask = buildMask(hull, gW, gH, x0, W, y0, H, hullMargin);
-  window._mask = mask; // disponible globalmente para el renderizador
-
-  // Profundidad media para rellenar celdas fuera del hull (invisible pero necesario)
-  const zMeanAll = d3.mean([...ptsA,...ptsB], p=>p.z);
-  const zMinReal = Math.min(d3.min(ptsA,p=>p.z), d3.min(ptsB,p=>p.z));
-  const zMaxReal = Math.max(d3.max(ptsA,p=>p.z), d3.max(ptsB,p=>p.z));
-
-  // ── TIN para A y B — interpolación exacta sin picos ──────────
-  prog(0.12);
-  const trisA = delaunay(ptsA);
-  const trisB = delaunay(ptsB);
-
-  for(let c=0;c<8;c++){
-    const r0=Math.round(c*gH/8), r1=Math.round((c+1)*gH/8);
-    for(let row=r0;row<r1;row++)
-      for(let col=0;col<gW;col++){
-        const idx=row*gW+col;
-        if(!mask[idx]){
-          valsA[idx]=zMeanAll; valsB[idx]=zMeanAll; diff[idx]=0;
-          continue;
-        }
-        const mx=x0+(col/(gW-1))*W, my=y0+(row/(gH-1))*H;
-        // TIN baricéntrico — sin picos
-        const zA=tinInterp(trisA,mx,my,null);
-        const zB=tinInterp(trisB,mx,my,null);
-        // Fuera del TIN → zMinReal (lecho plano en el borde, sin extrapolación)
-        valsA[idx]=zA!==null?Math.max(zMinReal,Math.min(zMaxReal,zA)):zMinReal;
-        valsB[idx]=zB!==null?Math.max(zMinReal,Math.min(zMaxReal,zB)):zMinReal;
-        diff[idx]=valsB[idx]-valsA[idx];
-      }
-    prog(0.12+c*0.09); await sl(0);
-  }
-
-  prog(0.85);
-
-  // ── Volumen exacto por método TIN (prismas triangulares) ──────
-  // Más preciso que la grilla — usa los triángulos reales
-  const volTotalA = volumenTIN(trisA, ptsA);
-  const volTotalB = volumenTIN(trisB, ptsB);
-
-  // Diferencia en grilla para mapa de colores
-  const cellArea = (W/gW)*(H/gH);
-  const mskVol = window._mask;
-  let volDrag=0, volSed=0, nDrag=0, nSed=0, nCeldasValidas=0;
-  for(let i=0;i<diff.length;i++){
-    if(mskVol && !mskVol[i]) continue;
-    nCeldasValidas++;
-    if(diff[i]>0.05){ volDrag+=diff[i]*cellArea; nDrag++; }
-    else if(diff[i]<-0.05){ volSed+=Math.abs(diff[i])*cellArea; nSed++; }
-  }
-  const dMax = Math.max(Math.abs(d3.max(diff)), Math.abs(d3.min(diff)));
-  console.log();
-  buildStats(volDrag,volSed,cellArea,gW,gH,W,H,valsA,valsB,diff,dMax,volTotalA,volTotalB);
-  buildLegend(dMax);
-
-  // Generar vistas
-  await genMapa2D(valsA,valsB,diff,gW,gH,W,H,x0,y0,dMax,lat0,lon0,ptsA,ptsB);
-  prog(0.92);
-  await generar3D(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax);
-  prog(0.95);
-  window._lastPerfilArgs=[valsA,valsB,diff,gW,gH,dMax];
-  generarPerfil(valsA,valsB,diff,gW,gH,dMax);
-
-  // Guardar para tab volumen 3D
-  window._pendingVol=[diff,valsA,valsB,gW,gH,dMax];
-  window._lastVolArgs=[diff,valsA,valsB,gW,gH,dMax];
-  prog(1); setTimeout(()=>prog(0),600);
-
-  document.getElementById('stats-panel').style.display='';
-  document.getElementById('ley-panel').style.display='';
-  document.getElementById('exp-panel').style.display='';
-  document.getElementById('view-tabs').style.display='';
-  document.getElementById('btn-gen').disabled=false;
-  document.getElementById('hinfo').innerHTML=
-    `${dataA.pts.length}+${dataB.pts.length} pts · <a href="index.html" style="color:var(--gold);text-decoration:none">← HUB</a>`;
-  showToast('✓ Comparación completada');
-}
-
-// ════════════════════════════════════════════════
-//  MAPA 2D DE DIFERENCIAS
-// ════════════════════════════════════════════════
-async function genMapa2D(valsA,valsB,diff,gW,gH,W,H,x0,y0,dMax,lat0,lon0,ptsA,ptsB) {
-  const wrap = document.getElementById('map2d-wrap');
-  const SVW  = Math.max(500, wrap.clientWidth-32);
-  const SVH  = Math.max(400, wrap.clientHeight-32);
-  const ML=65,MR=20,MT=50,MB=55;
-  const PW=SVW-ML-MR, PH=SVH-MT-MB;
-  const asp=W/H;
-  let pW=PW,pH=PH;
-  if(asp>PW/PH)pH=Math.round(PW/asp);else pW=Math.round(PH*asp);
-  const ox=(PW-pW)/2, oy=(PH-pH)/2;
-
-  // Canvas para el mapa de diferencias
-  const fc=document.createElement('canvas');fc.width=gW;fc.height=gH;
-  const fctx=fc.getContext('2d');
-  const imd=fctx.createImageData(gW,gH);
-  const msk2d = window._mask;
-  for(let row=0;row<gH;row++)
-    for(let col=0;col<gW;col++){
-      const idx=row*gW+col;
-      const px=((gH-1-row)*gW+col)*4;
-      if(msk2d && !msk2d[idx]){
-        // Fuera del hull: transparente
-        imd.data[px]=232;imd.data[px+1]=228;imd.data[px+2]=220;imd.data[px+3]=0;
-        continue;
-      }
-      const d=diff[idx];
-      const[r,g,b]=diffColor(d,dMax);
-      imd.data[px]=r;imd.data[px+1]=g;imd.data[px+2]=b;imd.data[px+3]=255;
-    }
-  fctx.putImageData(imd,0,0);
-  const fillURL=fc.toDataURL('image/png');
-
-  // Contornos de diferencia
-  const thresholds=d3.range(-dMax, dMax+0.25, 0.25).filter(v=>Math.abs(v)>0.05);
-  const contours=d3.contours().size([gW,gH]).thresholds(thresholds).smooth(true)(diff);
-  const gx=col=>ox+(col/gW)*pW;
-  const gy=row=>oy+pH-(row/gH)*pH;
-  const cPath=d3.geoPath().projection(d3.geoTransform({
-    point:function(px,py){this.stream.point(gx(px),gy(py));}
-  }));
-
-  // SVG
-  wrap.innerHTML='';
-  svgEl2d=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svgEl2d.setAttribute('width',SVW);svgEl2d.setAttribute('height',SVH);
-  svgEl2d.setAttribute('viewBox',`0 0 ${SVW} ${SVH}`);
-  svgEl2d.setAttribute('xmlns','http://www.w3.org/2000/svg');
-  svgEl2d.style.maxWidth='100%';svgEl2d.style.background='#faf7f0';
-  wrap.appendChild(svgEl2d);
-  const svg=d3.select(svgEl2d);
-
-  svg.append('defs').append('clipPath').attr('id','cp2d')
-    .append('rect').attr('x',ML+ox).attr('y',MT+oy).attr('width',pW).attr('height',pH);
-  const g=svg.append('g').attr('transform',`translate(${ML},${MT})`);
-
-  // Fondo neutro
-  g.append('rect').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH)
-    .attr('fill','#e8e4d8');
-
-  // Imagen diferencias
-  g.append('g').attr('clip-path','url(#cp2d)')
-    .append('image').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH)
-    .attr('href',fillURL).attr('preserveAspectRatio','none');
-
-  // Curva de nivel de diferencia cero (línea de no-cambio)
-  const zeroCont=d3.contours().size([gW,gH]).thresholds([0]).smooth(true)(diff);
-  g.append('g').attr('clip-path','url(#cp2d)')
-    .selectAll('path').data(zeroCont).join('path').attr('d',cPath)
-    .attr('fill','none').attr('stroke','rgba(0,0,0,0.6)')
-    .attr('stroke-width',1.5).attr('stroke-dasharray','6,3');
-
-  // Curvas de diferencia
-  g.append('g').attr('clip-path','url(#cp2d)')
-    .selectAll('path').data(contours).join('path').attr('d',cPath)
-    .attr('fill','none').attr('stroke','rgba(0,0,0,0.2)').attr('stroke-width',0.5);
-
-  // Puntos A (antes) — círculos vacíos azules
-  const gPtsA=g.append('g').attr('clip-path','url(#cp2d)');
-  ptsA.forEach(p=>{
-    const sx=ox+(p.x-x0)/W*pW, sy=oy+pH-(p.y-y0)/H*pH;
-    gPtsA.append('circle').attr('cx',sx).attr('cy',sy).attr('r',2)
-      .attr('fill','none').attr('stroke','#1a6090').attr('stroke-width',1);
-  });
-
-  // Puntos B (después) — círculos rellenos verdes
-  const gPtsB=g.append('g').attr('clip-path','url(#cp2d)');
-  ptsB.forEach(p=>{
-    const sx=ox+(p.x-x0)/W*pW, sy=oy+pH-(p.y-y0)/H*pH;
-    gPtsB.append('circle').attr('cx',sx).attr('cy',sy).attr('r',1.5)
-      .attr('fill','#2e7d32').attr('stroke','none').attr('opacity',0.7);
-  });
-
-  // Grilla coordenadas
-  const latMn=d3.min([...dataA.pts,...dataB.pts],p=>p.lat);
-  const latMx=d3.max([...dataA.pts,...dataB.pts],p=>p.lat);
-  const lonMn=d3.min([...dataA.pts,...dataB.pts],p=>p.lon);
-  const lonMx=d3.max([...dataA.pts,...dataB.pts],p=>p.lon);
-  const laSt=nSt(latMx-latMn,4), loSt=nSt(lonMx-lonMn,4);
-  d3.range(Math.ceil(latMn/laSt)*laSt,latMx+laSt,laSt).forEach(lat=>{
-    const m=toM(lat,lon0,lat0,lon0);
-    const sy=oy+pH-(m.y-y0)/H*pH;
-    if(sy<oy||sy>oy+pH)return;
-    g.append('line').attr('x1',ox).attr('x2',ox+pW).attr('y1',sy).attr('y2',sy)
-      .attr('stroke','rgba(0,0,0,0.1)').attr('stroke-width',0.5).attr('stroke-dasharray','3,4');
-    g.append('text').attr('x',ox-4).attr('y',sy+2.5).attr('text-anchor','end')
-      .attr('font-family','monospace').attr('font-size','7px').attr('fill','#333').text(dms(lat,'lat'));
-  });
-  d3.range(Math.ceil(lonMn/loSt)*loSt,lonMx+loSt,loSt).forEach(lon=>{
-    const m=toM(lat0,lon,lat0,lon0);
-    const sx=ox+(m.x-x0)/W*pW;
-    if(sx<ox||sx>ox+pW)return;
-    g.append('line').attr('x1',sx).attr('x2',sx).attr('y1',oy).attr('y2',oy+pH)
-      .attr('stroke','rgba(0,0,0,0.1)').attr('stroke-width',0.5).attr('stroke-dasharray','3,4');
-    g.append('text').attr('x',sx).attr('y',oy+pH+12).attr('text-anchor','middle')
-      .attr('font-family','monospace').attr('font-size','7px').attr('fill','#333').text(dms(lon,'lon'));
-  });
-
-  // Borde
-  g.append('rect').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH)
-    .attr('fill','none').attr('stroke',var_navy()).attr('stroke-width',1.5);
-
-  // Títulos
-  svg.append('text').attr('x',SVW/2).attr('y',20).attr('text-anchor','middle')
-    .attr('font-family','monospace').attr('font-size','11px').attr('font-weight','bold')
-    .attr('fill',var_navy()).attr('letter-spacing','2').text('MAPA DE DIFERENCIAS BATIMÉTRICAS');
-  svg.append('text').attr('x',SVW/2).attr('y',34).attr('text-anchor','middle')
-    .attr('font-family','monospace').attr('font-size','7px').attr('fill','#6a6a7a')
-    .text(`ANTES: ${dataA.name}  |  DESPUÉS: ${dataB.name}`);
-
-  // Leyenda inline
-  const lx=ML+ox+pW-65, ly=MT+oy+10;
-  svg.append('rect').attr('x',lx-4).attr('y',ly-10).attr('width',72).attr('height',56)
-    .attr('fill','rgba(250,247,240,0.9)').attr('rx',4).attr('stroke','rgba(0,0,0,0.15)').attr('stroke-width',0.5);
-  [{d:2,label:'Dragado'},{d:0,label:'Sin cambio'},{d:-2,label:'Sediment.'}].forEach((item,i)=>{
-    const [r,gg,b]=diffColor(item.d,dMax);
-    svg.append('rect').attr('x',lx).attr('y',ly+i*14).attr('width',14).attr('height',10)
-      .attr('fill',`rgb(${r},${gg},${b})`).attr('rx',2);
-    svg.append('text').attr('x',lx+18).attr('y',ly+i*14+8)
-      .attr('font-family','monospace').attr('font-size','7px').attr('fill','#333').text(item.label);
-  });
-
-  // Norte + escala
-  northArrow(svg,ML+ox+pW-25,MT+oy+28);
-  scaleBar(svg,ML+ox,MT+oy+pH+26,W,pW);
-}
-
-// ════════════════════════════════════════════════
-//  3D SUPERPUESTO
-// ════════════════════════════════════════════════
-async function generar3D(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax) {
-  // Si el panel 3D no está visible, guardar para cuando se abra
-  const panel3d=document.getElementById('panel-3d');
-  if(!panel3d.classList.contains('active')){
-    window._pending3D=[valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax];
-    return; // se ejecutará cuando el usuario haga click en el tab 3D
-  }
-  const wrap3=document.getElementById('c3d-wrap');
-  const W3d=wrap3.clientWidth||800, H3d=wrap3.clientHeight||500;
-  if(!renderer) init3D(W3d,H3d);
-  else clearScene();
-
-  build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax);
-}
-
-async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
-  if(!renderer||!scene||!camera)return;
-  clearScene();
-
-  // Escalas — deben estar aqui porque build3Dscene es funcion independiente
-  const zMnA = d3.min(valsA), zMxB = d3.max(valsB);
-  const zR   = zMxB - zMnA || 1;
-  const SZ   = 100;
-
-  // ── Escala adaptiva basada en diferencia de medias ───────────
-  // Método: la diferencia entre medias define cuánto exagerar
-  // para que esa diferencia sea visualmente prominente en pantalla
-  const mediaA   = d3.mean(valsA);
-  const mediaB   = d3.mean(valsB);
-  const diffMedia = Math.abs(mediaB - mediaA) || 0.5;
-
-  // Queremos que la diferencia de medias ocupe al menos el 15% de la altura de escena
-  // targetVisual = SZ * 0.25 * scale * (diffMedia/zR) >= SZ * 0.15
-  // → scale >= 0.15 * zR / (0.25 * diffMedia) = 0.6 * zR / diffMedia
-  const scaleMinimo  = Math.ceil(0.6 * zR / diffMedia);
-  const scaleUsuario = vSc; // lo que puso el usuario en el slider
-  const autoScale    = Math.min(20, Math.max(scaleUsuario, scaleMinimo));
-
-  const scZ = z => -((z - zMnA) / zR) * SZ * 0.25 * autoScale;
-
-  // Info de escala en overlay
-  const scInfo = document.getElementById('scale-info');
-  if (scInfo) scInfo.textContent =
-    `Escala: ${autoScale.toFixed(0)}× | ΔMedia: ${diffMedia.toFixed(2)}m | A:${mediaA.toFixed(2)}m B:${mediaB.toFixed(2)}m`;
-
-  const msk = window._mask;
-
-  // ── Superficie A (ANTES) — NARANJA/OCRE semitransparente ──────
-  // Color diferenciador: naranja cálido = "antes del dragado"
-  const geoA=new THREE.PlaneGeometry(SZ,SZ,gW-1,gH-1);
-  geoA.rotateX(-Math.PI/2);
-  const posA=geoA.attributes.position;
-  const colsA=[];
-  for(let row=0;row<gH;row++)
-    for(let col=0;col<gW;col++){
-      const idx=row*gW+col;
-      const inM = !msk || msk[idx];
-      posA.setY(idx, inM ? scZ(valsA[idx]) : scZ(zMnA));
-      if(inM) colsA.push(0.95, 0.55, 0.05); // naranja dorado
-      else     colsA.push(0.0, 0.0, 0.0);
-    }
-  geoA.setAttribute('color',new THREE.Float32BufferAttribute(colsA,3));
-  geoA.computeVertexNormals();
-  const matA=new THREE.MeshPhongMaterial({
-    vertexColors:true, transparent:true, opacity:0.65,
-    side:THREE.DoubleSide, shininess:20
-  });
-  scene.add(new THREE.Mesh(geoA,matA));
-
-  // Borde de A para verla aunque B esté encima
-  const wireA=new THREE.WireframeGeometry(geoA);
-  const lineA3=new THREE.LineSegments(wireA,
-    new THREE.LineBasicMaterial({color:0xff8800,transparent:true,opacity:0.12}));
-  scene.add(lineA3);
-
-  // ── Superficie B (DESPUÉS) — VERDE AGUA semitransparente ─────
-  // Color diferenciador: verde esmeralda = "después del dragado"
-  const geoB=new THREE.PlaneGeometry(SZ,SZ,gW-1,gH-1);
-  geoB.rotateX(-Math.PI/2);
-  const posB=geoB.attributes.position;
-  const colsB=[];
-  for(let row=0;row<gH;row++)
-    for(let col=0;col<gW;col++){
-      const idx=row*gW+col;
-      const inM = !msk || msk[idx];
-      const zA=valsA[idx], zB=valsB[idx];
-      posB.setY(idx, inM ? scZ(zB) : scZ(zMnA));
-      if(!inM){ colsB.push(0.0,0.0,0.0); continue; }
-      colsB.push(0.0, 0.85, 0.55); // verde esmeralda
-    }
-  geoB.setAttribute('color',new THREE.Float32BufferAttribute(colsB,3));
-  geoB.computeVertexNormals();
-  const matB=new THREE.MeshPhongMaterial({
-    vertexColors:true, transparent:true, opacity:0.75,
-    side:THREE.DoubleSide, shininess:40, specular:0x004422
-  });
-  scene.add(new THREE.Mesh(geoB,matB));
-
-  // ── Espejo de agua ──
-  const wGeo=new THREE.PlaneGeometry(SZ*1.1,SZ*1.1);
-  wGeo.rotateX(-Math.PI/2);
-  const wMat=new THREE.MeshPhongMaterial({
-    color:0x1a6090, transparent:true, opacity:0.20, side:THREE.DoubleSide
-  });
-  const wMesh=new THREE.Mesh(wGeo,wMat); wMesh.position.y=0.5;
-  scene.add(wMesh);
-
-  // Grid
-  const grid=new THREE.GridHelper(SZ,10,0x334466,0x334466);
-  grid.position.y=scZ(zMxB)*1.05; scene.add(grid);
-
-  // ── Auto centrado y auto escalado ──────────────────────────
-  const box=new THREE.Box3();
-  scene.traverse(obj=>{if(obj.isMesh)box.expandByObject(obj);});
+  // Auto centrado y auto escala
+  const box=new THREE.Box3();sceneVol.traverse(o=>{if(o.isMesh)box.expandByObject(o);});
   if(!box.isEmpty()){
-    const center=new THREE.Vector3();
-    const size=new THREE.Vector3();
-    box.getCenter(center);
-    box.getSize(size);
-    tgt={x:center.x, y:center.y, z:center.z};
-    // Radio para ver todo + 30% de margen, ángulo más lateral
-    sph={theta:0.7, phi:0.85, radius:size.length()*1.5};
-  } else {
-    tgt={x:0,y:scZ((zMnA+zMxB)/2)/2,z:0};
-    sph={theta:0.7,phi:1.0,radius:180};
+    const c=new THREE.Vector3(),s=new THREE.Vector3();box.getCenter(c);box.getSize(s);
+    vTgt={x:c.x,y:c.y,z:c.z};vSph={theta:.4,phi:.85,radius:s.length()*1.5};updVolCam();
   }
-  updateCamera();
+  showToast('✓ Volumen 3D — '+Math.round(verts.length/12)+' celdas');
 }
 
-// ════════════════════════════════════════════════
-//  PERFIL DE CORTE (línea central del canal)
-// ════════════════════════════════════════════════
-function generarPerfil(valsA,valsB,diff,gW,gH,dMax) {
-  const wrap=document.getElementById('perfil-wrap');
-  const W2=Math.max(500,wrap.clientWidth-40);
-  const H2=Math.max(300,wrap.clientHeight-40);
-
-  // Corte transversal: tomar columna del centro (corta N-S, atraviesa el canal)
-  // Si el canal corre E-O → cortar en col del medio
-  // Si el canal corre N-S → cortar en fila del medio
-  // Detectamos automáticamente: el corte con mayor variación = el correcto
-  const colMid=Math.floor(gW/2);
-  const rowMid=Math.floor(gH/2);
-
-  const perfilPorCol=[], perfilPorFila=[];
-  for(let row=0;row<gH;row++) perfilPorCol.push(valsA[row*gW+colMid]);
-  for(let col=0;col<gW;col++) perfilPorFila.push(valsA[rowMid*gW+col]);
-
-  // Usar el corte con mayor rango de variación
-  const rangoCol=Math.max(...perfilPorCol)-Math.min(...perfilPorCol);
-  const rangoFila=Math.max(...perfilPorFila)-Math.min(...perfilPorFila);
-  const usarCol = rangoCol >= rangoFila;
-
-  const profA=[], profB=[], diffs=[];
-  if(usarCol){
-    for(let row=0;row<gH;row++){
-      profA.push(valsA[row*gW+colMid]);
-      profB.push(valsB[row*gW+colMid]);
-      diffs.push(diff[row*gW+colMid]);
-    }
-  } else {
-    for(let col=0;col<gW;col++){
-      profA.push(valsA[rowMid*gW+col]);
-      profB.push(valsB[rowMid*gW+col]);
-      diffs.push(diff[rowMid*gW+col]);
-    }
-  }
-
-  const ML=50,MR=30,MT=30,MB=40;
-  const PW=W2-ML-MR, PH=H2-MT-MB;
-  const allVals=[...profA,...profB];
-  const zMn=d3.min(allVals)-0.5, zMx=d3.max(allVals)+0.5;
-
-  const scX=d3.scaleLinear().domain([0,gW-1]).range([0,PW]);
-  const scY=d3.scaleLinear().domain([zMn,zMx]).range([0,PH]); // profundo=abajo
-
-  wrap.innerHTML='';
-  const svgP=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svgP.setAttribute('width',W2);svgP.setAttribute('height',H2);
-  svgP.setAttribute('viewBox',`0 0 ${W2} ${H2}`);
-  svgP.style.background='#faf7f0';
-  wrap.appendChild(svgP);
-  const svg=d3.select(svgP);
-  const g=svg.append('g').attr('transform',`translate(${ML},${MT})`);
-
-  // Fondo
-  // Fondo degradado: agua en superficie (arriba), fondo en profundidad (abajo)
-  const defs=svg.append('defs');
-  const grad=defs.append('linearGradient').attr('id','bgGrad').attr('x1','0').attr('y1','0').attr('x2','0').attr('y2','1');
-  grad.append('stop').attr('offset','0%').attr('stop-color','#c8e8f8');
-  grad.append('stop').attr('offset','100%').attr('stop-color','#0a2a4a');
-  g.append('rect').attr('x',0).attr('y',0).attr('width',PW).attr('height',PH)
-    .attr('fill','url(#bgGrad)').attr('stroke','none');
-
-  // Relleno entre curvas (área dragada/sedimentada)
-  const areaPath=d3.area()
-    .x((d,i)=>scX(i))
-    .y0((d,i)=>scY(profA[i]))
-    .y1((d,i)=>scY(profB[i]));
-
-  // Color del área por tramos
-  for(let col=0;col<gW-1;col++){
-    const d=diffs[col];
-    const [r,gg,b]=diffColor(d,dMax);
-    g.append('rect')
-      .attr('x',scX(col)).attr('y',Math.min(scY(profA[col]),scY(profB[col])))
-      .attr('width',scX(col+1)-scX(col)+1)
-      .attr('height',Math.abs(scY(profA[col])-scY(profB[col])))
-      .attr('fill',`rgba(${r},${gg},${b},0.6)`);
-  }
-
-  // Línea A (antes)
-  const lineA=d3.line().x((d,i)=>scX(i)).y(d=>scY(d)).curve(d3.curveCatmullRom);
-  g.append('path').datum(profA).attr('d',lineA)
-    .attr('fill','none').attr('stroke','#60aaff').attr('stroke-width',2.5).attr('stroke-dasharray','6,3');
-
-  // Línea B (después)
-  const lineB=d3.line().x((d,i)=>scX(i)).y(d=>scY(d)).curve(d3.curveCatmullRom);
-  g.append('path').datum(profB).attr('d',lineB)
-    .attr('fill','none').attr('stroke','#00e5a0').attr('stroke-width',2.5);
-
-  // Ejes
-  const axisY=d3.axisLeft(scY).ticks(6).tickFormat(d=>d.toFixed(1)+'m');
-  // Eje invertido: la escala aumenta hacia abajo (más profundo=abajo)
-  g.append('g').call(axisY).attr('font-size','8px').attr('font-family','monospace');
-  g.append('rect').attr('x',0).attr('y',0).attr('width',PW).attr('height',PH)
-    .attr('fill','none').attr('stroke','#1a237e').attr('stroke-width',1);
-
-  // Leyenda
-  svg.append('text').attr('x',W2/2).attr('y',18).attr('text-anchor','middle')
-    .attr('font-family','monospace').attr('font-size','10px').attr('font-weight','bold')
-    .attr('fill','#1a237e').text('PERFIL TRANSVERSAL — EJE DEL CANAL');
-  [{c:'#60aaff',t:'ANTES (discontinua)'},{c:'#00e5a0',t:'DESPUÉS'}].forEach((it,i)=>{
-    svg.append('line').attr('x1',W2-120+i*60).attr('x2',W2-100+i*60)
-      .attr('y1',H2-15).attr('y2',H2-15).attr('stroke',it.c).attr('stroke-width',2);
-    svg.append('text').attr('x',W2-97+i*60).attr('y',H2-12)
-      .attr('font-family','monospace').attr('font-size','8px').attr('fill',it.c).text(it.t);
-  });
-}
-
-// ════════════════════════════════════════════════
-//  ESTADÍSTICAS
-// ════════════════════════════════════════════════
-function buildStats(volDrag,volSed,cellArea,gW,gH,W,H,valsA,valsB,diff,dMax,volTotalA,volTotalB) {
-  const balance  = volTotalB - volTotalA; // positivo = se dragó
-  const area     = (W*H/10000).toFixed(2);
-  const diffMax  = d3.max(diff).toFixed(2);
-  const diffMin  = d3.min(diff).toFixed(2);
-  const mA       = d3.mean(valsA).toFixed(2);
-  const mB       = d3.mean(valsB).toFixed(2);
-
-  const sg=document.getElementById('stats-big');sg.innerHTML='';
-
-  // ── Fila principal: los tres volúmenes ──
-  const volRow=document.createElement('div');
-  volRow.style.cssText='grid-column:1/-1;background:white;border:1px solid var(--border);border-radius:6px;padding:10px 8px;';
-  volRow.innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:4px;text-align:center;">
-      <div>
-        <div style="font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:#1a6090">
-          ${Math.round(volTotalA).toLocaleString('es-AR')} m³
-        </div>
-        <div style="font-size:7px;letter-spacing:2px;color:#6a6a7a;margin-top:2px">VOL. INICIAL (ANTES)</div>
-      </div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:20px;color:#999">−</div>
-      <div>
-        <div style="font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:#2e7d32">
-          ${Math.round(volTotalB).toLocaleString('es-AR')} m³
-        </div>
-        <div style="font-size:7px;letter-spacing:2px;color:#6a6a7a;margin-top:2px">VOL. FINAL (DESPUÉS)</div>
-      </div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:20px;color:#999">=</div>
-      <div style="background:${balance>0?'rgba(26,96,144,0.08)':'rgba(139,0,0,0.08)'};border-radius:6px;padding:6px 4px">
-        <div style="font-family:'Orbitron',monospace;font-size:15px;font-weight:900;color:${balance>0?'#1a6090':'#8B0000'}">
-          ${balance>0?'+':''}${Math.round(Math.abs(balance)).toLocaleString('es-AR')} m³
-        </div>
-        <div style="font-size:7px;letter-spacing:2px;color:#6a6a7a;margin-top:2px">
-          ${balance>0?'DRAGADO':'SEDIMENTADO'}
-        </div>
-      </div>
-    </div>`;
-  sg.appendChild(volRow);
-
-  // ── Stats secundarias ──
-  [
-    {v:area+' ha',          l:'ÁREA RELEVADA',    cls:'neutro'},
-    {v:'+'+diffMax+' m',    l:'MÁX DRAGADO',      cls:'dragado'},
-    {v:diffMin+' m',        l:'MÁX SEDIMENT.',    cls:'sedim'},
-    {v:mA+' m → '+mB+' m', l:'PROF. MEDIA',       cls:'neutro'},
-  ].forEach(s=>{
-    const b=document.createElement('div');b.className='stat';
-    b.innerHTML=`<div class="stat-val ${s.cls}" style="font-size:12px">${s.v}</div><div class="stat-lbl">${s.l}</div>`;
-    sg.appendChild(b);
-  });
-
-  document.getElementById('stats-detalle').innerHTML=`
-    Celdas dragadas:   ${Array.from(diff).filter(v=>v>0.05).length} de ${diff.length}<br>
-    Celdas sediment.:  ${Array.from(diff).filter(v=>v<-0.05).length} de ${diff.length}<br>
-    Área celda:        ${cellArea.toFixed(1)} m²
-  `;
-}
-
-function buildLegend(dMax) {
-  const el=document.getElementById('ley-items');el.innerHTML='';
-  const steps=[dMax*0.9, dMax*0.5, dMax*0.1, 0, -dMax*0.1, -dMax*0.5, -dMax*0.9];
-  steps.forEach(d=>{
-    const [r,g,b]=diffColor(d,dMax);
-    const div=document.createElement('div');div.className='ld-item';
-    const sw=document.createElement('div');sw.className='ld-sw';
-    sw.style.background=`rgb(${r},${g},${b})`;
-    const lb=document.createElement('div');lb.className='ld-lb';
-    lb.textContent=(d>=0?'+':'')+d.toFixed(2)+'m '+(d>0.05?'drag.':d<-0.05?'sed.':'=');
-    div.appendChild(sw);div.appendChild(lb);el.appendChild(div);
-  });
-}
-
-// ════════════════════════════════════════════════
-//  THREE.JS
-// ════════════════════════════════════════════════
-function init3D(W3,H3){
-  W3=Math.max(400,W3); H3=Math.max(300,H3);
-  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c3d'),antialias:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-  renderer.setSize(W3,H3);
-  renderer.setClearColor(0x0a1628);
-  scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x0a1628,0.004);
-  camera=new THREE.PerspectiveCamera(50,W3/H3,0.1,2000);
-  scene.add(new THREE.AmbientLight(0xffffff,1.0)); // fuerte y constante
-  const d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(80,120,60);scene.add(d1);
-  const d2=new THREE.DirectionalLight(0x8899cc,0.5);d2.position.set(-60,40,-80);scene.add(d2);
-  const c=document.getElementById('c3d');
-  c.addEventListener('mousedown',e=>{isDrag=true;isRight=e.button===2;prevM={x:e.clientX,y:e.clientY};});
-  c.addEventListener('mousemove',e=>{
-    if(!isDrag)return;
-    const dx=e.clientX-prevM.x,dy=e.clientY-prevM.y;prevM={x:e.clientX,y:e.clientY};
-    if(isRight){tgt.x-=dx*0.15;tgt.z+=dy*0.15;}
-    else{sph.theta-=dx*0.005;sph.phi=Math.max(0.1,Math.min(Math.PI*0.9,sph.phi-dy*0.005));}
-    updateCamera();
-  });
-  c.addEventListener('mouseup',()=>{isDrag=false;isRight=false;});
-  c.addEventListener('mouseleave',()=>{isDrag=false;});
-  c.addEventListener('wheel',e=>{e.preventDefault();sph.radius=Math.max(30,Math.min(500,sph.radius+e.deltaY*0.2));updateCamera();},{passive:false});
-  c.addEventListener('contextmenu',e=>e.preventDefault());
-  window.addEventListener('resize',()=>{
-    const w=document.getElementById('c3d-wrap');
-    if(!renderer||!w.clientWidth)return;
-    camera.aspect=w.clientWidth/w.clientHeight;camera.updateProjectionMatrix();
-    renderer.setSize(w.clientWidth,w.clientHeight);
-  });
-  (function render(){requestAnimationFrame(render);if(renderer&&scene&&camera)renderer.render(scene,camera);})();
-}
-function clearScene(){while(scene.children.length)scene.remove(scene.children[0]);
-  scene.add(new THREE.AmbientLight(0xffffff,1.0));
-  const d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(80,120,60);scene.add(d1);
-  const d2=new THREE.DirectionalLight(0x8899cc,0.5);d2.position.set(-60,40,-80);scene.add(d2);
-}
-function updateCamera(){
-  const{theta,phi,radius}=sph;
-  const cx=tgt.x+radius*Math.sin(phi)*Math.sin(theta);
-  const cy=tgt.y+radius*Math.cos(phi);
-  const cz=tgt.z+radius*Math.sin(phi)*Math.cos(theta);
-  camera.position.set(cx,cy,cz);
-  camera.lookAt(tgt.x,tgt.y,tgt.z);
-  // Luces siguen a la cámara — misma intensidad siempre
-  scene.traverse(obj=>{
-    if(obj.isDirectionalLight){
-      if(obj.intensity>0.6){obj.position.set(cx+40,cy+60,cz+30);}
-      else{obj.position.set(cx-30,cy+20,cz-40);}
-    }
-  });
-}
-
-// ════════════════════════════════════════════════
-//  TABS
-// ════════════════════════════════════════════════
-function setTab(id) {
-  document.querySelectorAll('.vtab').forEach((t,i)=>{
-    const ids=['diff2d','3d','perfil','volumen'];
-    t.className='vtab'+(ids[i]===id?' active':'');
-  });
+// ═══ TABS ══════════════════════════════════════════════════════
+function setTab(id){
+  const ids=['diff2d','3d','perfil','volumen'];
+  document.querySelectorAll('.vtab').forEach((t,i)=>t.className='vtab'+(ids[i]===id?' active':''));
   document.querySelectorAll('.view-panel').forEach(p=>p.className='view-panel');
   document.getElementById('panel-'+id).className='view-panel active';
 
   if(id==='3d'){
-    // El panel ya es visible — inicializar o redimensionar con dimensiones reales
     setTimeout(()=>{
-      const wrap=document.getElementById('c3d-wrap');
-      const W=wrap.clientWidth  || wrap.offsetWidth  || 800;
-      const H=wrap.clientHeight || wrap.offsetHeight || 500;
-      if(!renderer){
-        // Primera vez: inicializar
-        init3D(W,H);
-      } else {
-        // Ya existe: solo redimensionar
-        camera.aspect=W/H;
-        camera.updateProjectionMatrix();
-        renderer.setSize(W,H);
-      }
-      // Si hay datos 3D pendientes, renderizarlos ahora
-      if(window._pending3D){
-        build3Dscene(...window._pending3D);
-        window._pending3D=null;
-      }
-    },80);
+      const w=document.getElementById('c3d-wrap');
+      const W=Math.max(400,w.clientWidth),H=Math.max(300,w.clientHeight);
+      if(!renderer)init3D(W,H);
+      else{camera.aspect=W/H;camera.updateProjectionMatrix();renderer.setSize(W,H);}
+      if(window._vol3d){build3Dscene(window._vol3d);window._vol3d=null;}
+    },100);
   }
-
-  if(id==='perfil'&&window._lastPerfilArgs){
-    setTimeout(()=>generarPerfil(...window._lastPerfilArgs),80);
-  }
-
+  if(id==='perfil'&&window._perfil){setTimeout(()=>generarPerfil(...window._perfil),100);}
   if(id==='volumen'){
     setTimeout(()=>{
-      // Tomar dimensiones del main-area (siempre visible)
-      const mainArea=document.querySelector('.main-area');
-      const W=Math.max(500, (mainArea?mainArea.clientWidth:900)-20);
-      const H=Math.max(400, (mainArea?mainArea.clientHeight:600)-60);
-      if(!rendVol){
-        initVolRenderer(W,H);
-      } else {
-        cameraVol.aspect=W/H;
-        cameraVol.updateProjectionMatrix();
-        rendVol.setSize(W,H);
-      }
-      // Esperar que el renderer esté listo
-      setTimeout(()=>{
-        if(window._pendingVol){
-          buildVolScene(...window._pendingVol);
-          window._pendingVol=null;
-        } else if(window._lastVolArgs){
-          buildVolScene(...window._lastVolArgs);
-        }
-      },50);
-    },150);
+      const w=document.getElementById('cvol-wrap');
+      const W=Math.max(400,w.clientWidth),H=Math.max(300,w.clientHeight);
+      if(!rendVol)initVolRenderer(W,H);
+      else{cameraVol.aspect=W/H;cameraVol.updateProjectionMatrix();rendVol.setSize(W,H);}
+      if(window._volumen)buildVolScene(...window._volumen);
+    },100);
   }
 }
 
-// ════════════════════════════════════════════════
-//  EXPORT
-// ════════════════════════════════════════════════
+// ═══ EXPORTAR ══════════════════════════════════════════════════
 function expPNG(){
   if(!svgEl2d){showToast('Generá la comparación primero',true);return;}
-  const scale=2;
-  const W=parseInt(svgEl2d.getAttribute('width'))*scale;
-  const H=parseInt(svgEl2d.getAttribute('height'))*scale;
+  const W=+svgEl2d.getAttribute('width')*2,H=+svgEl2d.getAttribute('height')*2;
   const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
-  const ctx=canvas.getContext('2d');
-  ctx.fillStyle='#faf7f0';ctx.fillRect(0,0,W,H);ctx.scale(scale,scale);
-  const str=new XMLSerializer().serializeToString(svgEl2d);
-  const url=URL.createObjectURL(new Blob([str],{type:'image/svg+xml'}));
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#0a1628';ctx.fillRect(0,0,W,H);ctx.scale(2,2);
+  const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svgEl2d)],{type:'image/svg+xml'}));
   const img=new Image();
   img.onload=()=>{ctx.drawImage(img,0,0);const a=document.createElement('a');
-    a.download='diferencias_'+new Date().toISOString().substring(0,10)+'.png';
-    a.href=canvas.toDataURL('image/png');a.click();URL.revokeObjectURL(url);
-    showToast('✓ PNG exportado');};
+    a.download='comparacion_'+new Date().toISOString().slice(0,10)+'.png';
+    a.href=canvas.toDataURL();a.click();URL.revokeObjectURL(url);showToast('✓ PNG exportado');};
   img.src=url;
 }
+function expCSV(){showToast('Export CSV próximamente');}
 
-function expCSVdiff(){
-  if(!dataA||!dataB){showToast('Sin datos',true);return;}
-  const allPts=[...dataA.pts,...dataB.pts];
-  const lat0=d3.mean(allPts,p=>p.lat),lon0=d3.mean(allPts,p=>p.lon);
-  const ptsA=dataA.pts.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,z:p.z,lat:p.lat,lon:p.lon};});
-  // Para cada punto de B, interpolar A en esa posición
-  const rows=['LAT,LON,PROF_ANTES,PROF_DESPUES,DIFERENCIA,TIPO'];
-  dataB.pts.forEach(p=>{
-    const m=toM(p.lat,p.lon,lat0,lon0);
-    const zA=idw(ptsA,m.x,m.y,2);
-    const d=p.z-zA;
-    const tipo=d>0.1?'DRAGADO':d<-0.1?'SEDIMENTADO':'SIN_CAMBIO';
-    rows.push(`${p.lat.toFixed(7)},${p.lon.toFixed(7)},${zA.toFixed(2)},${p.z.toFixed(2)},${d.toFixed(2)},${tipo}`);
-  });
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));
-  a.download='diferencias_'+new Date().toISOString().substring(0,10)+'.csv';a.click();
-  showToast('✓ CSV exportado');
-}
-
-// ════════════════════════════════════════════════
-//  UTILIDADES
-// ════════════════════════════════════════════════
-function northArrow(svg,cx,cy){
-  const g=svg.append('g').attr('transform',`translate(${cx},${cy})`);const R=12;
-  g.append('polygon').attr('points',`0,${-R} ${R*.35},${R*.3} 0,${R*.1}`).attr('fill','#1a237e');
-  g.append('polygon').attr('points',`0,${-R} ${-R*.35},${R*.3} 0,${R*.1}`).attr('fill','#aaa');
-  g.append('polygon').attr('points',`0,${R} ${R*.35},${-R*.3} 0,${-R*.1}`).attr('fill','#c00');
-  g.append('polygon').attr('points',`0,${R} ${-R*.35},${-R*.3} 0,${-R*.1}`).attr('fill','#aaa');
-  g.append('circle').attr('r',2.5).attr('fill','white').attr('stroke','#1a237e').attr('stroke-width',0.8);
-  g.append('text').attr('x',0).attr('y',-R-4).attr('text-anchor','middle')
-    .attr('font-family','monospace').attr('font-size','8px').attr('font-weight','bold')
-    .attr('fill','#1a237e').text('N');
-}
-function scaleBar(svg,x,y,metW,pxW){
-  const ppm=pxW/metW,rawM=metW*0.18;
-  const niceM=[1,2,5,10,25,50,100,200,500,1000].find(v=>v>=rawM*0.4)||50;
-  const barPx=niceM*ppm,lbl=niceM>=1000?`${niceM/1000}km`:`${niceM}m`;
-  const g=svg.append('g').attr('transform',`translate(${x},${y})`);
-  g.append('rect').attr('x',-2).attr('y',-6).attr('width',barPx+4).attr('height',14)
-    .attr('fill','rgba(250,247,240,0.85)').attr('rx',2);
-  g.append('rect').attr('x',0).attr('y',0).attr('width',barPx/2).attr('height',4).attr('fill','#1a237e');
-  g.append('rect').attr('x',barPx/2).attr('y',0).attr('width',barPx/2).attr('height',4)
-    .attr('fill','white').attr('stroke','#1a237e').attr('stroke-width',0.5);
-  [0,barPx].forEach(px=>{g.append('line').attr('x1',px).attr('x2',px).attr('y1',0).attr('y2',-2)
-    .attr('stroke','#1a237e').attr('stroke-width',0.8);});
-  g.append('text').attr('x',0).attr('y',-4).attr('text-anchor','middle')
-    .attr('font-family','monospace').attr('font-size','6px').attr('fill','#1a237e').text('0');
-  g.append('text').attr('x',barPx).attr('y',-4).attr('text-anchor','middle')
-    .attr('font-family','monospace').attr('font-size','6px').attr('fill','#1a237e').text(lbl);
-}
-function nSt(r,n){const raw=r/n,mag=Math.pow(10,Math.floor(Math.log10(raw)));const nm=raw/mag;return(nm<1.5?1:nm<3?2:nm<7?5:10)*mag;}
-function dms(deg,type){
-  const sign=deg<0?(type==='lat'?'S':'O'):(type==='lat'?'N':'E');
-  const abs=Math.abs(deg),d=Math.floor(abs),mf=(abs-d)*60,m=Math.floor(mf),s=Math.round((mf-m)*60);
-  return `${d}°${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}"${sign}`;
-}
-function var_navy(){return '#1a237e';}
+// ═══ UTILS ═════════════════════════════════════════════════════
 function prog(p){document.getElementById('pb').style.transform=`scaleX(${p})`;}
 function sl(ms){return new Promise(r=>setTimeout(r,ms));}
-// ── Inicialización de eventos de archivo ─────────────────────
-// Usar window.onload para garantizar que el DOM está listo
-window.addEventListener('load', function() {
-  const fia = document.getElementById('fi-a');
-  const fib = document.getElementById('fi-b');
-  if(fia) fia.addEventListener('change', function() {
-    if(this.files && this.files.length > 0){
-      loadCSV('a', this.files[0]);
-      this.value = '';
-    }
-  });
-  if(fib) fib.addEventListener('change', function() {
-    if(this.files && this.files.length > 0){
-      loadCSV('b', this.files[0]);
-      this.value = '';
-    }
-  });
-  console.log('BatiComparar: eventos de archivo listos');
-});
-
 let tT;
 function showToast(msg,err=false){
   const t=document.getElementById('toast');t.textContent=msg;
   t.className='toast show'+(err?' err':'');
   clearTimeout(tT);tT=setTimeout(()=>t.className='toast',3500);
 }
-
 </script>
 </body>
 </html>
