@@ -254,6 +254,7 @@ input[type=range] { width:100%; accent-color:var(--navy); cursor:pointer; }
     <div class="vtab active" onclick="setTab('diff2d')">🗺 DIFERENCIAS 2D</div>
     <div class="vtab" onclick="setTab('3d')">🌊 3D SUPERPUESTO</div>
     <div class="vtab" onclick="setTab('perfil')">📈 PERFIL DE CORTE</div>
+    <div class="vtab" onclick="setTab('volumen')">🟡 VOLUMEN DRAGADO</div>
   </div>
 
   <!-- Panel diferencias 2D -->
@@ -275,6 +276,20 @@ input[type=range] { width:100%; accent-color:var(--navy); cursor:pointer; }
     <div id="c3d-wrap">
       <canvas id="c3d"></canvas>
       <div class="overlay3d">🖱 Rotar · Scroll zoom · Derecho mover &nbsp;|&nbsp; <span id="scale-info" style="color:var(--gold)"></span></div>
+    </div>
+  </div>
+
+  <!-- Panel volumen 3D -->
+  <div class="view-panel" id="panel-volumen">
+    <div id="cvol-wrap" style="flex:1;position:relative;overflow:hidden;">
+      <canvas id="cvol" style="display:block;width:100%;height:100%;"></canvas>
+      <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+        background:rgba(10,26,40,0.8);border:1px solid rgba(26,35,126,0.4);border-radius:16px;
+        padding:5px 14px;font-family:'Share Tech Mono',monospace;font-size:10px;
+        color:rgba(200,220,234,0.7);pointer-events:none;white-space:nowrap;">
+        🖱 Rotar · Scroll zoom · Derecho mover &nbsp;|&nbsp;
+        <span style="color:#ffd060">Forma del material dragado en 3D</span>
+      </div>
     </div>
   </div>
 
@@ -447,6 +462,157 @@ function volumenTIN(tris,pts){
   return vol;
 }
 
+
+// ════════════════════════════════════════════════
+//  VOLUMEN 3D — Forma del material dragado
+// ════════════════════════════════════════════════
+
+function initVolRenderer(W,H){
+  rendVol=new THREE.WebGLRenderer({canvas:document.getElementById('cvol'),antialias:true});
+  rendVol.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  rendVol.setSize(W,H);
+  rendVol.setClearColor(0x060e18);
+  sceneVol=new THREE.Scene();
+  sceneVol.fog=new THREE.FogExp2(0x060e18,0.004);
+  cameraVol=new THREE.PerspectiveCamera(50,W/H,0.1,2000);
+
+  // Luces
+  sceneVol.add(new THREE.AmbientLight(0x334466,0.8));
+  const d1=new THREE.DirectionalLight(0xffffff,1.0);d1.position.set(60,80,40);sceneVol.add(d1);
+  const d2=new THREE.DirectionalLight(0x4477aa,0.5);d2.position.set(-40,30,-60);sceneVol.add(d2);
+
+  // Controles mouse — misma lógica que el 3D superpuesto
+  const c=document.getElementById('cvol');
+  let vDrag=false,vRight=false,vPrev={x:0,y:0};
+  let vSph={theta:0.6,phi:0.9,radius:160},vTgt={x:0,y:-10,z:0};
+  const vUpdateCam=()=>{
+    const{theta,phi,radius}=vSph;
+    cameraVol.position.set(
+      vTgt.x+radius*Math.sin(phi)*Math.sin(theta),
+      vTgt.y+radius*Math.cos(phi),
+      vTgt.z+radius*Math.sin(phi)*Math.cos(theta)
+    );
+    cameraVol.lookAt(vTgt.x,vTgt.y,vTgt.z);
+  };
+  c.addEventListener('mousedown',e=>{vDrag=true;vRight=e.button===2;vPrev={x:e.clientX,y:e.clientY};});
+  c.addEventListener('mousemove',e=>{
+    if(!vDrag)return;
+    const dx=e.clientX-vPrev.x,dy=e.clientY-vPrev.y;vPrev={x:e.clientX,y:e.clientY};
+    if(vRight){vTgt.x-=dx*0.15;vTgt.z+=dy*0.15;}
+    else{vSph.theta-=dx*0.005;vSph.phi=Math.max(0.05,Math.min(Math.PI*0.95,vSph.phi-dy*0.005));}
+    vUpdateCam();
+  });
+  c.addEventListener('mouseup',()=>{vDrag=false;vRight=false;});
+  c.addEventListener('mouseleave',()=>{vDrag=false;});
+  c.addEventListener('wheel',e=>{e.preventDefault();vSph.radius=Math.max(30,Math.min(500,vSph.radius+e.deltaY*0.2));vUpdateCam();},{passive:false});
+  c.addEventListener('contextmenu',e=>e.preventDefault());
+
+  vUpdateCam();
+  (function renderVol(){requestAnimationFrame(renderVol);if(rendVol&&sceneVol&&cameraVol)rendVol.render(sceneVol,cameraVol);})();
+}
+
+function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
+  if(!rendVol||!sceneVol||!cameraVol)return;
+
+  // Limpiar escena
+  while(sceneVol.children.length>3)sceneVol.remove(sceneVol.children[3]);
+
+  const msk=window._mask;
+  const SZ=100;
+
+  // Escala vertical adaptiva — diferencia de medias
+  const mediaA=d3.mean(Array.from(valsA).filter((_,i)=>!msk||msk[i]));
+  const mediaB=d3.mean(Array.from(valsB).filter((_,i)=>!msk||msk[i]));
+  const diffMedia=Math.abs(mediaB-mediaA)||0.5;
+  const zR=d3.max(valsB)-d3.min(valsA)||1;
+  const autoScale=Math.min(20,Math.max(8, 0.6*zR/diffMedia));
+
+  const scD=v=>-(v/dMax)*SZ*0.25*autoScale; // profundidad de diferencia → Y
+
+  // Paleta caliente para el volumen: amarillo=poco, rojo=mucho
+  const palVol=t=>{
+    t=Math.max(0,Math.min(1,t));
+    // negro→amarillo→naranja→rojo
+    const stops=[[0,0,0],[1,0.85,0],[1,0.4,0],[0.8,0,0]];
+    const n=stops.length-1,i=Math.floor(t*n),f=t*n-i;
+    const a=stops[Math.min(i,n)],b=stops[Math.min(i+1,n)];
+    return[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
+  };
+
+  // Construir el SÓLIDO del volumen dragado
+  // Para cada celda con dragado positivo: un bloque desde 0 (superficie) hasta la diferencia
+  const verts=[], cols=[], normals=[];
+
+  for(let row=0;row<gH-1;row++){
+    for(let col=0;col<gW-1;col++){
+      const i00=row*gW+col, i10=row*gW+col+1;
+      const i01=(row+1)*gW+col, i11=(row+1)*gW+col+1;
+      if(msk&&(!msk[i00]||!msk[i10]||!msk[i01]||!msk[i11]))continue;
+
+      const d00=diff[i00],d10=diff[i10],d01=diff[i01],d11=diff[i11];
+      const dAvg=(d00+d10+d01+d11)/4;
+      if(dAvg<0.05)continue; // solo zona dragada
+
+      const x0=(col/(gW-1))*SZ-SZ/2, x1=((col+1)/(gW-1))*SZ-SZ/2;
+      const z0=(row/(gH-1))*SZ-SZ/2, z1=((row+1)/(gH-1))*SZ-SZ/2;
+
+      // Y superior = 0 (superficie del agua)
+      // Y inferior = -profundidad de la diferencia
+      const y00=scD(d00), y10=scD(d10), y01=scD(d01), y11=scD(d11);
+
+      const t=(dAvg/dMax);
+      const[r,g,b]=palVol(t);
+
+      // Cara superior (plano del agua) — siempre en y=0
+      verts.push(x0,0,z0, x1,0,z0, x1,0,z1);
+      verts.push(x0,0,z0, x1,0,z1, x0,0,z1);
+      for(let k=0;k<6;k++){cols.push(r*0.7,g*0.7,b*0.7);}
+
+      // Cara inferior (profundidad de diferencia) — coloreada intensamente
+      verts.push(x0,y00,z0, x1,y11,z1, x1,y10,z0);
+      verts.push(x0,y00,z0, x0,y01,z1, x1,y11,z1);
+      for(let k=0;k<6;k++){cols.push(r,g,b);}
+
+      // 4 paredes laterales solo si hay vecinos fuera del hull o en el borde
+      const addWall=(ax,ay,az,bx,by,bz,cx,cy,cz,dx,dy,dz)=>{
+        verts.push(ax,ay,az,bx,by,bz,cx,cy,cz);
+        verts.push(ax,ay,az,cx,cy,cz,dx,dy,dz);
+        for(let k=0;k<6;k++)cols.push(r*0.6,g*0.6,b*0.6);
+      };
+
+      // Solo borde externo (simplificado)
+      if(col===0)        addWall(x0,0,z0,x0,0,z1,x0,y01,z1,x0,y00,z0);
+      if(col===gW-2)     addWall(x1,0,z0,x1,y10,z0,x1,y11,z1,x1,0,z1);
+      if(row===0)        addWall(x0,0,z0,x0,y00,z0,x1,y10,z0,x1,0,z0);
+      if(row===gH-2)     addWall(x0,0,z1,x1,0,z1,x1,y11,z1,x0,y01,z1);
+    }
+  }
+
+  if(verts.length===0)return;
+
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+  geo.computeVertexNormals();
+
+  const mat=new THREE.MeshPhongMaterial({
+    vertexColors:true, side:THREE.DoubleSide,
+    transparent:false, shininess:60, specular:0x442200
+  });
+  sceneVol.add(new THREE.Mesh(geo,mat));
+
+  // Grid de referencia
+  const grid=new THREE.GridHelper(SZ,10,0x1a2a4a,0x1a2a4a);
+  grid.position.y=-SZ*0.25*autoScale*0.5;
+  sceneVol.add(grid);
+
+  // Info de escala en overlay
+  const scInfo=document.getElementById('scale-info');
+  if(scInfo)scInfo.textContent='Escala: '+autoScale.toFixed(0)+'×';
+
+  showToast('✓ Volumen 3D generado');
+}
+
 // ════════════════════════════════════════════════
 //  CONVEX HULL + MÁSCARA
 // ════════════════════════════════════════════════
@@ -604,6 +770,9 @@ async function comparar() {
   prog(0.95);
   window._lastPerfilArgs=[valsA,valsB,diff,gW,gH,dMax];
   generarPerfil(valsA,valsB,diff,gW,gH,dMax);
+
+  // Guardar para tab volumen 3D
+  window._pendingVol=[diff,valsA,valsB,gW,gH,dMax];
   prog(1); setTimeout(()=>prog(0),600);
 
   document.getElementById('stats-panel').style.display='';
@@ -1161,7 +1330,7 @@ function updateCamera(){
 // ════════════════════════════════════════════════
 function setTab(id) {
   document.querySelectorAll('.vtab').forEach((t,i)=>{
-    const ids=['diff2d','3d','perfil'];
+    const ids=['diff2d','3d','perfil','volumen'];
     t.className='vtab'+(ids[i]===id?' active':'');
   });
   document.querySelectorAll('.view-panel').forEach(p=>p.className='view-panel');
@@ -1192,6 +1361,24 @@ function setTab(id) {
 
   if(id==='perfil'&&window._lastPerfilArgs){
     setTimeout(()=>generarPerfil(...window._lastPerfilArgs),80);
+  }
+
+  if(id==='volumen'){
+    setTimeout(()=>{
+      const wrap=document.getElementById('cvol-wrap');
+      const W=Math.max(400,wrap.clientWidth||800);
+      const H=Math.max(300,wrap.clientHeight||500);
+      if(!rendVol) initVolRenderer(W,H);
+      else {
+        cameraVol.aspect=W/H;
+        cameraVol.updateProjectionMatrix();
+        rendVol.setSize(W,H);
+      }
+      if(window._pendingVol){
+        buildVolScene(...window._pendingVol);
+        window._pendingVol=null;
+      }
+    },80);
   }
 }
 
