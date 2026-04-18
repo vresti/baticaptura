@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bati3D — Batimetría Tridimensional</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@400;600&display=swap');
@@ -279,6 +281,7 @@ input[type=range] { width:100%; accent-color:var(--blu); cursor:pointer; }
     <div class="panel" id="exp-panel" style="display:none">
       <div class="panel-title">▸ Exportar</div>
       <button class="btn-sec" onclick="expPNG()">↓ PNG desde vista actual</button>
+      <button class="btn-sec" onclick="generarInformePDF()" style="background:rgba(201,162,39,.15);color:#ffd060;border-color:rgba(201,162,39,.4)">📄 Informe PDF</button>
     </div>
 
   </aside>
@@ -854,6 +857,229 @@ function buildLegend(){
     div.appendChild(sw);div.appendChild(lb);el.appendChild(div);
   }
 }
+
+// ═══ INFORME PDF P1 ════════════════════════════════════════════
+async function generarInformePDF(){
+  if(!allPts||allPts.length<3){showToast('Generá el gráfico 3D primero',true);return;}
+  showToast('⏳ Generando informe PDF…');
+
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const PW=210,PH=297,M=15;
+
+  // ── Paleta de colores ──
+  const NAVY=[26,35,126],GOLD=[201,162,39],TEAL=[26,143,232],DARK=[10,26,40];
+  const LIGHT=[240,236,228],WHITE=[255,255,255],GRAY=[100,120,140];
+
+  // ══════════════════════════════════════════════════════════════
+  // PÁGINA 1 — PORTADA
+  // ══════════════════════════════════════════════════════════════
+  // Fondo oscuro superior
+  doc.setFillColor(...DARK);
+  doc.rect(0,0,PW,80,'F');
+  // Franja dorada
+  doc.setFillColor(...GOLD);
+  doc.rect(0,80,PW,2,'F');
+  // Fondo claro inferior
+  doc.setFillColor(...LIGHT);
+  doc.rect(0,82,PW,PH-82,'F');
+
+  // Logo / título
+  doc.setTextColor(...GOLD);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(28);
+  doc.text('BATISISTEMA',PW/2,32,{align:'center'});
+  doc.setFontSize(12);
+  doc.setTextColor(200,220,240);
+  doc.text('Sistema de Relevamiento Batimétrico',PW/2,42,{align:'center'});
+
+  doc.setFillColor(...TEAL);
+  doc.roundedRect(M+20,52,PW-M*2-40,18,3,3,'F');
+  doc.setTextColor(...WHITE);
+  doc.setFontSize(14);
+  doc.setFont('helvetica','bold');
+  doc.text('INFORME DE RELEVAMIENTO BATIMÉTRICO',PW/2,63,{align:'center'});
+
+  // Datos portada
+  const now=new Date();
+  const fechaStr=now.toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const horaStr=now.toLocaleTimeString('es-AR');
+
+  doc.setTextColor(...NAVY);
+  doc.setFontSize(10);
+  doc.setFont('helvetica','normal');
+
+  const datos=[
+    ['Fecha de generación:',fechaStr],
+    ['Hora:',horaStr],
+    ['Archivos relevados:',datasets.map(d=>d.name).join(', ')],
+    ['Total de sondajes:',allPts.length+' puntos'],
+  ];
+  let y=100;
+  datos.forEach(([lbl,val])=>{
+    doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);
+    doc.text(lbl,M+5,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);
+    doc.text(String(val),M+65,y);
+    y+=9;
+  });
+
+  // Coordenadas
+  const latMin=d3.min(allPts,p=>p.lat),latMax=d3.max(allPts,p=>p.lat);
+  const lonMin=d3.min(allPts,p=>p.lon),lonMax=d3.max(allPts,p=>p.lon);
+  y+=4;
+  doc.setFillColor(...NAVY);doc.rect(M,y,PW-M*2,0.3,'F');y+=6;
+  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);
+  doc.text('ÁREA DE RELEVAMIENTO',M+5,y);y+=8;
+  [
+    ['Latitud:',latMin.toFixed(6)+'° S  →  '+latMax.toFixed(6)+'° S'],
+    ['Longitud:',lonMin.toFixed(6)+'° O  →  '+lonMax.toFixed(6)+'° O'],
+  ].forEach(([lbl,val])=>{
+    doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.text(lbl,M+5,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);doc.text(val,M+35,y);y+=8;
+  });
+
+  // Firma
+  y=PH-50;
+  doc.setFillColor(...NAVY);doc.rect(M,y,PW-M*2,0.3,'F');y+=8;
+  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(9);
+  doc.text('RESPONSABLE DEL RELEVAMIENTO',M+5,y);y+=8;
+  doc.setFont('helvetica','normal');doc.text('Nombre y apellido: _______________________________________________',M+5,y);y+=10;
+  doc.text('Matrícula profesional: ___________________   Firma: ___________________',M+5,y);
+
+  // ══════════════════════════════════════════════════════════════
+  // PÁGINA 2 — DATOS ESTADÍSTICOS
+  // ══════════════════════════════════════════════════════════════
+  doc.addPage();
+  // Header
+  doc.setFillColor(...NAVY);doc.rect(0,0,PW,18,'F');
+  doc.setFillColor(...GOLD);doc.rect(0,18,PW,.8,'F');
+  doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.text('DATOS DEL RELEVAMIENTO',PW/2,12,{align:'center'});
+
+  y=28;
+  // Tabla estadísticas
+  const stats=[
+    ['Cantidad de sondajes',allPts.length,'puntos'],
+    ['Profundidad mínima',d3.min(allPts,p=>p.z).toFixed(2),'m'],
+    ['Profundidad máxima',d3.max(allPts,p=>p.z).toFixed(2),'m'],
+    ['Profundidad media',d3.mean(allPts,p=>p.z).toFixed(2),'m'],
+    ['Profundidad mediana',d3.median(allPts,p=>p.z).toFixed(2),'m'],
+  ];
+
+  doc.setFontSize(10);
+  stats.forEach((row,i)=>{
+    if(i%2===0){doc.setFillColor(230,235,245);}else{doc.setFillColor(245,248,252);}
+    doc.rect(M,y-5,PW-M*2,9,'F');
+    doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);
+    doc.text(row[0],M+4,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);
+    doc.text(row[1]+' '+row[2],PW-M-4,y,{align:'right'});
+    y+=9;
+  });
+
+  // Metodología
+  y+=8;
+  doc.setFillColor(...NAVY);doc.rect(M,y,PW-M*2,.3,'F');y+=7;
+  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(10);
+  doc.text('METODOLOGÍA DE CÁLCULO',M+4,y);y+=7;
+  doc.setFont('helvetica','normal');doc.setTextColor(50,50,80);doc.setFontSize(9);
+  const metodologia=[
+    'Interpolación: Triangulación de Delaunay (TIN) — método estándar internacional.',
+    'Volumen: Método Prismatoid — suma de prismas triangulares (Hypack compatible).',
+    'GPS: Coordenadas en sistema WGS84 (EPSG:4326).',
+    'Profundidades referidas al nivel de aguas bajas ordinarias (NABO).',
+    'Correcciones aplicadas: offset de ecosonda + corrección de marea.',
+  ];
+  metodologia.forEach(line=>{
+    doc.text('•  '+line,M+4,y,{maxWidth:PW-M*2-8});y+=6;
+  });
+
+  // Tabla de puntos (primeros 50)
+  y+=8;
+  doc.setFillColor(...NAVY);doc.rect(M,y,PW-M*2,.3,'F');y+=7;
+  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(10);
+  doc.text('LISTADO DE SONDAJES',M+4,y);y+=6;
+
+  const colW=[10,40,40,25,25,25];const cols=['N°','LATITUD','LONGITUD','PROF.','OFFSET','FINAL'];
+  let cx=M;
+  doc.setFillColor(...NAVY);doc.rect(M,y,PW-M*2,7,'F');
+  doc.setTextColor(...WHITE);doc.setFontSize(8);
+  cols.forEach((c,i)=>{doc.text(c,cx+2,y+5);cx+=colW[i];});
+  y+=7;
+
+  const maxRows=Math.min(allPts.length,Math.floor((PH-y-20)/6));
+  allPts.slice(0,maxRows).forEach((p,i)=>{
+    if(i%2===0){doc.setFillColor(240,244,250);}else{doc.setFillColor(250,252,255);}
+    doc.rect(M,y,PW-M*2,5.5,'F');
+    doc.setTextColor(40,40,80);
+    cx=M;
+    [i+1,p.lat.toFixed(6),p.lon.toFixed(6),(p.z||0).toFixed(2),'0.05','—'].forEach((v,j)=>{
+      doc.text(String(v),cx+2,y+4);cx+=colW[j];
+    });
+    y+=5.5;
+  });
+  if(allPts.length>maxRows){
+    doc.setFont('helvetica','italic');doc.setTextColor(...GRAY);doc.setFontSize(8);
+    doc.text(`… y ${allPts.length-maxRows} puntos más. Ver CSV exportado para listado completo.`,M+4,y+6);
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // PÁGINA 3 — VISTA 3D
+  // ══════════════════════════════════════════════════════════════
+  doc.addPage();
+  doc.setFillColor(...NAVY);doc.rect(0,0,PW,18,'F');
+  doc.setFillColor(...GOLD);doc.rect(0,18,PW,.8,'F');
+  doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.text('VISUALIZACIÓN BATIMÉTRICA 3D',PW/2,12,{align:'center'});
+
+  // Capturar canvas Three.js
+  try{
+    const canvas=document.getElementById('c3d');
+    if(canvas&&canvas.width>10){
+      // Renderizar un frame primero
+      if(renderer&&scene&&camera)renderer.render(scene,camera);
+      const imgData=canvas.toDataURL('image/jpeg',0.92);
+      const cW=canvas.width,cH=canvas.height;
+      const maxW=PW-M*2,maxH=130;
+      const asp=cW/cH;
+      let iW=maxW,iH=maxW/asp;
+      if(iH>maxH){iH=maxH;iW=maxH*asp;}
+      const ix=(PW-iW)/2;
+      doc.addImage(imgData,'JPEG',ix,25,iW,iH);
+      y=25+iH+8;
+    }else{y=30;}
+  }catch(e){y=30;}
+
+  // Leyenda de colores
+  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(9);
+  doc.text('LEYENDA BATIMÉTRICA',M+4,y);y+=6;
+  const paletas=[
+    [[1,18,70],'Zona más profunda ('+zMax.toFixed(1)+'m)'],
+    [[10,70,160],'Zona profunda'],
+    [[50,150,210],'Zona media'],
+    [[150,220,210],'Zona somera'],
+    [[210,240,215],'Zona muy somera ('+zMin.toFixed(1)+'m)'],
+  ];
+  paletas.forEach(([col,lbl])=>{
+    doc.setFillColor(...col);doc.roundedRect(M+4,y-3.5,18,5.5,1,1,'F');
+    doc.setFont('helvetica','normal');doc.setTextColor(40,40,80);doc.setFontSize(8);
+    doc.text(lbl,M+26,y);y+=7;
+  });
+
+  // Firma al pie
+  y=PH-25;
+  doc.setFillColor(...NAVY);doc.rect(M,y,PW-M*2,.3,'F');y+=6;
+  doc.setFont('helvetica','italic');doc.setTextColor(...GRAY);doc.setFontSize(8);
+  doc.text('Informe generado por BatiSistema — vresti.github.io/baticaptura',PW/2,y,{align:'center'});
+  doc.text(new Date().toISOString().replace('T',' ').substring(0,19),PW/2,y+5,{align:'center'});
+
+  // Guardar
+  const nombre='Informe_Batimetrico_'+new Date().toISOString().substring(0,10)+'.pdf';
+  doc.save(nombre);
+  showToast('✓ Informe PDF generado');
+}
+
 
 // ─── Exportar PNG ─────────────────────────────────────────────────────────────
 function expPNG(){

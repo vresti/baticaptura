@@ -6,6 +6,8 @@
 <title>BatiComparar — Comparación Batimétrica</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@300;400;600&display=swap');
 :root{
@@ -171,6 +173,7 @@ input[type=range]{width:100%;accent-color:var(--blu);cursor:pointer;}
     <div class="sec-title">▸ Exportar</div>
     <button class="btn-exp" onclick="expPNG()">↓ PNG mapa diferencias</button>
     <button class="btn-exp" onclick="expCSV()">↓ CSV diferencias por punto</button>
+    <button class="btn-exp" onclick="generarCertificadoPDF()" style="background:rgba(201,162,39,.15);color:#ffd060;border-color:rgba(201,162,39,.4);margin-top:4px">📋 Certificado PDF</button>
   </div>
 
 </aside>
@@ -849,6 +852,293 @@ function expPNG(){
     a.href=canvas.toDataURL();a.click();URL.revokeObjectURL(url);showToast('✓ PNG exportado');};
   img.src=url;
 }
+// ═══ CERTIFICADO PDF P2 ════════════════════════════════════════
+async function generarCertificadoPDF(){
+  if(!dataA||!dataB){showToast('Realizá la comparación primero',true);return;}
+  showToast('⏳ Generando certificado PDF…');
+
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const PW=210,PH=297,M=15;
+  const NAVY=[26,35,126],GOLD=[201,162,39],TEAL=[26,143,232];
+  const DARK=[6,14,24],WHITE=[255,255,255],GRAY=[100,120,140];
+  const ORG=[220,120,30],GRN=[0,160,100],BLUE=[26,96,144];
+
+  // Helper: header de página
+  const pageHeader=(titulo)=>{
+    doc.setFillColor(...DARK);doc.rect(0,0,PW,18,'F');
+    doc.setFillColor(...GOLD);doc.rect(0,18,PW,.8,'F');
+    doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(11);
+    doc.text(titulo,PW/2,12,{align:'center'});
+    doc.setTextColor(...GRAY);doc.setFontSize(7);
+    doc.text('BatiSistema — Certificado de Dragado',M,12);
+  };
+
+  // Leer datos guardados
+  const volData=window._volumen;
+  const volA=volData?d3.mean(Array.from(volData[1]).filter((_,i)=>window._mask&&window._mask[i])):0;
+  const dMax=volData?volData[5]:0;
+
+  // ═══════ PÁGINA 1: PORTADA ════════════════════════════════════
+  doc.setFillColor(...DARK);doc.rect(0,0,PW,PH,'F');
+  doc.setFillColor(...NAVY);doc.rect(0,60,PW,100,'F');
+  doc.setFillColor(...GOLD);doc.rect(0,60,PW,1.5,'F');
+  doc.setFillColor(...GOLD);doc.rect(0,159,PW,1.5,'F');
+
+  doc.setTextColor(...GOLD);doc.setFont('helvetica','bold');doc.setFontSize(9);
+  doc.text('BATISISTEMA',PW/2,45,{align:'center'});
+  doc.setFontSize(7);doc.setTextColor(150,180,210);
+  doc.text('SISTEMA DE RELEVAMIENTO BATIMÉTRICO — DELTA DEL TIGRE',PW/2,52,{align:'center'});
+
+  doc.setTextColor(...WHITE);doc.setFontSize(22);
+  doc.text('CERTIFICADO DE',PW/2,88,{align:'center'});
+  doc.setTextColor(...GOLD);doc.setFontSize(26);
+  doc.text('DRAGADO',PW/2,108,{align:'center'});
+
+  doc.setTextColor(200,220,240);doc.setFontSize(8);
+  const now=new Date();
+  doc.text('Emitido: '+now.toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'}),PW/2,125,{align:'center'});
+
+  // Cuadro de datos en portada
+  let y=175;
+  const datosPortada=[
+    ['Relevamiento A (ANTES):',dataA.name,'('+dataA.pts.length+' sondajes)'],
+    ['Relevamiento B (DESPUÉS):',dataB.name,'('+dataB.pts.length+' sondajes)'],
+  ];
+  datosPortada.forEach(([lbl,val,extra])=>{
+    doc.setFont('helvetica','bold');doc.setTextColor(...GOLD);doc.setFontSize(8);
+    doc.text(lbl,M+5,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(200,220,240);
+    doc.text(val,M+65,y);
+    doc.setTextColor(100,140,180);doc.setFontSize(7);
+    doc.text(extra,M+65,y+5);
+    y+=14;
+  });
+
+  // Firma portada
+  y=PH-45;
+  doc.setDrawColor(...GOLD);doc.setLineWidth(.3);
+  doc.line(M+20,y,M+80,y);doc.line(PW-M-80,y,PW-M-20,y);
+  doc.setTextColor(...GOLD);doc.setFontSize(7);
+  doc.text('Responsable del relevamiento',M+22,y+5);
+  doc.text('Firma y sello',PW-M-78,y+5);
+  doc.setFont('helvetica','normal');doc.setTextColor(150,180,210);
+  doc.text('Nombre: _________________________',M+22,y+11);
+  doc.text('Matrícula: ______________________',M+22,y+17);
+
+  // ═══════ PÁGINA 2: MAPA DE DIFERENCIAS ════════════════════════
+  doc.addPage();
+  pageHeader('MAPA DE DIFERENCIAS BATIMÉTRICAS');
+  y=25;
+
+  // Capturar SVG del mapa 2D
+  if(svgEl2d){
+    try{
+      const svgStr=new XMLSerializer().serializeToString(svgEl2d);
+      const svgBlob=new Blob([svgStr],{type:'image/svg+xml'});
+      const svgUrl=URL.createObjectURL(svgBlob);
+      await new Promise((res,rej)=>{
+        const img=new Image();
+        img.onload=()=>{
+          const c=document.createElement('canvas');
+          c.width=svgEl2d.width.baseVal.value*2;c.height=svgEl2d.height.baseVal.value*2;
+          const ctx=c.getContext('2d');ctx.scale(2,2);ctx.drawImage(img,0,0);
+          const iData=c.toDataURL('image/jpeg',.92);
+          const iW=PW-M*2,iH=iW*(svgEl2d.height.baseVal.value/svgEl2d.width.baseVal.value);
+          doc.addImage(iData,'JPEG',M,y,iW,Math.min(iH,160));
+          y+=Math.min(iH,160)+6;
+          URL.revokeObjectURL(svgUrl);res();
+        };
+        img.onerror=rej;img.src=svgUrl;
+      });
+    }catch(e){y+=10;}
+  }
+
+  // Leyenda diferencias
+  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(9);
+  doc.text('LEYENDA:',M,y);
+  const leyItems=[[[26,96,144],'Zona dragada (B > A)'],[[ 139,0,0],'Zona sedimentada (B < A)'],[[200,200,200],'Sin cambio significativo']];
+  let lx=M+30;
+  leyItems.forEach(([col,lbl])=>{
+    doc.setFillColor(...col);doc.rect(lx,y-3.5,10,5,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,80);
+    doc.text(lbl,lx+12,y);lx+=65;
+  });
+
+  // ═══════ PÁGINA 3: VISTAS 3D ══════════════════════════════════
+  doc.addPage();
+  pageHeader('COMPARACIÓN BATIMÉTRICA 3D');
+  y=25;
+
+  // Capturar canvas 3D superpuesto
+  const c3d=document.getElementById('c3d');
+  if(c3d&&c3d.width>10){
+    try{
+      if(renderer&&scene&&camera)renderer.render(scene,camera);
+      const imgData=c3d.toDataURL('image/jpeg',.90);
+      const asp=c3d.width/c3d.height,maxW=PW-M*2,maxH=100;
+      let iW=maxW,iH=maxW/asp;if(iH>maxH){iH=maxH;iW=maxH*asp;}
+      doc.addImage(imgData,'JPEG',(PW-iW)/2,y,iW,iH);
+      doc.setFont('helvetica','italic');doc.setTextColor(...GRAY);doc.setFontSize(7);
+      doc.text('Figura 1: Superficie antes (naranja) y después (verde) del dragado',PW/2,y+iH+4,{align:'center'});
+      y+=iH+12;
+    }catch(e){}
+  }
+
+  // Capturar canvas volumen dragado
+  const cvol=document.getElementById('cvol');
+  if(cvol&&cvol.width>10){
+    try{
+      if(rendVol&&sceneVol&&cameraVol)rendVol.render(sceneVol,cameraVol);
+      const imgData=cvol.toDataURL('image/jpeg',.90);
+      const asp=cvol.width/cvol.height,maxW=PW-M*2,maxH=100;
+      let iW=maxW,iH=maxW/asp;if(iH>maxH){iH=maxH;iW=maxH*asp;}
+      doc.addImage(imgData,'JPEG',(PW-iW)/2,y,iW,iH);
+      doc.setFont('helvetica','italic');doc.setTextColor(...GRAY);doc.setFontSize(7);
+      doc.text('Figura 2: Volumen de material dragado (naranja=fondo anterior, azul=fondo nuevo)',PW/2,y+iH+4,{align:'center'});
+    }catch(e){}
+  }
+
+  // ═══════ PÁGINA 4: PERFIL TRANSVERSAL ═════════════════════════
+  doc.addPage();
+  pageHeader('PERFIL TRANSVERSAL DEL CANAL');
+  y=25;
+
+  const pw=document.getElementById('perfil-wrap');
+  if(pw&&pw.querySelector('svg')){
+    try{
+      const svgP=pw.querySelector('svg');
+      const svgStr=new XMLSerializer().serializeToString(svgP);
+      const svgBlob=new Blob([svgStr],{type:'image/svg+xml'});
+      const svgUrl=URL.createObjectURL(svgBlob);
+      await new Promise((res,rej)=>{
+        const img=new Image();
+        img.onload=()=>{
+          const c=document.createElement('canvas');
+          c.width=svgP.width.baseVal.value*2;c.height=svgP.height.baseVal.value*2;
+          const ctx=c.getContext('2d');ctx.scale(2,2);ctx.drawImage(img,0,0);
+          const iData=c.toDataURL('image/jpeg',.92);
+          const iW=PW-M*2,iH=iW*(svgP.height.baseVal.value/svgP.width.baseVal.value);
+          doc.addImage(iData,'JPEG',M,y,iW,Math.min(iH,150));
+          y+=Math.min(iH,150)+6;
+          URL.revokeObjectURL(svgUrl);res();
+        };
+        img.onerror=rej;img.src=svgUrl;
+      });
+    }catch(e){y+=10;}
+  }
+  doc.setFont('helvetica','italic');doc.setTextColor(...GRAY);doc.setFontSize(7.5);
+  doc.text('Línea azul punteada = perfil ANTES | Línea verde = perfil DESPUÉS | Área coloreada = volumen dragado',PW/2,y,{align:'center'});
+
+  // ═══════ PÁGINA 5: CÁLCULO DE VOLUMEN ═════════════════════════
+  doc.addPage();
+  pageHeader('CÁLCULO Y CERTIFICACIÓN DEL VOLUMEN DRAGADO');
+  y=28;
+
+  // Leer stats del DOM
+  const volRow=document.getElementById('stats-big');
+  const volNums=volRow?volRow.querySelectorAll('.vol-num'):[];
+  const volA_txt=volNums[0]?volNums[0].textContent:'—';
+  const volB_txt=volNums[1]?volNums[1].textContent:'—';
+  const volDif_txt=volNums[2]?volNums[2].textContent:'—';
+  const statVals=volRow?volRow.querySelectorAll('.stat-v'):[];
+  const area_txt=statVals[0]?statVals[0].textContent:'—';
+  const maxDrag_txt=statVals[1]?statVals[1].textContent:'—';
+  const media_txt=statVals[2]?statVals[2].textContent:'—';
+
+  // Cuadro principal de volumen
+  doc.setFillColor(...NAVY);doc.roundedRect(M,y,PW-M*2,42,3,3,'F');
+  doc.setTextColor(...GOLD);doc.setFont('helvetica','bold');doc.setFontSize(10);
+  doc.text('RESULTADO DEL DRAGADO',PW/2,y+9,{align:'center'});
+
+  // Tres columnas
+  const cols3=[
+    {lbl:'VOLUMEN INICIAL (A)',val:volA_txt,col:[26,143,232]},
+    {lbl:'VOLUMEN FINAL (B)',val:volB_txt,col:[0,200,120]},
+    {lbl:'MATERIAL DRAGADO',val:volDif_txt,col:[255,208,96]},
+  ];
+  const cw=(PW-M*2)/3;
+  cols3.forEach(({lbl,val,col},i)=>{
+    const cx=M+i*cw+cw/2;
+    doc.setTextColor(...col);doc.setFontSize(14);doc.text(val,cx,y+24,{align:'center'});
+    doc.setTextColor(180,200,220);doc.setFontSize(6.5);doc.text(lbl,cx,y+31,{align:'center'});
+  });
+
+  // Separadores
+  doc.setDrawColor(50,70,120);doc.setLineWidth(.3);
+  [1,2].forEach(i=>doc.line(M+cw*i,y+12,M+cw*i,y+38));
+  y+=50;
+
+  // Datos adicionales
+  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(10);
+  doc.text('DATOS COMPLEMENTARIOS',M,y);y+=6;
+  const dats=[
+    ['Área relevada',area_txt],
+    ['Máxima diferencia de dragado',maxDrag_txt],
+    ['Profundidad media A → B',media_txt],
+    ['Método de cálculo','TIN Prismatoid (Triangulación de Delaunay)'],
+    ['Sistema de referencia','WGS84 (EPSG:4326)'],
+    ['Referencia de nivel','Cero del Hidrómetro de San Isidro'],
+  ];
+  dats.forEach(([lbl,val],i)=>{
+    if(i%2===0)doc.setFillColor(240,243,250);else doc.setFillColor(250,252,255);
+    doc.rect(M,y,PW-M*2,8,'F');
+    doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(8.5);
+    doc.text(lbl,M+3,y+5.5);
+    doc.setFont('helvetica','normal');doc.setTextColor(50,60,100);
+    doc.text(String(val),PW-M-3,y+5.5,{align:'right'});
+    y+=8;
+  });
+
+  // Cálculo de pago
+  y+=8;
+  doc.setFillColor(255,248,220);doc.roundedRect(M,y,PW-M*2,38,3,3,'F');
+  doc.setDrawColor(...GOLD);doc.setLineWidth(.5);doc.roundedRect(M,y,PW-M*2,38,3,3,'S');
+  doc.setFont('helvetica','bold');doc.setTextColor(100,70,0);doc.setFontSize(9);
+  doc.text('CÁLCULO DE PAGO',M+5,y+8);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+  doc.text('Volumen dragado:',M+5,y+17);
+  doc.text(volDif_txt+' m³',PW/2-10,y+17,{align:'right'});
+  doc.text('Precio unitario ($/m³):',M+5,y+25);doc.text('$___________',PW/2-10,y+25,{align:'right'});
+  doc.setLineWidth(.3);doc.setDrawColor(180,140,0);doc.line(M+5,y+30,PW-M-5,y+30);
+  doc.setFont('helvetica','bold');doc.setFontSize(10);
+  doc.text('TOTAL:',M+5,y+37);doc.text('$___________',PW-M-5,y+37,{align:'right'});
+  y+=46;
+
+  // ═══════ DECLARACIÓN Y FIRMA ══════════════════════════════════
+  y+=4;
+  doc.setFillColor(230,235,245);doc.roundedRect(M,y,PW-M*2,28,3,3,'F');
+  doc.setFont('helvetica','italic');doc.setTextColor(40,50,100);doc.setFontSize(8);
+  const declaracion='El profesional abajo firmante certifica que los datos batimétricos consignados en este documento fueron relevados con instrumental calibrado, procesados mediante triangulación de Delaunay y verificados con los puntos originales de sondaje. La diferencia de volumen calculada representa el material efectivamente extraído durante el proceso de dragado.';
+  doc.text(declaracion,M+4,y+7,{maxWidth:PW-M*2-8});
+
+  y+=36;
+  doc.setDrawColor(...NAVY);doc.setLineWidth(.4);
+  doc.line(M+15,y+15,M+75,y+15);doc.line(PW-M-75,y+15,PW-M-15,y+15);
+  doc.setFont('helvetica','bold');doc.setTextColor(...NAVY);doc.setFontSize(8);
+  doc.text('Firma y sello del responsable',M+17,y+20);
+  doc.text('Fecha y lugar',PW-M-72,y+20);
+  doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);doc.setFontSize(7);
+  doc.text('Nombre: _________________________',M+17,y+27);
+  doc.text('Matrícula: ______________________',M+17,y+33);
+
+  // Pie de todas las páginas
+  const totalPages=doc.internal.getNumberOfPages();
+  for(let i=1;i<=totalPages;i++){
+    doc.setPage(i);
+    doc.setFillColor(...DARK);doc.rect(0,PH-8,PW,8,'F');
+    doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);doc.setFontSize(6.5);
+    doc.text('BatiSistema — vresti.github.io/baticaptura',M,PH-3);
+    doc.text(`Pág. ${i} / ${totalPages}`,PW/2,PH-3,{align:'center'});
+    doc.text(new Date().toLocaleString('es-AR'),PW-M,PH-3,{align:'right'});
+  }
+
+  const nombre='Certificado_Dragado_'+new Date().toISOString().substring(0,10)+'.pdf';
+  doc.save(nombre);
+  showToast('✓ Certificado PDF generado');
+}
+
+
 function expCSV(){showToast('Export CSV próximamente');}
 
 // ═══ UTILS ═════════════════════════════════════════════════════
