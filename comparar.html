@@ -622,7 +622,7 @@ function generarPerfil(valsA,valsB,diff,gW,gH,dMax){
   const allV=[...profA,...profB];
   const zMn=d3.min(allV)-.3,zMx=d3.max(allV)+.3;
   const scX=d3.scaleLinear().domain([0,profA.length-1]).range([0,PW]);
-  const scY=d3.scaleLinear().domain([zMn,zMx]).range([PH,0]);
+  const scY=d3.scaleLinear().domain([zMx,zMn]).range([PH,0]); // invertido: profundo=abajo
 
   wrap.innerHTML='';
   const svgP=document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -697,70 +697,97 @@ function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
   toRm.forEach(o=>sceneVol.remove(o));
 
   const msk=window._mask,SZ=100;
+
+  // Misma escala vertical que el 3D superpuesto
+  const zMnA=d3.min(valsA),zMxB=d3.max(valsB),zR=zMxB-zMnA||1;
   const mA=d3.mean(Array.from(valsA).filter((_,i)=>!msk||msk[i]))||1;
   const mB=d3.mean(Array.from(valsB).filter((_,i)=>!msk||msk[i]))||1;
   const dM=Math.abs(mB-mA)||.5;
-  const aS=Math.min(20,Math.max(6,.6*(dMax||1)/dM));
-  const scD=v=>-(Math.max(0,v)/(dMax||1))*SZ*.25*aS;
+  const aS=Math.min(20,Math.max(6,.6*zR/dM));
+  // scZ: convierte profundidad real a coordenada Y Three.js (más profundo = más bajo)
+  const scZ=z=>-((z-zMnA)/zR)*SZ*.25*aS;
 
-  // Paleta negro→rojo→naranja→amarillo
+  // Paleta: azul claro (poco dragado) → azul oscuro (muy dragado)
+  // Como un mapa batimétrico — intuitivo para el comitente
   const pal=t=>{
     t=Math.max(0,Math.min(1,t));
-    const s=[[.05,0,0],[.8,0,0],[1,.4,0],[1,.85,0]];
+    const s=[[0.6,0.9,1.0],[0.2,0.6,0.9],[0.05,0.3,0.7],[0.02,0.1,0.4]];
     const n=s.length-1,i=Math.floor(t*n),f=t*n-i;
-    return[s[i][0]+(s[i+1][0]-s[i][0])*f,s[i][1]+(s[i+1][1]-s[i][1])*f,s[i][2]+(s[i+1][2]-s[i][2])*f];
+    return[s[i][0]+(s[i+1][0]-s[i][0])*f,
+           s[i][1]+(s[i+1][1]-s[i][1])*f,
+           s[i][2]+(s[i+1][2]-s[i][2])*f];
   };
 
-  const umbral=(dMax||1)*.40;
+  // Solo celdas donde B > A (zona efectivamente dragada)
+  // Umbral mínimo para excluir ruido de interpolación
+  const umbral=dMax*.15;
   const verts=[],cols=[];
+  let nCeldas=0;
 
   for(let row=0;row<gH-1;row++){
     for(let col=0;col<gW-1;col++){
-      const i00=row*gW+col,i10=row*gW+col+1,i01=(row+1)*gW+col,i11=(row+1)*gW+col+1;
+      const i00=row*gW+col,i10=row*gW+col+1;
+      const i01=(row+1)*gW+col,i11=(row+1)*gW+col+1;
       if(msk&&(!msk[i00]||!msk[i10]||!msk[i01]||!msk[i11]))continue;
-      const d00=Math.max(0,diff[i00]),d10=Math.max(0,diff[i10]);
-      const d01=Math.max(0,diff[i01]),d11=Math.max(0,diff[i11]);
+
+      // Diferencias en cada vértice
+      const d00=valsB[i00]-valsA[i00],d10=valsB[i10]-valsA[i10];
+      const d01=valsB[i01]-valsA[i01],d11=valsB[i11]-valsA[i11];
       const dAvg=(d00+d10+d01+d11)/4;
-      if(dAvg<umbral)continue;
+      if(dAvg<umbral)continue; // no dragado o sedimentado
+      nCeldas++;
 
       const x0=(col/(gW-1))*SZ-SZ/2,x1=((col+1)/(gW-1))*SZ-SZ/2;
       const z0=(row/(gH-1))*SZ-SZ/2,z1=((row+1)/(gH-1))*SZ-SZ/2;
 
-      // Cara superior plana en y=0
-      verts.push(x0,0,z0,x1,0,z0,x1,0,z1,x0,0,z0,x1,0,z1,x0,0,z1);
-      // Cara inferior con la forma del dragado
-      verts.push(x0,scD(d00),z0,x1,scD(d11),z1,x1,scD(d10),z0);
-      verts.push(x0,scD(d00),z0,x0,scD(d01),z1,x1,scD(d11),z1);
+      // Cara superior = superficie A (fondo ANTES = más somero = más arriba)
+      const yA00=scZ(valsA[i00]),yA10=scZ(valsA[i10]);
+      const yA01=scZ(valsA[i01]),yA11=scZ(valsA[i11]);
+      // Cara inferior = superficie B (fondo DESPUÉS = más profundo = más abajo)
+      const yB00=scZ(valsB[i00]),yB10=scZ(valsB[i10]);
+      const yB01=scZ(valsB[i01]),yB11=scZ(valsB[i11]);
 
-      const t=dAvg/(dMax||1);
+      // Cara superior (A) — naranja translúcido como en 3D superpuesto
+      verts.push(x0,yA00,z0, x1,yA10,z0, x1,yA11,z1);
+      verts.push(x0,yA00,z0, x1,yA11,z1, x0,yA01,z1);
+      // Cara inferior (B) — coloreada por profundidad de dragado
+      verts.push(x0,yB00,z0, x1,yB11,z1, x1,yB10,z0);
+      verts.push(x0,yB00,z0, x0,yB01,z1, x1,yB11,z1);
+
+      const t=Math.max(0,dAvg)/dMax;
       const[r,g,b]=pal(t);
-      for(let k=0;k<6;k++)cols.push(r*.35,g*.35,b*.35); // techo oscuro
-      for(let k=0;k<6;k++)cols.push(r,g,b);              // piso brillante
+      // Cara A: naranja translúcido
+      for(let k=0;k<6;k++)cols.push(.95,.55,.05);
+      // Cara B: color batimétrico según profundidad de dragado
+      for(let k=0;k<6;k++)cols.push(r,g,b);
     }
   }
 
-  if(!verts.length){showToast('Sin zona dragada significativa',true);return;}
+  if(!verts.length){showToast('Sin zona dragada detectada',true);return;}
 
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
   geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
   geo.computeVertexNormals();
 
-  // MeshBasicMaterial: no depende de luz, siempre visible y brillante
   sceneVol.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({
-    vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:.97
+    vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:.92
   })));
 
+  // Grilla en el nivel de la superficie A
   const grid=new THREE.GridHelper(SZ,10,0x1a2a4a,0x1a2a4a);
-  grid.position.y=scD(dMax)*1.1;sceneVol.add(grid);
+  grid.position.y=scZ(zMnA)*.2;sceneVol.add(grid);
 
   // Auto centrado y auto escala
   const box=new THREE.Box3();sceneVol.traverse(o=>{if(o.isMesh)box.expandByObject(o);});
   if(!box.isEmpty()){
-    const c=new THREE.Vector3(),s=new THREE.Vector3();box.getCenter(c);box.getSize(s);
-    vTgt={x:c.x,y:c.y,z:c.z};vSph={theta:.4,phi:.85,radius:s.length()*1.5};updVolCam();
+    const c=new THREE.Vector3(),s=new THREE.Vector3();
+    box.getCenter(c);box.getSize(s);
+    vTgt={x:c.x,y:c.y,z:c.z};
+    vSph={theta:.5,phi:.75,radius:s.length()*1.4};
+    updVolCam();
   }
-  showToast('✓ Volumen 3D — '+Math.round(verts.length/12)+' celdas');
+  showToast('✓ Volumen dragado 3D — '+nCeldas+' celdas');
 }
 
 // ═══ TABS ══════════════════════════════════════════════════════
