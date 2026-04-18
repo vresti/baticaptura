@@ -517,29 +517,18 @@ async function generar3D(){
 
   const xMn=d3.min(pts,p=>p.x),xMx=d3.max(pts,p=>p.x);
   const yMn=d3.min(pts,p=>p.y),yMx=d3.max(pts,p=>p.y);
-  const xP=(xMx-xMn)*0.08+5, yP=(yMx-yMn)*0.08+5;
-  const x0=xMn-xP,x1=xMx+xP,y0=yMn-yP,y1=yMx+yP;
+  // Sin padding — la grilla coincide exactamente con los datos
+  const x0=xMn, x1=xMx, y0=yMn, y1=yMx;
   const W=x1-x0, H=y1-y0;
 
   const gW=gN, gH=Math.max(4,Math.round(gN*H/W));
   const vals=new Float32Array(gW*gH);
 
-  // ── Puntos de contorno — evitan extrapolación en bordes ────────
-  // Igual que hace Hypack: puntos fantasma en el perímetro con zDataMin
   const zDataMin=d3.min(pts,p=>p.z), zDataMax=d3.max(pts,p=>p.z);
   const zMean=d3.mean(pts,p=>p.z);
-  const borderPts=[];
-  const nb=20; // puntos por lado
-  for(let i=0;i<=nb;i++){
-    const t=i/nb;
-    // Los 4 lados del bounding box real (sin padding)
-    borderPts.push({x:xMn+(xMx-xMn)*t, y:yMn, z:zDataMin, _border:true});
-    borderPts.push({x:xMn+(xMx-xMn)*t, y:yMx, z:zDataMin, _border:true});
-    borderPts.push({x:xMn, y:yMn+(yMx-yMn)*t, z:zDataMin, _border:true});
-    borderPts.push({x:xMx, y:yMn+(yMx-yMn)*t, z:zDataMin, _border:true});
-  }
-  // TIN con puntos reales + contorno
-  const ptsConBorde=[...pts,...borderPts];
+  // Sin puntos de contorno artificiales — el TIN usa solo datos reales
+  // Fuera del TIN → zDataMin directamente (lecho plano)
+  const ptsConBorde=pts;
 
   // ── TIN — Triangulación de Delaunay ──────────────────────────
   prog(0.15);
