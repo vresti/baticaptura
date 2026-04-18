@@ -869,60 +869,61 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
   // ── VOLUMEN DRAGADO — relleno entre A y B ────────────────────
   // Construir paredes laterales + techo que cierran el volumen entre superficies
   // Usamos una grilla de quads verticales celda por celda
-  const volGeo = new THREE.BufferGeometry();
-  const volVerts=[], volCols=[];
+  // ── Volumen dragado — solo caras superior e inferior ──────────
+  // Sin paredes laterales = visualmente limpio
+  const volVertsTop=[], volVertsBot=[], volCols=[];
 
   for(let row=0;row<gH-1;row++){
     for(let col=0;col<gW-1;col++){
-      // Los 4 vértices del quad en grilla A y B
-      const idx00=row*gW+col, idx10=row*gW+col+1;
+      const idx00=row*gW+col,     idx10=row*gW+col+1;
       const idx01=(row+1)*gW+col, idx11=(row+1)*gW+col+1;
-
       if(msk&&(!msk[idx00]||!msk[idx10]||!msk[idx01]||!msk[idx11])) continue;
 
-      const yA00=scZ(valsA[idx00]), yA10=scZ(valsA[idx10]);
-      const yA01=scZ(valsA[idx01]), yA11=scZ(valsA[idx11]);
-      const yB00=scZ(valsB[idx00]), yB10=scZ(valsB[idx10]);
-      const yB01=scZ(valsB[idx01]), yB11=scZ(valsB[idx11]);
-
-      // Solo dibujar si hay diferencia significativa (zona dragada)
       const dAvg=((valsB[idx00]+valsB[idx10]+valsB[idx01]+valsB[idx11])-
                   (valsA[idx00]+valsA[idx10]+valsA[idx01]+valsA[idx11]))/4;
       if(dAvg < 0.05) continue;
 
-      // Posiciones X,Z de los 4 vértices
-      const x0=(col/(gW-1))*SZ-SZ/2,   x1=((col+1)/(gW-1))*SZ-SZ/2;
-      const z0=(row/(gH-1))*SZ-SZ/2,   z1=((row+1)/(gH-1))*SZ-SZ/2;
+      const x0=(col/(gW-1))*SZ-SZ/2, x1=((col+1)/(gW-1))*SZ-SZ/2;
+      const z0=(row/(gH-1))*SZ-SZ/2, z1=((row+1)/(gH-1))*SZ-SZ/2;
 
-      // Dos triángulos que forman el quad del volumen (entre A y B)
-      // Triángulo 1: B00, A00, B10
-      // Triángulo 2: A00, A10, B10
-      // Triángulo 3: B01, A01, B11
-      // Triángulo 4: A01, A11, B11
-      // Cara superior (B) y cara inferior (A) cierran el volumen
-
-      // Cara superior — B
-      volVerts.push(x0,yB00,z0, x1,yB10,z0, x1,yB11,z1);
-      volVerts.push(x0,yB00,z0, x1,yB11,z1, x0,yB01,z1);
-      // Cara inferior — A
-      volVerts.push(x0,yA00,z0, x1,yA11,z1, x1,yA10,z0);
-      volVerts.push(x0,yA00,z0, x0,yA01,z1, x1,yA11,z1);
-
-      // Color: amarillo brillante para el volumen dragado
-      for(let t=0;t<8;t++) volCols.push(1.0, 0.85, 0.0);
+      // Solo cara superior (B) — lo que se dragó vista desde arriba
+      volVertsTop.push(
+        x0,scZ(valsB[idx00]),z0, x1,scZ(valsB[idx10]),z0, x1,scZ(valsB[idx11]),z1,
+        x0,scZ(valsB[idx00]),z0, x1,scZ(valsB[idx11]),z1, x0,scZ(valsB[idx01]),z1
+      );
+      // Cara inferior (A) — el fondo original
+      volVertsBot.push(
+        x0,scZ(valsA[idx00]),z0, x1,scZ(valsA[idx11]),z1, x1,scZ(valsA[idx10]),z0,
+        x0,scZ(valsA[idx00]),z0, x0,scZ(valsA[idx01]),z1, x1,scZ(valsA[idx11]),z1
+      );
+      for(let t=0;t<6;t++){
+        volCols.push(1.0,0.85,0.0); // amarillo arriba
+      }
     }
   }
 
-  if(volVerts.length > 0){
-    volGeo.setAttribute('position', new THREE.Float32BufferAttribute(volVerts,3));
-    volGeo.setAttribute('color',    new THREE.Float32BufferAttribute(volCols,3));
-    volGeo.computeVertexNormals();
-    const volMat = new THREE.MeshPhongMaterial({
-      vertexColors:true, transparent:true, opacity:0.75,
-      side:THREE.DoubleSide, shininess:80, specular:0xffdd00,
-      emissive:0x443300, emissiveIntensity:0.2
-    });
-    scene.add(new THREE.Mesh(volGeo,volMat));
+  if(volVertsTop.length > 0){
+    // Cara superior (B) — amarillo brillante
+    const gTop=new THREE.BufferGeometry();
+    gTop.setAttribute('position',new THREE.Float32BufferAttribute(volVertsTop,3));
+    gTop.setAttribute('color',new THREE.Float32BufferAttribute(volCols,3));
+    gTop.computeVertexNormals();
+    scene.add(new THREE.Mesh(gTop,new THREE.MeshPhongMaterial({
+      vertexColors:true,transparent:true,opacity:0.85,
+      side:THREE.DoubleSide,shininess:60,specular:0xffdd00
+    })));
+
+    // Cara inferior (A) — amarillo más oscuro
+    const botCols=[];
+    for(let t=0;t<volVertsBot.length/3;t++) botCols.push(0.8,0.6,0.0);
+    const gBot=new THREE.BufferGeometry();
+    gBot.setAttribute('position',new THREE.Float32BufferAttribute(volVertsBot,3));
+    gBot.setAttribute('color',new THREE.Float32BufferAttribute(botCols,3));
+    gBot.computeVertexNormals();
+    scene.add(new THREE.Mesh(gBot,new THREE.MeshPhongMaterial({
+      vertexColors:true,transparent:true,opacity:0.7,
+      side:THREE.DoubleSide,shininess:20
+    })));
   }
 
   // ── Espejo de agua ──
