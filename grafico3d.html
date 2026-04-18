@@ -639,9 +639,19 @@ async function generar3D(){
   scene.add(ptsGroup);
   objects.pts=ptsGroup;
 
-  // Centrar cámara
-  target={x:0,y:scZ(zMin)/2,z:0};
-  spherical={theta:0.6,phi:1.1,radius:180};
+  // ── Auto centrado y auto escalado ──────────────────────────
+  const boxAuto=new THREE.Box3();
+  scene.traverse(obj=>{if(obj.isMesh)boxAuto.expandByObject(obj);});
+  if(!boxAuto.isEmpty()){
+    const cAuto=new THREE.Vector3(), sAuto=new THREE.Vector3();
+    boxAuto.getCenter(cAuto);
+    boxAuto.getSize(sAuto);
+    target={x:cAuto.x, y:cAuto.y, z:cAuto.z};
+    spherical={theta:0.6, phi:1.1, radius:sAuto.length()*1.2};
+  } else {
+    target={x:0,y:scZ(zMin)/2,z:0};
+    spherical={theta:0.6,phi:1.1,radius:180};
+  }
   updateCamera();
 
   prog(1); setTimeout(()=>prog(0),600);
@@ -671,11 +681,11 @@ function initThree(){
   camera=new THREE.PerspectiveCamera(50,wrap.clientWidth/wrap.clientHeight,0.1,2000);
 
   // Luces
-  const amb=new THREE.AmbientLight(0x334466,0.8);
+  const amb=new THREE.AmbientLight(0xffffff,1.0); // fuerte y constante
   scene.add(amb); lights.push(amb);
-  const dir=new THREE.DirectionalLight(0xaaccff,1.2);
+  const dir=new THREE.DirectionalLight(0xffffff,0.7);
   dir.position.set(80,120,60); scene.add(dir); lights.push(dir);
-  const dir2=new THREE.DirectionalLight(0x4477aa,0.6);
+  const dir2=new THREE.DirectionalLight(0x8899cc,0.4);
   dir2.position.set(-60,40,-80); scene.add(dir2); lights.push(dir2);
 
   // Eventos mouse
@@ -703,10 +713,16 @@ function render(){
 
 function updateCamera(){
   const{theta,phi,radius}=spherical;
-  camera.position.x=target.x+radius*Math.sin(phi)*Math.sin(theta);
-  camera.position.y=target.y+radius*Math.cos(phi);
-  camera.position.z=target.z+radius*Math.sin(phi)*Math.cos(theta);
+  const cx=target.x+radius*Math.sin(phi)*Math.sin(theta);
+  const cy=target.y+radius*Math.cos(phi);
+  const cz=target.z+radius*Math.sin(phi)*Math.cos(theta);
+  camera.position.set(cx,cy,cz);
   camera.lookAt(target.x,target.y,target.z);
+  // Luces siguen a la cámara — iluminación constante sin importar el zoom
+  if(lights&&lights.length>1){
+    lights[1].position.set(cx+40,cy+60,cz+30);
+    lights[2].position.set(cx-30,cy+20,cz-40);
+  }
 }
 
 function updateScale(){

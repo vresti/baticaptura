@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BatiComparar — Comparación Batimétrica</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@300;400;600&display=swap');
 
@@ -603,6 +602,18 @@ function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
   grid.position.y = scD(dMax)*1.1;
   sceneVol.add(grid);
 
+  // ── Auto centrado y auto escalado del volumen ────────────────
+  const boxV=new THREE.Box3();
+  sceneVol.traverse(obj=>{if(obj.isMesh)boxV.expandByObject(obj);});
+  if(!boxV.isEmpty()){
+    const cV=new THREE.Vector3(), sV=new THREE.Vector3();
+    boxV.getCenter(cV); boxV.getSize(sV);
+    // Actualizar target y radio de la cámara del volumen
+    // vTgt y vSph son variables locales del closure — acceder via cameraVol
+    cameraVol.position.set(cV.x+sV.length()*0.8, cV.y+sV.length()*0.5, cV.z+sV.length()*1.0);
+    cameraVol.lookAt(cV.x, cV.y, cV.z);
+  }
+
   showToast('✓ Volumen 3D — '+Math.round(verts.length/3/4)+' celdas dragadas');
 }
 <meta charset="UTF-8">
@@ -1123,114 +1134,7 @@ function initVolRenderer(W,H){
   (function renderVol(){requestAnimationFrame(renderVol);if(rendVol&&sceneVol&&cameraVol)rendVol.render(sceneVol,cameraVol);})();
 }
 
-function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
-  if(!rendVol||!sceneVol||!cameraVol){
-    console.warn('Renderer de volumen no inicializado');
-    return;
-  }
-  if(!diff||!diff.length){console.warn('Sin datos de diferencia');return;}
-  console.log('buildVolScene: gW='+gW+' gH='+gH+' dMax='+dMax.toFixed(2));
 
-  // Limpiar meshes (dejar las 3 luces)
-  const toRemove=[];
-  sceneVol.traverse(obj=>{if(obj.isMesh||obj.isLineSegments||obj.isGridHelper)toRemove.push(obj);});
-  toRemove.forEach(obj=>sceneVol.remove(obj));
-
-  const msk=window._mask;
-  const SZ=100;
-
-  // Escala vertical adaptiva — diferencia de medias
-  const mediaA=d3.mean(Array.from(valsA).filter((_,i)=>!msk||msk[i]));
-  const mediaB=d3.mean(Array.from(valsB).filter((_,i)=>!msk||msk[i]));
-  const diffMedia=Math.abs(mediaB-mediaA)||0.5;
-  const zR=d3.max(valsB)-d3.min(valsA)||1;
-  const autoScale=Math.min(20,Math.max(8, 0.6*zR/diffMedia));
-
-  const scD=v=>-(v/dMax)*SZ*0.25*autoScale; // profundidad de diferencia → Y
-
-  // Paleta caliente para el volumen: amarillo=poco, rojo=mucho
-  const palVol=t=>{
-    t=Math.max(0,Math.min(1,t));
-    // negro→amarillo→naranja→rojo
-    const stops=[[0,0,0],[1,0.85,0],[1,0.4,0],[0.8,0,0]];
-    const n=stops.length-1,i=Math.floor(t*n),f=t*n-i;
-    const a=stops[Math.min(i,n)],b=stops[Math.min(i+1,n)];
-    return[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
-  };
-
-  // Construir el SÓLIDO del volumen dragado
-  // Para cada celda con dragado positivo: un bloque desde 0 (superficie) hasta la diferencia
-  const verts=[], cols=[], normals=[];
-
-  for(let row=0;row<gH-1;row++){
-    for(let col=0;col<gW-1;col++){
-      const i00=row*gW+col, i10=row*gW+col+1;
-      const i01=(row+1)*gW+col, i11=(row+1)*gW+col+1;
-      if(msk&&(!msk[i00]||!msk[i10]||!msk[i01]||!msk[i11]))continue;
-
-      const d00=diff[i00],d10=diff[i10],d01=diff[i01],d11=diff[i11];
-      const dAvg=(d00+d10+d01+d11)/4;
-      if(dAvg<0.05)continue; // solo zona dragada
-
-      const x0=(col/(gW-1))*SZ-SZ/2, x1=((col+1)/(gW-1))*SZ-SZ/2;
-      const z0=(row/(gH-1))*SZ-SZ/2, z1=((row+1)/(gH-1))*SZ-SZ/2;
-
-      // Y superior = 0 (superficie del agua)
-      // Y inferior = -profundidad de la diferencia
-      const y00=scD(d00), y10=scD(d10), y01=scD(d01), y11=scD(d11);
-
-      const t=(dAvg/dMax);
-      const[r,g,b]=palVol(t);
-
-      // Cara superior (plano del agua) — siempre en y=0
-      verts.push(x0,0,z0, x1,0,z0, x1,0,z1);
-      verts.push(x0,0,z0, x1,0,z1, x0,0,z1);
-      for(let k=0;k<6;k++){cols.push(r*0.7,g*0.7,b*0.7);}
-
-      // Cara inferior (profundidad de diferencia) — coloreada intensamente
-      verts.push(x0,y00,z0, x1,y11,z1, x1,y10,z0);
-      verts.push(x0,y00,z0, x0,y01,z1, x1,y11,z1);
-      for(let k=0;k<6;k++){cols.push(r,g,b);}
-
-      // 4 paredes laterales solo si hay vecinos fuera del hull o en el borde
-      const addWall=(ax,ay,az,bx,by,bz,cx,cy,cz,dx,dy,dz)=>{
-        verts.push(ax,ay,az,bx,by,bz,cx,cy,cz);
-        verts.push(ax,ay,az,cx,cy,cz,dx,dy,dz);
-        for(let k=0;k<6;k++)cols.push(r*0.6,g*0.6,b*0.6);
-      };
-
-      // Sin paredes laterales — solo caras superior e inferior
-    }
-  }
-
-  console.log('Vértices generados:', verts.length/3);
-  if(verts.length===0){
-    showToast('Sin zona dragada en los datos',true);
-    return;
-  }
-
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
-  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
-  geo.computeVertexNormals();
-
-  const mat=new THREE.MeshPhongMaterial({
-    vertexColors:true, side:THREE.DoubleSide,
-    transparent:false, shininess:60, specular:0x442200
-  });
-  sceneVol.add(new THREE.Mesh(geo,mat));
-
-  // Grid de referencia
-  const grid=new THREE.GridHelper(SZ,10,0x1a2a4a,0x1a2a4a);
-  grid.position.y=-SZ*0.25*autoScale*0.5;
-  sceneVol.add(grid);
-
-  // Info de escala en overlay
-  const scInfo=document.getElementById('scale-info');
-  if(scInfo)scInfo.textContent='Escala: '+autoScale.toFixed(0)+'×';
-
-  showToast('✓ Volumen 3D generado');
-}
 
 // ════════════════════════════════════════════════
 //  CONVEX HULL + MÁSCARA
@@ -1734,8 +1638,21 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
   const grid=new THREE.GridHelper(SZ,10,0x334466,0x334466);
   grid.position.y=scZ(zMxB)*1.05; scene.add(grid);
 
-  tgt={x:0,y:scZ((zMnA+zMxB)/2)/2,z:0};
-  sph={theta:0.7,phi:1.0,radius:180};
+  // ── Auto centrado y auto escalado ──────────────────────────
+  const box=new THREE.Box3();
+  scene.traverse(obj=>{if(obj.isMesh)box.expandByObject(obj);});
+  if(!box.isEmpty()){
+    const center=new THREE.Vector3();
+    const size=new THREE.Vector3();
+    box.getCenter(center);
+    box.getSize(size);
+    tgt={x:center.x, y:center.y, z:center.z};
+    // Radio para ver todo + 20% de margen
+    sph={theta:0.7, phi:1.0, radius:size.length()*1.2};
+  } else {
+    tgt={x:0,y:scZ((zMnA+zMxB)/2)/2,z:0};
+    sph={theta:0.7,phi:1.0,radius:180};
+  }
   updateCamera();
 }
 
@@ -1937,9 +1854,9 @@ function init3D(W3,H3){
   renderer.setClearColor(0x0a1628);
   scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x0a1628,0.004);
   camera=new THREE.PerspectiveCamera(50,W3/H3,0.1,2000);
-  scene.add(new THREE.AmbientLight(0x334466,0.9));
-  const d1=new THREE.DirectionalLight(0xaaccff,1.2);d1.position.set(80,120,60);scene.add(d1);
-  const d2=new THREE.DirectionalLight(0x4477aa,0.6);d2.position.set(-60,40,-80);scene.add(d2);
+  scene.add(new THREE.AmbientLight(0xffffff,1.0)); // fuerte y constante
+  const d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(80,120,60);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x8899cc,0.5);d2.position.set(-60,40,-80);scene.add(d2);
   const c=document.getElementById('c3d');
   c.addEventListener('mousedown',e=>{isDrag=true;isRight=e.button===2;prevM={x:e.clientX,y:e.clientY};});
   c.addEventListener('mousemove',e=>{
