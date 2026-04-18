@@ -524,11 +524,26 @@ async function generar3D(){
   const gW=gN, gH=Math.max(4,Math.round(gN*H/W));
   const vals=new Float32Array(gW*gH);
 
-  // ── TIN — Triangulación de Delaunay ──────────────────────────
-  prog(0.15);
-  const tris = delaunay(pts);
+  // ── Puntos de contorno — evitan extrapolación en bordes ────────
+  // Igual que hace Hypack: puntos fantasma en el perímetro con zDataMin
   const zDataMin=d3.min(pts,p=>p.z), zDataMax=d3.max(pts,p=>p.z);
   const zMean=d3.mean(pts,p=>p.z);
+  const borderPts=[];
+  const nb=20; // puntos por lado
+  for(let i=0;i<=nb;i++){
+    const t=i/nb;
+    // Los 4 lados del bounding box real (sin padding)
+    borderPts.push({x:xMn+(xMx-xMn)*t, y:yMn, z:zDataMin, _border:true});
+    borderPts.push({x:xMn+(xMx-xMn)*t, y:yMx, z:zDataMin, _border:true});
+    borderPts.push({x:xMn, y:yMn+(yMx-yMn)*t, z:zDataMin, _border:true});
+    borderPts.push({x:xMx, y:yMn+(yMx-yMn)*t, z:zDataMin, _border:true});
+  }
+  // TIN con puntos reales + contorno
+  const ptsConBorde=[...pts,...borderPts];
+
+  // ── TIN — Triangulación de Delaunay ──────────────────────────
+  prog(0.15);
+  const tris = delaunay(ptsConBorde);
 
   // Interpolar grilla usando TIN (baricéntrico dentro de cada triángulo)
   for(let c=0;c<8;c++){
@@ -541,8 +556,8 @@ async function generar3D(){
         if(zTin!==null){
           vals[row*gW+col]=zTin;
         } else {
-          // Fuera del TIN: IDW suave como fallback
-          vals[row*gW+col]=idw(pts,mx,my,1);
+          // Fuera del TIN: usar zDataMin (lecho plano en el borde)
+          vals[row*gW+col]=zDataMin;
         }
       }
     prog(0.15+c*0.09); await sl(0);
