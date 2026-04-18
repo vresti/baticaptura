@@ -747,19 +747,37 @@ function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
       const yB00=scZ(valsB[i00]),yB10=scZ(valsB[i10]);
       const yB01=scZ(valsB[i01]),yB11=scZ(valsB[i11]);
 
-      // Cara superior (A) — naranja translúcido como en 3D superpuesto
-      verts.push(x0,yA00,z0, x1,yA10,z0, x1,yA11,z1);
-      verts.push(x0,yA00,z0, x1,yA11,z1, x0,yA01,z1);
-      // Cara inferior (B) — coloreada por profundidad de dragado
-      verts.push(x0,yB00,z0, x1,yB11,z1, x1,yB10,z0);
-      verts.push(x0,yB00,z0, x0,yB01,z1, x1,yB11,z1);
-
       const t=Math.max(0,dAvg)/dMax;
       const[r,g,b]=pal(t);
-      // Cara A: naranja translúcido
+
+      // Cara superior (A) — naranja = fondo original
+      verts.push(x0,yA00,z0, x1,yA10,z0, x1,yA11,z1);
+      verts.push(x0,yA00,z0, x1,yA11,z1, x0,yA01,z1);
       for(let k=0;k<6;k++)cols.push(.95,.55,.05);
-      // Cara B: color batimétrico según profundidad de dragado
+
+      // Cara inferior (B) — azul batimétrico = fondo dragado
+      verts.push(x0,yB00,z0, x1,yB11,z1, x1,yB10,z0);
+      verts.push(x0,yB00,z0, x0,yB01,z1, x1,yB11,z1);
       for(let k=0;k<6;k++)cols.push(r,g,b);
+
+      // Paredes laterales — cierran el sólido entre A y B
+      // Solo en el borde de la zona dragada (donde el vecino no existe o no es dragado)
+      // Pared Norte (z=z0)
+      verts.push(x0,yA00,z0, x1,yA10,z0, x1,yB10,z0);
+      verts.push(x0,yA00,z0, x1,yB10,z0, x0,yB00,z0);
+      for(let k=0;k<6;k++)cols.push(r*.7,g*.7,b*.7);
+      // Pared Sur (z=z1)
+      verts.push(x0,yA01,z1, x1,yB11,z1, x1,yA11,z1);
+      verts.push(x0,yA01,z1, x0,yB01,z1, x1,yB11,z1);
+      for(let k=0;k<6;k++)cols.push(r*.7,g*.7,b*.7);
+      // Pared Oeste (x=x0)
+      verts.push(x0,yA00,z0, x0,yB00,z0, x0,yB01,z1);
+      verts.push(x0,yA00,z0, x0,yB01,z1, x0,yA01,z1);
+      for(let k=0;k<6;k++)cols.push(r*.6,g*.6,b*.6);
+      // Pared Este (x=x1)
+      verts.push(x1,yA10,z0, x1,yA11,z1, x1,yB11,z1);
+      verts.push(x1,yA10,z0, x1,yB11,z1, x1,yB10,z0);
+      for(let k=0;k<6;k++)cols.push(r*.6,g*.6,b*.6);
     }
   }
 
@@ -771,7 +789,7 @@ function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
   geo.computeVertexNormals();
 
   sceneVol.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({
-    vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:.92
+    vertexColors:true,side:THREE.DoubleSide,transparent:false
   })));
 
   // Grilla en el nivel de la superficie A
