@@ -520,6 +520,610 @@ function initVolRenderer(W,H){
 }
 
 function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
+  if(!rendVol||!sceneVol||!cameraVol) return;
+  if(!diff||!diff.length) return;
+
+  // Limpiar meshes anteriores
+  const toRemove=[];
+  sceneVol.traverse(o=>{if(o.isMesh||o.isGridHelper)toRemove.push(o);});
+  toRemove.forEach(o=>sceneVol.remove(o));
+
+  const msk=window._mask;
+  const SZ=100;
+
+  // Escala vertical adaptiva
+  const mediaA=d3.mean(Array.from(valsA).filter((_,i)=>!msk||msk[i]))||1;
+  const mediaB=d3.mean(Array.from(valsB).filter((_,i)=>!msk||msk[i]))||1;
+  const diffMedia=Math.abs(mediaB-mediaA)||0.5;
+  const zR=dMax||1;
+  const autoScale=Math.min(20,Math.max(6,0.6*zR/diffMedia));
+  const scD=v=>-(Math.max(0,v)/dMax)*SZ*0.25*autoScale;
+
+  // Paleta rojo→amarillo
+  const palVol=t=>{
+    t=Math.max(0,Math.min(1,t));
+    const s=[[0.1,0,0],[0.8,0,0],[1,0.4,0],[1,0.85,0]];
+    const n=s.length-1,i=Math.floor(t*n),f=t*n-i;
+    return[s[i][0]+(s[i+1][0]-s[i][0])*f,
+           s[i][1]+(s[i+1][1]-s[i][1])*f,
+           s[i][2]+(s[i+1][2]-s[i][2])*f];
+  };
+
+  // Umbral: solo celdas con diferencia > 25% del máximo
+  // Elimina el ruido TIN en las orillas
+  const umbral = dMax * 0.25;
+  console.log('dMax:'+dMax.toFixed(2)+' umbral:'+umbral.toFixed(2)+' autoScale:'+autoScale.toFixed(1));
+
+  const verts=[], cols=[];
+
+  for(let row=0;row<gH-1;row++){
+    for(let col=0;col<gW-1;col++){
+      const i00=row*gW+col,     i10=row*gW+col+1;
+      const i01=(row+1)*gW+col, i11=(row+1)*gW+col+1;
+      if(msk&&(!msk[i00]||!msk[i10]||!msk[i01]||!msk[i11])) continue;
+
+      const d00=Math.max(0,diff[i00]), d10=Math.max(0,diff[i10]);
+      const d01=Math.max(0,diff[i01]), d11=Math.max(0,diff[i11]);
+      const dAvg=(d00+d10+d01+d11)/4;
+      if(dAvg < umbral) continue; // orillas sin dragar → omitir
+
+      const x0=(col/(gW-1))*SZ-SZ/2,   x1=((col+1)/(gW-1))*SZ-SZ/2;
+      const z0=(row/(gH-1))*SZ-SZ/2,   z1=((row+1)/(gH-1))*SZ-SZ/2;
+
+      // Cara superior plana en y=0 (superficie del agua)
+      verts.push(x0,0,z0, x1,0,z0, x1,0,z1);
+      verts.push(x0,0,z0, x1,0,z1, x0,0,z1);
+
+      // Cara inferior: profundidad del dragado
+      verts.push(x0,scD(d00),z0, x1,scD(d11),z1, x1,scD(d10),z0);
+      verts.push(x0,scD(d00),z0, x0,scD(d01),z1, x1,scD(d11),z1);
+
+      const t=dAvg/dMax;
+      const[r,g,b]=palVol(t);
+      for(let k=0;k<4;k++) cols.push(r*0.4,g*0.4,b*0.4); // techo oscuro
+      for(let k=0;k<4;k++) cols.push(r,g,b);              // piso brillante
+    }
+  }
+
+  console.log('Vértices:',verts.length/3);
+  if(verts.length===0){ showToast('Sin zona dragada significativa',true); return; }
+
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+  geo.computeVertexNormals();
+
+  sceneVol.add(new THREE.Mesh(geo, new THREE.MeshPhongMaterial({
+    vertexColors:true, side:THREE.DoubleSide,
+    shininess:60, specular:0x441100, transparent:true, opacity:0.95
+  })));
+
+  // Grilla de referencia
+  const grid=new THREE.GridHelper(SZ,10,0x1a2a4a,0x1a2a4a);
+  grid.position.y = scD(dMax)*1.1;
+  sceneVol.add(grid);
+
+  showToast('✓ Volumen 3D — '+Math.round(verts.length/3/4)+' celdas dragadas');
+}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BatiComparar — Comparación Batimétrica</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@300;400;600&display=swap');
+
+:root {
+  --bg:     #f0ece4;
+  --paper:  #faf7f0;
+  --navy:   #1a237e;
+  --navy2:  #283593;
+  --gold:   #c9a227;
+  --border: #b8b0a0;
+  --text:   #1a1a2e;
+  --dim:    #6a6a7a;
+  --panel:  #eee8dc;
+  --dragado:#1a6090;
+  --sedim:  #8B0000;
+  --neutro: #e8e0d0;
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--text); font-family:'Exo 2',sans-serif; min-height:100vh; }
+body::before { content:''; position:fixed; inset:0;
+  background-image:linear-gradient(rgba(26,35,126,0.03) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(26,35,126,0.03) 1px,transparent 1px);
+  background-size:30px 30px; pointer-events:none; z-index:0; }
+
+.layout { position:relative; z-index:1; display:grid;
+  grid-template-columns:300px 1fr; grid-template-rows:auto 1fr; min-height:100vh; }
+
+/* HEADER */
+header { grid-column:1/-1; background:var(--navy); color:white;
+  padding:12px 20px; display:flex; align-items:center; justify-content:space-between;
+  border-bottom:3px solid var(--gold); }
+.logo-title { font-family:'Orbitron',monospace; font-size:14px; font-weight:900;
+  letter-spacing:4px; color:var(--gold); }
+.logo-sub { font-size:9px; color:rgba(255,255,255,0.5); letter-spacing:2px; margin-top:2px; }
+.header-info { font-family:'Share Tech Mono',monospace; font-size:10px;
+  color:rgba(255,255,255,0.4); text-align:right; }
+
+/* SIDEBAR */
+.sidebar { background:var(--paper); border-right:1px solid var(--border);
+  padding:14px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
+
+.panel { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px; }
+.panel-title { font-size:8px; letter-spacing:3px; color:var(--navy); text-transform:uppercase;
+  margin-bottom:10px; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:6px; }
+
+/* Upload doble */
+.upload-pair { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.upload-slot { display:block; border:2px dashed var(--border); border-radius:6px; cursor:pointer; padding:12px 8px;
+  text-align:center; cursor:pointer; transition:all 0.2s; background:white; }
+.upload-slot:hover { border-color:var(--navy); }
+.upload-slot.loaded-a { border-color:#1a6090; background:rgba(26,96,144,0.05); }
+.upload-slot.loaded-b { border-color:#8B0000; background:rgba(139,0,0,0.05); }
+.upload-slot.drag { border-color:var(--navy); background:rgba(26,35,126,0.05); }
+.slot-icon { font-size:20px; margin-bottom:4px; }
+.slot-label { font-size:9px; letter-spacing:2px; color:var(--dim); font-weight:600; }
+.slot-name { font-size:9px; color:var(--navy); margin-top:3px;
+  font-family:'Share Tech Mono',monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.slot-pts { font-size:8px; color:var(--dim); }
+
+/* Controles */
+.ctrl { display:flex; flex-direction:column; gap:5px; margin-bottom:8px; }
+.ctrl-lbl { font-size:8px; letter-spacing:2px; color:var(--dim); }
+.ctrl select { width:100%; background:white; border:1px solid var(--border);
+  border-radius:4px; padding:5px 8px; font-size:11px;
+  font-family:'Share Tech Mono',monospace; color:var(--text); outline:none; }
+input[type=range] { width:100%; accent-color:var(--navy); cursor:pointer; }
+
+/* Botones */
+.btn-primary { width:100%; padding:10px; background:var(--navy); color:white; border:none;
+  border-radius:6px; font-family:'Orbitron',monospace; font-size:10px;
+  letter-spacing:3px; cursor:pointer; transition:all 0.2s; }
+.btn-primary:hover { background:var(--navy2); }
+.btn-primary:disabled { opacity:0.35; cursor:not-allowed; }
+.btn-sec { width:100%; padding:7px; margin-bottom:5px; background:white;
+  color:var(--navy); border:1px solid var(--navy); border-radius:5px;
+  font-size:10px; letter-spacing:1px; cursor:pointer; font-family:'Exo 2',sans-serif;
+  font-weight:600; transition:all 0.2s; }
+.btn-sec:hover { background:rgba(26,35,126,0.06); }
+
+/* Estadísticas */
+.stats-big { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+.stat { background:white; border:1px solid var(--border); border-radius:5px;
+  padding:8px; text-align:center; }
+.stat-val { font-family:'Orbitron',monospace; font-size:15px; font-weight:700; }
+.stat-val.dragado { color:var(--dragado); }
+.stat-val.sedim   { color:var(--sedim); }
+.stat-val.neutro  { color:var(--navy); }
+.stat-val.balance { color:#2e7d32; }
+.stat-lbl { font-size:7px; letter-spacing:2px; color:var(--dim); margin-top:2px; }
+
+/* Leyenda diferencias */
+.leyenda-diff { display:flex; flex-direction:column; gap:2px; }
+.ld-item { display:flex; align-items:center; gap:6px; }
+.ld-sw { width:22px; height:12px; border-radius:2px; flex-shrink:0; }
+.ld-lb { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--text); }
+
+/* VISTA PRINCIPAL */
+.main-area { display:flex; flex-direction:column; min-height:0; flex:1; }
+
+/* Tabs de vista */
+.view-tabs { display:flex; background:white; border-bottom:1px solid var(--border);
+  padding:0 16px; gap:0; flex-shrink:0; }
+.vtab { padding:10px 18px; cursor:pointer; font-size:11px; font-weight:600;
+  letter-spacing:1px; border-bottom:3px solid transparent;
+  color:var(--dim); transition:all 0.2s; font-family:'Exo 2',sans-serif; }
+.vtab.active { color:var(--navy); border-bottom-color:var(--navy); }
+.vtab:hover { color:var(--navy); }
+
+/* Paneles de vista */
+.view-panel { flex:1; min-height:0; display:none; position:relative; overflow:hidden; }
+.view-panel.active { display:flex; flex-direction:column; }
+
+/* SVG 2D */
+#map2d-wrap { flex:1; display:flex; align-items:center;
+  justify-content:center; padding:16px; overflow:auto; }
+
+/* Canvas 3D */
+#c3d-wrap { flex:1; position:relative; overflow:hidden; }
+#c3d { display:block; width:100%; height:100%; }
+.overlay3d { position:absolute; bottom:14px; left:50%;
+  transform:translateX(-50%); background:rgba(10,26,40,0.8);
+  border:1px solid rgba(26,35,126,0.4); border-radius:16px;
+  padding:5px 14px; font-family:'Share Tech Mono',monospace;
+  font-size:10px; color:rgba(200,220,234,0.7); pointer-events:none; white-space:nowrap; }
+
+/* Perfil */
+#perfil-wrap { flex:1; display:flex; align-items:center;
+  justify-content:center; padding:16px; overflow:auto; }
+
+/* Progress */
+.prog-bar { position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--gold); transform-origin:left; transform:scaleX(0);
+  transition:transform 0.3s; z-index:20; }
+
+/* Empty */
+.empty { display:flex; flex-direction:column; align-items:center;
+  justify-content:center; flex:1; gap:12px; color:var(--dim);
+  text-align:center; padding:40px; }
+.empty-icon { font-size:60px; opacity:0.25; }
+.empty-title { font-family:'Orbitron',monospace; font-size:14px;
+  color:var(--navy); opacity:0.4; letter-spacing:3px; }
+.empty-sub { font-size:12px; max-width:280px; line-height:1.6; }
+
+/* Toast */
+.toast { position:fixed; bottom:20px; right:20px; background:var(--navy);
+  color:white; border:1px solid var(--gold); border-radius:8px;
+  padding:9px 14px; font-size:11px; font-family:'Share Tech Mono',monospace;
+  transform:translateY(60px); opacity:0; transition:all 0.3s; z-index:1000; }
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.err  { border-color:#ef5350; }
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="layout">
+<header>
+  <div>
+    <div class="logo-title">⚖ BatiComparar</div>
+    <div class="logo-sub">COMPARACIÓN BATIMÉTRICA — BATISISTEMA</div>
+  </div>
+  <div class="header-info" id="hinfo">
+    Sin datos · <a href="index.html" style="color:var(--gold);text-decoration:none">← HUB</a>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+
+  <!-- Upload par -->
+  <div class="panel">
+    <div class="panel-title">▸ Relevamientos</div>
+    <div class="upload-pair">
+
+      <!-- Slot A -->
+      <label class="upload-slot" id="slot-a" for="fi-a"
+           ondragover="dov(event,'a')" ondragleave="dlv('a')" ondrop="ddp(event,'a')">
+        <div class="slot-icon">📘</div>
+        <div class="slot-label" style="color:#1a6090">ANTES</div>
+        <div class="slot-name" id="name-a">Cargá CSV</div>
+        <div class="slot-pts" id="pts-a"></div>
+      </label>
+      <input type="file" id="fi-a" accept=".csv" style="display:none" onchange="loadCSV('a',this.files[0])"/>
+
+      <!-- Slot B -->
+      <label class="upload-slot" id="slot-b" for="fi-b"
+           ondragover="dov(event,'b')" ondragleave="dlv('b')" ondrop="ddp(event,'b')">
+        <div class="slot-icon">📗</div>
+        <div class="slot-label" style="color:#8B0000">DESPUÉS</div>
+        <div class="slot-name" id="name-b">Cargá CSV</div>
+        <div class="slot-pts" id="pts-b"></div>
+      </label>
+      <input type="file" id="fi-b" accept=".csv" style="display:none" onchange="loadCSV('b',this.files[0])"/>
+
+    </div>
+  </div>
+
+  <!-- Config -->
+  <div class="panel">
+    <div class="panel-title">▸ Configuración</div>
+    <div class="ctrl">
+      <div class="ctrl-lbl">Resolución IDW</div>
+      <select id="gr">
+        <option value="80">Rápida (80×80)</option>
+        <option value="120" selected>Normal (120×120)</option>
+        <option value="200">Alta (200×200)</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-lbl">Escala 3D: <span id="vsv">8×</span></div>
+      <input type="range" id="vs" min="1" max="20" step="0.5" value="8"
+             oninput="document.getElementById('vsv').textContent=this.value+'×'"/>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="btn-gen" onclick="comparar()" disabled>▶ COMPARAR</button>
+
+  <!-- Estadísticas -->
+  <div class="panel" id="stats-panel" style="display:none">
+    <div class="panel-title">▸ Resultados</div>
+    <div class="stats-big" id="stats-big"></div>
+    <div id="stats-detalle" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);line-height:1.8"></div>
+  </div>
+
+  <!-- Leyenda diferencias -->
+  <div class="panel" id="ley-panel" style="display:none">
+    <div class="panel-title">▸ Diferencia (m)</div>
+    <div class="leyenda-diff" id="ley-items"></div>
+  </div>
+
+  <!-- Export -->
+  <div class="panel" id="exp-panel" style="display:none">
+    <div class="panel-title">▸ Exportar</div>
+    <button class="btn-sec" onclick="expPNG()">↓ PNG mapa diferencias</button>
+    <button class="btn-sec" onclick="expCSVdiff()">↓ CSV diferencias por punto</button>
+  </div>
+
+</aside>
+
+<!-- VISTA PRINCIPAL -->
+<main class="main-area">
+
+  <!-- TABS -->
+  <div class="view-tabs" id="view-tabs" style="display:none">
+    <div class="vtab active" onclick="setTab('diff2d')">🗺 DIFERENCIAS 2D</div>
+    <div class="vtab" onclick="setTab('3d')">🌊 3D SUPERPUESTO</div>
+    <div class="vtab" onclick="setTab('perfil')">📈 PERFIL DE CORTE</div>
+    <div class="vtab" onclick="setTab('volumen')">🟡 VOLUMEN DRAGADO</div>
+  </div>
+
+  <!-- Panel diferencias 2D -->
+  <div class="view-panel active" id="panel-diff2d">
+    <div class="prog-bar" id="pb"></div>
+    <div id="map2d-wrap">
+      <div class="empty" id="empty-state">
+        <div class="empty-icon">⚖</div>
+        <div class="empty-title">SIN DATOS</div>
+        <div class="empty-sub">
+          Cargá el relevamiento ANTES y DESPUÉS y presioná COMPARAR
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 3D -->
+  <div class="view-panel" id="panel-3d">
+    <div id="c3d-wrap">
+      <canvas id="c3d"></canvas>
+      <div class="overlay3d">🖱 Rotar · Scroll zoom · Derecho mover &nbsp;|&nbsp; <span id="scale-info" style="color:var(--gold)"></span></div>
+    </div>
+  </div>
+
+  <!-- Panel volumen 3D -->
+  <div class="view-panel" id="panel-volumen">
+    <div id="cvol-wrap" style="flex:1;position:relative;overflow:hidden;">
+      <canvas id="cvol" style="display:block;width:100%;height:100%;"></canvas>
+      <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+        background:rgba(10,26,40,0.8);border:1px solid rgba(26,35,126,0.4);border-radius:16px;
+        padding:5px 14px;font-family:'Share Tech Mono',monospace;font-size:10px;
+        color:rgba(200,220,234,0.7);pointer-events:none;white-space:nowrap;">
+        🖱 Rotar · Scroll zoom · Derecho mover &nbsp;|&nbsp;
+        <span style="color:#ffd060">Forma del material dragado en 3D</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel perfil -->
+  <div class="view-panel" id="panel-perfil">
+    <div id="perfil-wrap"></div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  ESTADO
+// ════════════════════════════════════════════════
+let dataA = null, dataB = null;
+let svgEl2d = null;
+let renderer=null, scene=null, camera=null;
+let rendVol=null, sceneVol=null, cameraVol=null;
+let isDrag=false, isRight=false, prevM={x:0,y:0};
+let sph={theta:0.6,phi:1.1,radius:180}, tgt={x:0,y:0,z:0};
+
+// Paleta de diferencias: rojo = dragado, azul = sedimentado
+function diffColor(d, dMax) {
+  const t = Math.max(-1, Math.min(1, d / (dMax||1)));
+  if (t > 0) {
+    // Dragado — azul (más profundo después)
+    const r = Math.round(240 - t*180);
+    const g = Math.round(240 - t*150);
+    const b = Math.round(240 + t*15);
+    return [r,g,b];
+  } else {
+    // Sedimentación — rojo/marrón (más somero después)
+    const at = Math.abs(t);
+    const r = Math.round(240 - at*100 + at*100);
+    const g = Math.round(240 - at*200);
+    const b = Math.round(240 - at*200);
+    return [Math.min(255,r),Math.max(0,g),Math.max(0,b)];
+  }
+}
+
+function diffCSS(d, dMax) {
+  const [r,g,b] = diffColor(d,dMax);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ════════════════════════════════════════════════
+//  CARGA CSV
+// ════════════════════════════════════════════════
+function dov(e,s){e.preventDefault();document.getElementById('slot-'+s).classList.add('drag');}
+function dlv(s){document.getElementById('slot-'+s).classList.remove('drag');}
+function ddp(e,s){e.preventDefault();dlv(s);loadCSV(s,e.dataTransfer.files[0]);}
+
+function loadCSV(slot, file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => parseCSV(slot, file.name, e.target.result);
+  reader.readAsText(file);
+}
+
+function parseCSV(slot, filename, text) {
+  const rows = d3.csvParse(text);
+  const UC   = rows.columns.map(c => c.trim().toUpperCase());
+  const fc   = (...ns) => { for(const n of ns){const i=UC.findIndex(c=>c===n||c.includes(n));if(i>=0)return rows.columns[i];} return null; };
+  const latC = fc('LATITUD','LAT');
+  const lonC = fc('LONGITUD','LON');
+  const prC  = fc('FINAL_M','FINAL','PROF_M','PROF','Z','DEPTH');
+
+  if (!latC||!lonC||!prC) { showToast(`Sin columnas LAT/LON/PROF en ${filename}`,true); return; }
+
+  const pts = [];
+  rows.forEach(row => {
+    const lat=parseFloat(row[latC]), lon=parseFloat(row[lonC]), z=parseFloat(row[prC]);
+    if (!isNaN(lat)&&!isNaN(lon)&&!isNaN(z)) pts.push({lat,lon,z});
+  });
+  if (!pts.length) { showToast(`Sin puntos válidos en ${filename}`,true); return; }
+
+  if (slot==='a') {
+    dataA = { name:filename, pts };
+    document.getElementById('slot-a').className='upload-slot loaded-a';
+    document.getElementById('name-a').textContent = filename.length>18?filename.substring(0,16)+'…':filename;
+    document.getElementById('pts-a').textContent  = pts.length+' puntos';
+  } else {
+    dataB = { name:filename, pts };
+    document.getElementById('slot-b').className='upload-slot loaded-b';
+    document.getElementById('name-b').textContent = filename.length>18?filename.substring(0,16)+'…':filename;
+    document.getElementById('pts-b').textContent  = pts.length+' puntos';
+  }
+
+  document.getElementById('btn-gen').disabled = !(dataA&&dataB);
+  if (dataA&&dataB) showToast('✓ Ambos relevamientos cargados — presioná COMPARAR');
+  else showToast(`✓ ${filename} — ${pts.length} puntos`);
+}
+
+// ════════════════════════════════════════════════
+//  PROYECCIÓN Y IDW
+// ════════════════════════════════════════════════
+function toM(lat,lon,lat0,lon0){
+  const R=6371000;
+  return {x:(lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180, y:(lat-lat0)*R*Math.PI/180};
+}
+function idw(pts,x,y,pow){
+  let sw=0,swz=0;
+  for(const p of pts){
+    const d2=(p.x-x)**2+(p.y-y)**2;
+    if(d2<0.01)return p.z;
+    const w=1/Math.pow(d2,pow/2); sw+=w; swz+=w*p.z;
+  }
+  return swz/sw;
+}
+
+
+
+// ════════════════════════════════════════════════
+//  TIN — Triangulación de Delaunay
+// ════════════════════════════════════════════════
+function circumcircle(ax,ay,bx,by,cx,cy){
+  const D=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
+  if(Math.abs(D)<1e-10)return null;
+  const ux=((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/D;
+  const uy=((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D;
+  return{x:ux,y:uy,r:Math.sqrt((ax-ux)**2+(ay-uy)**2)};
+}
+
+function delaunay(pts){
+  if(pts.length<3)return[];
+  const xMin=Math.min(...pts.map(p=>p.x))-1,xMax=Math.max(...pts.map(p=>p.x))+1;
+  const yMin=Math.min(...pts.map(p=>p.y))-1,yMax=Math.max(...pts.map(p=>p.y))+1;
+  const dx=xMax-xMin,dy=yMax-yMin;
+  const st=[{x:xMin-dx,y:yMin-dy,_s:true},{x:xMax+dx*2,y:yMin-dy,_s:true},{x:xMin-dx,y:yMax+dy*2,_s:true}];
+  const all=[...pts,...st]; const n=pts.length;
+  let tris=[{a:n,b:n+1,c:n+2}];
+  for(let i=0;i<n;i++){
+    const p=all[i],bad=[],edges=[];
+    for(const t of tris){
+      const cc=circumcircle(all[t.a].x,all[t.a].y,all[t.b].x,all[t.b].y,all[t.c].x,all[t.c].y);
+      if(cc&&(p.x-cc.x)**2+(p.y-cc.y)**2<=cc.r*cc.r+1e-10){bad.push(t);edges.push([t.a,t.b],[t.b,t.c],[t.c,t.a]);}
+    }
+    const poly=edges.filter(e=>!edges.some(f=>f!==e&&f[0]===e[1]&&f[1]===e[0]));
+    for(const t of bad)tris=tris.filter(x=>x!==t);
+    for(const e of poly)tris.push({a:e[0],b:e[1],c:i});
+  }
+  return tris.filter(t=>!all[t.a]._s&&!all[t.b]._s&&!all[t.c]._s).map(t=>({a:t.a,b:t.b,c:t.c,pts:all}));
+}
+
+function tinInterp(tris,px,py,fb){
+  for(const t of tris){
+    const ax=t.pts[t.a].x,ay=t.pts[t.a].y,bx=t.pts[t.b].x,by=t.pts[t.b].y,cx=t.pts[t.c].x,cy=t.pts[t.c].y;
+    const d=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy);
+    if(Math.abs(d)<1e-10)continue;
+    const u=((by-cy)*(px-cx)+(cx-bx)*(py-cy))/d;
+    const v=((cy-ay)*(px-cx)+(ax-cx)*(py-cy))/d;
+    const w=1-u-v;
+    if(u>=-0.001&&v>=-0.001&&w>=-0.001)
+      return u*t.pts[t.a].z+v*t.pts[t.b].z+w*t.pts[t.c].z;
+  }
+  return fb;
+}
+
+// Volumen TIN exacto (método de prismas triangulares)
+function volumenTIN(tris,pts){
+  let vol=0;
+  for(const t of tris){
+    const ax=t.pts[t.a].x,ay=t.pts[t.a].y;
+    const bx=t.pts[t.b].x,by=t.pts[t.b].y;
+    const cx=t.pts[t.c].x,cy=t.pts[t.c].y;
+    const area=Math.abs((bx-ax)*(cy-ay)-(cx-ax)*(by-ay))/2;
+    const zmean=(t.pts[t.a].z+t.pts[t.b].z+t.pts[t.c].z)/3;
+    vol+=area*zmean;
+  }
+  return vol;
+}
+
+
+// ════════════════════════════════════════════════
+//  VOLUMEN 3D — Forma del material dragado
+// ════════════════════════════════════════════════
+
+function initVolRenderer(W,H){
+  rendVol=new THREE.WebGLRenderer({canvas:document.getElementById('cvol'),antialias:true});
+  rendVol.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  rendVol.setSize(W,H);
+  rendVol.setClearColor(0x060e18);
+  sceneVol=new THREE.Scene();
+  sceneVol.fog=new THREE.FogExp2(0x060e18,0.004);
+  cameraVol=new THREE.PerspectiveCamera(50,W/H,0.1,2000);
+
+  // Luces
+  sceneVol.add(new THREE.AmbientLight(0x334466,0.8));
+  const d1=new THREE.DirectionalLight(0xffffff,1.0);d1.position.set(60,80,40);sceneVol.add(d1);
+  const d2=new THREE.DirectionalLight(0x4477aa,0.5);d2.position.set(-40,30,-60);sceneVol.add(d2);
+
+  // Controles mouse — misma lógica que el 3D superpuesto
+  const c=document.getElementById('cvol');
+  let vDrag=false,vRight=false,vPrev={x:0,y:0};
+  let vSph={theta:0.3,phi:1.2,radius:160},vTgt={x:0,y:-15,z:0}; // vista lateral
+  const vUpdateCam=()=>{
+    const{theta,phi,radius}=vSph;
+    cameraVol.position.set(
+      vTgt.x+radius*Math.sin(phi)*Math.sin(theta),
+      vTgt.y+radius*Math.cos(phi),
+      vTgt.z+radius*Math.sin(phi)*Math.cos(theta)
+    );
+    cameraVol.lookAt(vTgt.x,vTgt.y,vTgt.z);
+  };
+  c.addEventListener('mousedown',e=>{vDrag=true;vRight=e.button===2;vPrev={x:e.clientX,y:e.clientY};});
+  c.addEventListener('mousemove',e=>{
+    if(!vDrag)return;
+    const dx=e.clientX-vPrev.x,dy=e.clientY-vPrev.y;vPrev={x:e.clientX,y:e.clientY};
+    if(vRight){vTgt.x-=dx*0.15;vTgt.z+=dy*0.15;}
+    else{vSph.theta-=dx*0.005;vSph.phi=Math.max(0.05,Math.min(Math.PI*0.95,vSph.phi-dy*0.005));}
+    vUpdateCam();
+  });
+  c.addEventListener('mouseup',()=>{vDrag=false;vRight=false;});
+  c.addEventListener('mouseleave',()=>{vDrag=false;});
+  c.addEventListener('wheel',e=>{e.preventDefault();vSph.radius=Math.max(30,Math.min(500,vSph.radius+e.deltaY*0.2));vUpdateCam();},{passive:false});
+  c.addEventListener('contextmenu',e=>e.preventDefault());
+
+  vUpdateCam();
+  window.addEventListener('resize',()=>{
+    const ma=document.querySelector('.main-area');
+    if(!rendVol||!ma)return;
+    const nW=Math.max(400,ma.clientWidth-20), nH=Math.max(300,ma.clientHeight-60);
+    cameraVol.aspect=nW/nH; cameraVol.updateProjectionMatrix();
+    rendVol.setSize(nW,nH);
+  });
+  (function renderVol(){requestAnimationFrame(renderVol);if(rendVol&&sceneVol&&cameraVol)rendVol.render(sceneVol,cameraVol);})();
+}
+
+function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
   if(!rendVol||!sceneVol||!cameraVol){
     console.warn('Renderer de volumen no inicializado');
     return;
@@ -595,11 +1199,7 @@ function buildVolScene(diff,valsA,valsB,gW,gH,dMax){
         for(let k=0;k<6;k++)cols.push(r*0.6,g*0.6,b*0.6);
       };
 
-      // Solo borde externo (simplificado)
-      if(col===0)        addWall(x0,0,z0,x0,0,z1,x0,y01,z1,x0,y00,z0);
-      if(col===gW-2)     addWall(x1,0,z0,x1,y10,z0,x1,y11,z1,x1,0,z1);
-      if(row===0)        addWall(x0,0,z0,x0,y00,z0,x1,y10,z0,x1,0,z0);
-      if(row===gH-2)     addWall(x0,0,z1,x1,0,z1,x1,y11,z1,x0,y01,z1);
+      // Sin paredes laterales — solo caras superior e inferior
     }
   }
 
@@ -1071,49 +1671,54 @@ async function build3Dscene(valsA,valsB,gW,gH,W,H,x0,y0,vSc,dMax){
 
       const dAvg=((valsB[idx00]+valsB[idx10]+valsB[idx01]+valsB[idx11])-
                   (valsA[idx00]+valsA[idx10]+valsA[idx01]+valsA[idx11]))/4;
-      if(dAvg < 0.05) continue;
+      if(dAvg < dMax*0.08) continue; // solo diferencias > 8% del máximo
 
       const x0=(col/(gW-1))*SZ-SZ/2, x1=((col+1)/(gW-1))*SZ-SZ/2;
       const z0=(row/(gH-1))*SZ-SZ/2, z1=((row+1)/(gH-1))*SZ-SZ/2;
 
-      // Cara superior (A=antes) — techo del volumen dragado
+      // Cara superior plana en y=0 (superficie del agua = techo del dragado)
       volVertsTop.push(
-        x0,scZ(valsA[idx00]),z0, x1,scZ(valsA[idx10]),z0, x1,scZ(valsA[idx11]),z1,
-        x0,scZ(valsA[idx00]),z0, x1,scZ(valsA[idx11]),z1, x0,scZ(valsA[idx01]),z1
+        x0,0,z0, x1,0,z0, x1,0,z1,
+        x0,0,z0, x1,0,z1, x0,0,z1
       );
-      // Cara inferior (B=después) — piso del volumen dragado (más profundo)
+      // Cara inferior = profundidad del dragado hacia abajo
+      const y00b=scD(d00),y10b=scD(d10),y01b=scD(d01),y11b=scD(d11);
       volVertsBot.push(
-        x0,scZ(valsB[idx00]),z0, x1,scZ(valsB[idx11]),z1, x1,scZ(valsB[idx10]),z0,
-        x0,scZ(valsB[idx00]),z0, x0,scZ(valsB[idx01]),z1, x1,scZ(valsB[idx11]),z1
+        x0,y00b,z0, x1,y11b,z1, x1,y10b,z0,
+        x0,y00b,z0, x0,y01b,z1, x1,y11b,z1
       );
-      for(let t=0;t<6;t++){
-        volCols.push(1.0,0.85,0.0); // amarillo = techo
-      }
+      const t2=(dAvg/dMax);
+      const[rv,gv,bv]=palVol(t2);
+      for(let k=0;k<6;k++) volCols.push(rv*0.5,gv*0.5,bv*0.5); // techo más oscuro
     }
   }
 
-  if(volVertsTop.length > 0){
-    // Cara superior (B) — amarillo brillante
+  if(volVertsBot.length > 0){
+    // Cara superior — semitransparente
     const gTop=new THREE.BufferGeometry();
     gTop.setAttribute('position',new THREE.Float32BufferAttribute(volVertsTop,3));
     gTop.setAttribute('color',new THREE.Float32BufferAttribute(volCols,3));
     gTop.computeVertexNormals();
     scene.add(new THREE.Mesh(gTop,new THREE.MeshPhongMaterial({
-      vertexColors:true,transparent:true,opacity:0.85,
-      side:THREE.DoubleSide,shininess:60,specular:0xffdd00
+      vertexColors:true,transparent:true,opacity:0.4,
+      side:THREE.DoubleSide,shininess:30
     })));
 
-    // Cara inferior (A) — amarillo más oscuro
+    // Cara inferior — coloreada por intensidad de dragado (el molde)
     const botCols=[];
-    for(let t=0;t<volVertsBot.length/3;t++) botCols.push(0.8,0.6,0.0);
+    for(let i=0;i<volVertsBot.length/3;i++){
+      // Rojo intenso en centro, amarillo en bordes
+      const idx2=Math.floor(i/6);
+      botCols.push(volCols[idx2*6]||0.8, volCols[idx2*6+1]||0.5, volCols[idx2*6+2]||0.0);
+    }
     const gBot=new THREE.BufferGeometry();
     gBot.setAttribute('position',new THREE.Float32BufferAttribute(volVertsBot,3));
     gBot.setAttribute('color',new THREE.Float32BufferAttribute(botCols,3));
     gBot.computeVertexNormals();
     scene.add(new THREE.Mesh(gBot,new THREE.MeshPhongMaterial({
-      vertexColors:true,transparent:true,opacity:0.7,
-      side:THREE.DoubleSide,shininess:20
+      vertexColors:true,side:THREE.DoubleSide,shininess:60,specular:0x441100
     })));
+    showToast('✓ Volumen 3D listo');
   }
 
   // ── Espejo de agua ──
