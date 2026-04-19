@@ -627,13 +627,25 @@ async function generar3D(){
   scene.add(gridHelper);
   objects.grid=gridHelper;
 
-  // ── Puntos de sondaje ──
+  // ── Puntos de sondaje — coloreados por dataset de origen ──
   const ptsGroup=new THREE.Group();
   const sphGeo=new THREE.SphereGeometry(0.6,8,8);
+  // Paleta por dataset: hasta 8 colores distintos
+  const dsPalette=[0xffd060,0x00e5a0,0xff6060,0x60aaff,0xff8c00,0xcc66ff,0x00cccc,0xff99cc];
+  // Mapear nombre de dataset a índice
+  const dsNames=datasets.map(d=>d.name);
   pts.forEach(p=>{
     const sx=scX(p.x), sy=scZ(p.z), sz=-scY(p.y);
-    const t=(p.z-zMin)/(zMax-zMin||1);
-    const mat=new THREE.MeshPhongMaterial({color:palHex(t),emissive:palHex(t),emissiveIntensity:0.3});
+    // Color: si hay múltiples datasets → color por dataset, si no → por profundidad
+    let col;
+    if(datasets.length>1){
+      const dsIdx=dsNames.findIndex(n=>n===p.sector||p.sector?.includes(n.split('.')[0]));
+      col=dsPalette[Math.max(0,dsIdx)%dsPalette.length];
+    } else {
+      const t=(p.z-zMin)/(zMax-zMin||1);
+      col=palHex(t);
+    }
+    const mat=new THREE.MeshPhongMaterial({color:col,emissive:col,emissiveIntensity:0.3});
     const sph=new THREE.Mesh(sphGeo,mat);
     sph.position.set(sx,sy+0.3,sz);
     sph.userData={z:p.z,lat:p.lat,lon:p.lon,sector:p.sector};
@@ -641,6 +653,22 @@ async function generar3D(){
   });
   scene.add(ptsGroup);
   objects.pts=ptsGroup;
+
+  // ── Leyenda de datasets (si hay más de uno) ──
+  if(datasets.length>1){
+    const legEl=document.getElementById('legend3d')||document.createElement('div');
+    legEl.id='legend3d';
+    legEl.style.cssText='position:absolute;top:10px;right:10px;background:rgba(6,14,24,.85);border:1px solid rgba(26,99,180,.4);border-radius:8px;padding:8px 12px;font-family:monospace;font-size:10px;color:#ccdaea;z-index:10;';
+    legEl.innerHTML='<div style="font-weight:bold;margin-bottom:5px;color:#ffd060;letter-spacing:2px">SECTORES</div>'+
+      datasets.map((d,i)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <div style="width:12px;height:12px;border-radius:50%;background:#${dsPalette[i%dsPalette.length].toString(16).padStart(6,'0')}"></div>
+        <span>${d.name.length>20?d.name.slice(0,18)+'…':d.name}</span>
+      </div>`).join('');
+    document.getElementById('c3d-wrap').appendChild(legEl);
+  } else {
+    const legEl=document.getElementById('legend3d');
+    if(legEl)legEl.remove();
+  }
 
   // ── Auto centrado y auto escalado ──────────────────────────
   const boxAuto=new THREE.Box3();
@@ -833,7 +861,8 @@ function clearObjects(){
 // ─── Paneles laterales ────────────────────────────────────────────────────────
 function buildStats(pts,gW,gH,W,H){
   const el=document.getElementById('sg');el.innerHTML='';
-  [{v:pts.length,l:'PUNTOS'},{v:d3.mean(pts,p=>p.z).toFixed(2)+'m',l:'MEDIA'},
+  const nDs=datasets.length;
+  [{v:allPts.length+(nDs>1?' ('+nDs+' sectores)':''),l:'PUNTOS'},{v:d3.mean(pts,p=>p.z).toFixed(2)+'m',l:'MEDIA'},
    {v:zMin.toFixed(2)+'m',l:'MÍN'},{v:zMax.toFixed(2)+'m',l:'MÁX'},
    {v:(W*H/10000).toFixed(1)+'ha',l:'ÁREA'},{v:datasets.length,l:'SECTORES'}]
   .forEach(s=>{
