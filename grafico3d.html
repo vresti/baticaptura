@@ -686,23 +686,22 @@ async function generar3D(){
     if(legEl)legEl.remove();
   }
 
-  // ── Auto centrado y auto escalado — después del primer render ──
-  // Forzar un render para que la geometría esté lista
+  // ── Auto centrado — solo sobre la superficie batimétrica ──────
+  // Usar el mesh de superficie (no agua ni grilla que distorsionan el Box3)
   if(renderer&&scene&&camera)renderer.render(scene,camera);
-  
-  const boxAuto=new THREE.Box3();
-  scene.traverse(obj=>{if(obj.isMesh)boxAuto.expandByObject(obj);});
-  if(!boxAuto.isEmpty()){
-    const cAuto=new THREE.Vector3(), sAuto=new THREE.Vector3();
-    boxAuto.getCenter(cAuto);
-    boxAuto.getSize(sAuto);
-    target={x:cAuto.x, y:cAuto.y, z:cAuto.z};
-    // Radio calibrado: más generoso para no quedar demasiado cerca
-    const radio=Math.max(150, sAuto.length()*1.6);
-    spherical={theta:0.6, phi:0.85, radius:radio};
+  if(objects.surf){
+    const boxS=new THREE.Box3().setFromObject(objects.surf);
+    const cS=new THREE.Vector3(), sS=new THREE.Vector3();
+    boxS.getCenter(cS); boxS.getSize(sS);
+    // Centro Y = mitad de la profundidad vertical
+    target={x:cS.x, y:cS.y, z:cS.z};
+    // Radio = diagonal XZ * 1.5 para ver todo desde el costado
+    const diagXZ=Math.sqrt(sS.x*sS.x+sS.z*sS.z);
+    const radio=Math.max(120, diagXZ*1.8 + Math.abs(sS.y)*0.5);
+    spherical={theta:0.55, phi:0.80, radius:radio};
   } else {
     target={x:0,y:scZ(zMin)/2,z:0};
-    spherical={theta:0.6,phi:0.85,radius:180};
+    spherical={theta:0.55,phi:0.80,radius:160};
   }
   updateCamera();
 
@@ -1157,6 +1156,7 @@ function prog(p){
   const pb=document.getElementById('pb');
   pb.style.transform=`scaleX(${p})`;
   pb.style.opacity=p>0?'1':'0';
+  pb.style.visibility=p>0?'visible':'hidden';
 }
 function sl(ms){return new Promise(r=>setTimeout(r,ms));}
 let tT;
