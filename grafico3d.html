@@ -166,7 +166,7 @@ input[type=range] { width:100%; accent-color:var(--blu); cursor:pointer; }
 .prog-bar {
   position:absolute; top:0; left:0; right:0; height:3px;
   background:var(--amb); transform-origin:left; transform:scaleX(0);
-  transition:transform 0.3s; z-index:30;
+  transition:transform 0.3s, opacity 0.5s; z-index:30; opacity:0;
 }
 
 /* Toast */
@@ -683,7 +683,10 @@ async function generar3D(){
     if(legEl)legEl.remove();
   }
 
-  // ── Auto centrado y auto escalado ──────────────────────────
+  // ── Auto centrado y auto escalado — después del primer render ──
+  // Forzar un render para que la geometría esté lista
+  if(renderer&&scene&&camera)renderer.render(scene,camera);
+  
   const boxAuto=new THREE.Box3();
   scene.traverse(obj=>{if(obj.isMesh)boxAuto.expandByObject(obj);});
   if(!boxAuto.isEmpty()){
@@ -691,10 +694,12 @@ async function generar3D(){
     boxAuto.getCenter(cAuto);
     boxAuto.getSize(sAuto);
     target={x:cAuto.x, y:cAuto.y, z:cAuto.z};
-    spherical={theta:0.6, phi:1.1, radius:sAuto.length()*1.2};
+    // Radio calibrado: más generoso para no quedar demasiado cerca
+    const radio=Math.max(150, sAuto.length()*1.6);
+    spherical={theta:0.6, phi:0.85, radius:radio};
   } else {
     target={x:0,y:scZ(zMin)/2,z:0};
-    spherical={theta:0.6,phi:1.1,radius:180};
+    spherical={theta:0.6,phi:0.85,radius:180};
   }
   updateCamera();
 
@@ -774,9 +779,12 @@ function updateScale(){
   // Re-generar si ya hay datos
   if(objects.surf) generar3D();
 }
+let _idwTimer=null;
 function updateIDW(){
   idwPow=parseFloat(document.getElementById('ip').value);
-  if(objects.surf) generar3D();
+  // Debounce: esperar 400ms sin movimiento antes de regenerar
+  clearTimeout(_idwTimer);
+  _idwTimer=setTimeout(()=>{if(objects.surf)generar3D();},400);
 }
 
 // ─── Mouse / Touch controls ───────────────────────────────────────────────────
@@ -1142,7 +1150,11 @@ function expPNG(){
 }
 
 // ─── Utilidades ───────────────────────────────────────────────────────────────
-function prog(p){document.getElementById('pb').style.transform=`scaleX(${p})`;}
+function prog(p){
+  const pb=document.getElementById('pb');
+  pb.style.transform=`scaleX(${p})`;
+  pb.style.opacity=p>0?'1':'0';
+}
 function sl(ms){return new Promise(r=>setTimeout(r,ms));}
 let tT;
 function showToast(msg,err=false){
