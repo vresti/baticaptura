@@ -472,11 +472,14 @@ function calcVariograma(pts,nBins){
 }
 
 function fitVariograma(vario,model){
-  if(!vario.length)return{nugget:0,sill:1,range:50};
-  const nugget=d3.min(vario,v=>v.g)*0.1;
-  const sill=d3.max(vario,v=>v.g)*0.95;
-  const range=vario[Math.floor(vario.length*0.6)].h;
-  return{nugget,sill,range};
+  if(!vario.length)return{nugget:0.01,sill:1,range:50};
+  const sill=d3.max(vario,v=>v.g);
+  // Nugget mínimo del 10% del sill — estabiliza la matrix
+  const nugget=Math.max(sill*0.10, d3.min(vario,v=>v.g)*0.5);
+  // Range en el punto donde el variograma alcanza el 80% del sill
+  const rngPt=vario.find(v=>v.g>=sill*0.80)||vario[Math.floor(vario.length*0.55)];
+  const range=rngPt?rngPt.h:vario[vario.length-1].h*0.6;
+  return{nugget, sill:sill*0.95, range};
 }
 
 function gammaModel(h,params,model){
@@ -518,37 +521,56 @@ function drawVariograma(vario,model){
 
 // ═══ KRIGING ORDINARIO ════════════════════════════════════════════
 function krigingOrd(pts,px,py,params,model){
-  // Kriging simple con n vecinos más cercanos (max 12)
+  // Vecinos más cercanos — máximo 8 para mejor estabilidad
   const dists=pts.map((p,i)=>({i,d:Math.sqrt((p.x-px)**2+(p.y-py)**2)}))
-               .sort((a,b)=>a.d-b.d).slice(0,Math.min(12,pts.length));
+               .sort((a,b)=>a.d-b.d).slice(0,Math.min(8,pts.length));
   const near=dists.map(d=>pts[d.i]);
   const n=near.length;
   if(n===0)return d3.mean(pts,p=>p.z);
   if(n===1)return near[0].z;
 
-  // Matriz de covarianzas entre puntos vecinos
+  // Si el punto más cercano está muy próximo → retornar su valor directamente
+  if(dists[0].d<0.05)return near[0].z;
+
+  // Matriz de covarianzas con nugget en diagonal (regularización)
   const K=[];
   for(let i=0;i<n;i++){
     K.push([]);
     for(let j=0;j<n;j++){
       const h=Math.sqrt((near[i].x-near[j].x)**2+(near[i].y-near[j].y)**2);
-      K[i].push(params.sill-gammaModel(h,params,model));
+      let cov=params.sill-gammaModel(h,params,model);
+      if(i===j)cov+=params.nugget; // regularización diagonal
+      K[i].push(cov);
     }
-    K[i].push(1); // condición de insesgadez
+    K[i].push(1);
   }
   K.push([...Array(n).fill(1),0]);
 
-  // Vector de covarianzas punto-vecinos
   const k0=near.map(p=>{
     const h=Math.sqrt((p.x-px)**2+(p.y-py)**2);
     return params.sill-gammaModel(h,params,model);
   });
   k0.push(1);
 
-  // Resolver sistema (Gauss simple)
   const w=solveLinear(K,k0);
-  if(!w)return d3.mean(near,p=>p.z);
-  return near.reduce((s,p,i)=>s+w[i]*p.z,0);
+
+  // Si el sistema falló o hay pesos muy negativos → fallback a IDW
+  if(!w||w.some(wi=>wi<-0.5)){
+    // IDW como fallback robusto
+    let sw=0,swz=0;
+    near.forEach(p=>{
+      const d2=(p.x-px)**2+(p.y-py)**2;
+      const wi=1/Math.pow(Math.max(d2,0.01),0.8);
+      sw+=wi;swz+=wi*p.z;
+    });
+    return swz/sw;
+  }
+
+  // Clampear pesos levemente negativos (ruido numérico)
+  const wc=w.slice(0,n).map(wi=>Math.max(wi,-0.1));
+  const wsum=wc.reduce((a,b)=>a+b,0);
+  // Normalizar para garantizar insesgadez
+  return near.reduce((s,p,i)=>s+(wc[i]/wsum)*p.z,0);
 }
 
 function solveLinear(A,b){
