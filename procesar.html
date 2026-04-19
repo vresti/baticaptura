@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>BatiProcesar — Procesamiento Batimétrico</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@300;400;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#06111e;color:#ccdaea;font-family:'Exo 2',sans-serif}
+.layout{display:grid;grid-template-columns:280px 1fr;grid-template-rows:42px 1fr;height:100vh}
+header{grid-column:1/-1;background:#040c16;border-bottom:2px solid #1a237e;
+  display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.logo{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;letter-spacing:3px;color:#ffd060}
+.logo-sub{font-size:7px;letter-spacing:2px;color:#4a6a8a;margin-top:1px}
+.hinfo{font-family:'Share Tech Mono',monospace;font-size:9px;color:#4a6a8a}
+/* SIDEBAR */
+.sidebar{background:#040c16;border-right:1px solid rgba(26,99,180,.25);
+  padding:10px 8px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.sec{background:rgba(255,255,255,.03);border:1px solid rgba(26,99,180,.2);border-radius:5px;padding:8px 10px}
+.sec-ttl{font-size:7px;letter-spacing:3px;color:#1a8fe8;text-transform:uppercase;
+  font-weight:600;margin-bottom:7px;border-bottom:1px solid rgba(26,99,180,.2);padding-bottom:4px}
+/* Drop zone */
+.drop-zone{border:2px dashed rgba(26,99,180,.35);border-radius:5px;padding:16px 8px;
+  text-align:center;cursor:pointer;transition:all .2s;margin-bottom:6px}
+.drop-zone:hover,.drop-zone.over{border-color:#1a8fe8;background:rgba(26,143,232,.06)}
+.drop-zone.loaded{border-color:#00e5a0;border-style:solid;background:rgba(0,229,160,.04)}
+.drop-ico{font-size:24px;margin-bottom:4px}
+.drop-lbl{font-size:9px;letter-spacing:2px;color:#4a6a8a}
+.drop-name{font-size:9px;color:#00e5a0;font-family:'Share Tech Mono',monospace;
+  margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Controls */
+.ctrl{margin-bottom:8px}
+.ctrl-lbl{font-size:7px;letter-spacing:2px;color:#4a6a8a;margin-bottom:4px}
+.ctrl-row{display:flex;align-items:center;gap:8px}
+.num-input{background:#060e18;border:1px solid rgba(26,99,180,.35);color:#ffd060;
+  padding:6px 10px;font-size:14px;font-family:'Orbitron',monospace;font-weight:700;
+  border-radius:5px;width:100%;text-align:center;outline:none}
+.num-input:focus{border-color:#ffd060}
+.unit{font-size:9px;color:#4a6a8a;white-space:nowrap}
+/* Kriging */
+.krig-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+.krig-box{background:#060e18;border:1px solid rgba(26,99,180,.2);border-radius:4px;padding:6px;text-align:center}
+.krig-val{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:#1a8fe8}
+.krig-lbl{font-size:6px;letter-spacing:2px;color:#4a6a8a;margin-top:2px}
+select{width:100%;background:#060e18;border:1px solid rgba(26,99,180,.3);color:#ccdaea;
+  padding:5px 6px;font-size:10px;font-family:'Share Tech Mono',monospace;border-radius:4px;outline:none}
+/* Buttons */
+.btn-go{width:100%;padding:9px;background:#1a237e;color:white;border:none;border-radius:5px;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;cursor:pointer;margin-top:2px;transition:.2s}
+.btn-go:hover:not(:disabled){background:#283593}
+.btn-go:disabled{opacity:.3;cursor:not-allowed}
+.btn-go.gold{background:rgba(201,162,39,.2);border:1px solid rgba(201,162,39,.4);color:#ffd060}
+.btn-go.gold:hover:not(:disabled){background:rgba(201,162,39,.35)}
+.btn-go.green{background:rgba(0,229,160,.15);border:1px solid rgba(0,229,160,.35);color:#00e5a0}
+.btn-go.green:hover:not(:disabled){background:rgba(0,229,160,.3)}
+/* MAIN AREA */
+.main{display:flex;flex-direction:column;overflow:hidden}
+/* Steps */
+.steps{display:flex;background:#040c16;border-bottom:1px solid rgba(26,99,180,.2);
+  padding:0 16px;flex-shrink:0}
+.step-tab{padding:8px 14px;cursor:pointer;font-size:10px;font-weight:600;letter-spacing:1px;
+  border-bottom:3px solid transparent;color:#4a6a8a;transition:all .2s;display:flex;align-items:center;gap:6px}
+.step-tab.active{color:#ffd060;border-bottom-color:#ffd060}
+.step-tab.done{color:#00e5a0;border-bottom-color:#00e5a0}
+.step-tab.disabled{cursor:not-allowed;opacity:.35}
+/* Panels */
+.panel-area{flex:1;overflow:auto;padding:20px}
+.view-panel{display:none}
+.view-panel.active{display:block}
+/* Cards */
+.card{background:rgba(255,255,255,.03);border:1px solid rgba(26,99,180,.2);
+  border-radius:8px;padding:16px 20px;margin-bottom:14px}
+.card-ttl{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:#ffd060;margin-bottom:12px}
+/* Summary */
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.sum-box{background:#060e18;border:1px solid rgba(26,99,180,.2);border-radius:6px;padding:10px;text-align:center}
+.sum-val{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:#1a8fe8}
+.sum-lbl{font-size:7px;letter-spacing:2px;color:#4a6a8a;margin-top:3px}
+/* Table */
+.tbl-wrap{overflow:auto;max-height:420px;border:1px solid rgba(26,99,180,.2);border-radius:6px}
+table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:10px}
+thead{position:sticky;top:0;background:#040c16;z-index:2}
+th{padding:7px 10px;text-align:left;font-size:7px;letter-spacing:2px;color:#4a6a8a;
+  border-bottom:1px solid rgba(26,99,180,.3);white-space:nowrap}
+td{padding:5px 10px;border-bottom:1px solid rgba(26,99,180,.1);white-space:nowrap}
+tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+tr:hover td{background:rgba(26,143,232,.07)}
+.td-changed{color:#ffd060;font-weight:600}
+.td-new{color:#00e5a0}
+/* Diff indicator */
+.diff-pos{color:#00e5a0}
+.diff-neg{color:#ff6060}
+/* Progress */
+.prog-wrap{margin:12px 0}
+.prog-bar-h{height:4px;background:rgba(26,99,180,.2);border-radius:2px;overflow:hidden}
+.prog-bar-f{height:100%;background:#1a8fe8;border-radius:2px;transition:width .3s}
+.prog-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:#4a6a8a;margin-top:4px}
+/* Empty */
+.empty-state{text-align:center;padding:60px 20px;color:#2a4a6a}
+.empty-ico{font-size:56px;opacity:.2;margin-bottom:12px}
+.empty-ttl{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;margin-bottom:8px}
+/* Toast */
+#toast{position:fixed;bottom:18px;right:18px;background:#0d1f3c;color:#ccdaea;
+  border:1px solid #ffd060;border-radius:7px;padding:7px 14px;font-size:10px;
+  font-family:'Share Tech Mono',monospace;opacity:0;transform:translateY(20px);
+  transition:all .3s;z-index:9999;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.err{border-color:#ef5350}
+/* Variogram preview */
+.vario-canvas{width:100%;height:80px;background:#060e18;border-radius:4px;border:1px solid rgba(26,99,180,.2);display:block}
+/* Info box */
+.info-box{background:rgba(26,143,232,.06);border:1px solid rgba(26,143,232,.2);
+  border-radius:5px;padding:10px 12px;font-size:11px;line-height:1.7;color:#8aaac0;margin-bottom:12px}
+.info-box strong{color:#1a8fe8}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="layout">
+
+<header>
+  <div>
+    <div class="logo">⚙ BatiProcesar</div>
+    <div class="logo-sub">PROCESAMIENTO DE DATOS BATIMÉTRICOS — BATISISTEMA</div>
+  </div>
+  <div class="hinfo" id="hinfo">Sin datos | <a href="index.html" style="color:#ffd060;text-decoration:none">← HUB</a></div>
+</header>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+
+  <div class="sec">
+    <div class="sec-ttl">▸ Archivo CSV</div>
+    <div class="drop-zone" id="drop-zone"
+         onclick="document.getElementById('fi').click()"
+         ondragover="event.preventDefault();this.classList.add('over')"
+         ondragleave="this.classList.remove('over')"
+         ondrop="onDrop(event)">
+      <div class="drop-ico">📂</div>
+      <div class="drop-lbl">CARGAR CSV</div>
+      <div class="drop-name" id="drop-name">Clic o arrastrar</div>
+    </div>
+    <input type="file" id="fi" accept=".csv" style="display:none" onchange="loadCSV(this.files[0]);this.value=''">
+  </div>
+
+  <!-- PASO 1: OFFSET -->
+  <div class="sec" id="sec-offset">
+    <div class="sec-ttl">▸ 1. Corrección de Offset</div>
+    <div class="info-box">
+      Suma una constante a <strong>FINAL_M</strong>.<br>
+      Positivo = canal más profundo.<br>
+      Negativo = canal más somero.
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-lbl">Corrección a aplicar</div>
+      <input type="number" class="num-input" id="offset-val" value="0" step="0.01" placeholder="0.00">
+      <div style="text-align:center;margin-top:4px;font-family:'Share Tech Mono',monospace;font-size:8px;color:#4a6a8a">metros (+ profundiza / - someriza)</div>
+    </div>
+    <button class="btn-go gold" id="btn-offset" onclick="aplicarOffset()" disabled>⊕ APLICAR OFFSET</button>
+  </div>
+
+  <!-- PASO 2: KRIGING -->
+  <div class="sec" id="sec-kriging">
+    <div class="sec-ttl">▸ 2. Kriging (Opcional)</div>
+    <div class="info-box">
+      Genera una grilla regular interpolada.<br>
+      Los puntos originales se conservan.<br>
+      Se agregan puntos <strong>estimados</strong>.
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-lbl">Modelo de variograma</div>
+      <select id="krig-model">
+        <option value="spherical" selected>Esférico (recomendado)</option>
+        <option value="exponential">Exponencial</option>
+        <option value="gaussian">Gaussiano</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-lbl">Espaciado de grilla (metros)</div>
+      <input type="number" class="num-input" id="krig-spacing" value="2" step="0.5" min="0.5" max="20">
+    </div>
+    <div class="krig-grid" id="krig-stats" style="display:none">
+      <div class="krig-box"><div class="krig-val" id="k-orig">—</div><div class="krig-lbl">PUNTOS ORIG.</div></div>
+      <div class="krig-box"><div class="krig-val" id="k-new">—</div><div class="krig-lbl">PUNTOS NUEVOS</div></div>
+    </div>
+    <div class="prog-wrap" id="krig-prog" style="display:none">
+      <div class="prog-bar-h"><div class="prog-bar-f" id="krig-pf" style="width:0%"></div></div>
+      <div class="prog-lbl" id="krig-pl">Calculando variograma…</div>
+    </div>
+    <button class="btn-go" id="btn-krig" onclick="aplicarKriging()" disabled>◈ INTERPOLAR KRIGING</button>
+  </div>
+
+  <!-- EXPORTAR -->
+  <div class="sec" id="sec-export" style="display:none">
+    <div class="sec-ttl">▸ Exportar</div>
+    <button class="btn-go green" onclick="exportarCSV()">↓ GUARDAR CSV PROCESADO</button>
+  </div>
+
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <div class="steps">
+    <div class="step-tab active" id="tab-orig" onclick="setStep('orig')">
+      📋 DATOS ORIGINALES
+    </div>
+    <div class="step-tab disabled" id="tab-offset" onclick="setStep('offset')">
+      ⊕ OFFSET APLICADO
+    </div>
+    <div class="step-tab disabled" id="tab-kriging" onclick="setStep('kriging')">
+      ◈ KRIGING
+    </div>
+  </div>
+
+  <div class="panel-area">
+
+    <!-- Panel: Original -->
+    <div class="view-panel active" id="panel-orig">
+      <div class="empty-state" id="empty-orig">
+        <div class="empty-ico">📂</div>
+        <div class="empty-ttl">SIN DATOS</div>
+        <div>Cargá un CSV de BatiCaptura para comenzar</div>
+      </div>
+      <div id="orig-content" style="display:none">
+        <div class="summary-grid" id="orig-summary"></div>
+        <div class="card">
+          <div class="card-ttl">SONDAJES ORIGINALES</div>
+          <div class="tbl-wrap" id="orig-table"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Offset -->
+    <div class="view-panel" id="panel-offset">
+      <div class="empty-state" id="empty-offset">
+        <div class="empty-ico">⊕</div>
+        <div class="empty-ttl">SIN OFFSET</div>
+        <div>Ingresá un valor y presioná APLICAR OFFSET</div>
+      </div>
+      <div id="offset-content" style="display:none">
+        <div class="summary-grid" id="offset-summary"></div>
+        <div class="card">
+          <div class="card-ttl">DATOS CON OFFSET APLICADO</div>
+          <div class="tbl-wrap" id="offset-table"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Kriging -->
+    <div class="view-panel" id="panel-kriging">
+      <div class="empty-state" id="empty-krig">
+        <div class="empty-ico">◈</div>
+        <div class="empty-ttl">SIN KRIGING</div>
+        <div>Configurá los parámetros y presioná INTERPOLAR KRIGING</div>
+      </div>
+      <div id="krig-content" style="display:none">
+        <div class="card">
+          <div class="card-ttl">VARIOGRAMA EXPERIMENTAL</div>
+          <canvas class="vario-canvas" id="vario-canvas"></canvas>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:#4a6a8a;margin-top:6px" id="vario-params"></div>
+        </div>
+        <div class="summary-grid" id="krig-summary"></div>
+        <div class="card">
+          <div class="card-ttl">GRILLA KRIGING (muestra primeros 200)</div>
+          <div class="tbl-wrap" id="krig-table"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<script>
+// ═══ ESTADO ═══════════════════════════════════════════════════════
+let rawData=null;        // filas originales del CSV
+let rawCols=null;        // columnas originales
+let ptsOrig=[];          // [{lat,lon,z,row}] puntos originales
+let ptsOffset=[];        // puntos con offset aplicado
+let ptsKriging=[];       // puntos originales + grilla kriging
+let currentStep='orig';
+let offsetApplied=0;
+
+// ═══ CARGA CSV ════════════════════════════════════════════════════
+function onDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('over');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.name.endsWith('.csv'))loadCSV(f);
+}
+
+function loadCSV(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>parseCSV(file.name,e.target.result);
+  r.readAsText(file);
+}
+
+function parseCSV(name,text){
+  const data=d3.csvParse(text);
+  if(!data.length){showToast('Archivo vacío',true);return;}
+  rawData=data;
+  rawCols=data.columns;
+  const UC=rawCols.map(c=>c.trim().toUpperCase());
+  const fc=(...ns)=>{for(const n of ns){const i=UC.findIndex(c=>c===n||c.includes(n));if(i>=0)return rawCols[i];}return null;};
+  const latC=fc('LATITUD','LAT'), lonC=fc('LONGITUD','LON');
+  const prC=fc('FINAL_M','FINAL','PROF_M','PROF','Z');
+  if(!latC||!lonC||!prC){showToast('Sin columnas LAT/LON/PROF',true);return;}
+
+  ptsOrig=data.map((row,i)=>({
+    idx:i+1,
+    lat:+row[latC],lon:+row[lonC],z:+row[prC],
+    row,latC,lonC,prC
+  })).filter(p=>!isNaN(p.lat)&&!isNaN(p.z));
+
+  // UI
+  const dz=document.getElementById('drop-zone');
+  dz.className='drop-zone loaded';
+  document.getElementById('drop-name').textContent=name.length>28?name.slice(0,26)+'…':name;
+  document.getElementById('btn-offset').disabled=false;
+  document.getElementById('btn-krig').disabled=false;
+  document.getElementById('hinfo').innerHTML=
+    ptsOrig.length+' SONDAJES | <a href="index.html" style="color:#ffd060;text-decoration:none">← HUB</a>';
+
+  // Reset
+  ptsOffset=[];ptsKriging=[];offsetApplied=0;
+  document.getElementById('tab-offset').className='step-tab disabled';
+  document.getElementById('tab-kriging').className='step-tab disabled';
+  document.getElementById('sec-export').style.display='none';
+  document.getElementById('empty-orig').style.display='none';
+  document.getElementById('orig-content').style.display='';
+
+  renderSummary('orig-summary',ptsOrig,null);
+  renderTable('orig-table',ptsOrig,null);
+  setStep('orig');
+  showToast('✓ '+name+' — '+ptsOrig.length+' puntos');
+}
+
+// ═══ STEP 1: OFFSET ═══════════════════════════════════════════════
+function aplicarOffset(){
+  const off=parseFloat(document.getElementById('offset-val').value)||0;
+  if(off===0){showToast('El offset es 0 — sin cambio',true);return;}
+  offsetApplied=off;
+  ptsOffset=ptsOrig.map(p=>({...p, z:+(p.z+off).toFixed(3)}));
+
+  document.getElementById('empty-offset').style.display='none';
+  document.getElementById('offset-content').style.display='';
+  renderSummary('offset-summary',ptsOffset,ptsOrig);
+  renderTable('offset-table',ptsOffset,ptsOrig);
+
+  document.getElementById('tab-offset').className='step-tab done';
+  document.getElementById('sec-export').style.display='';
+  setStep('offset');
+  showToast('✓ Offset '+( off>0?'+':'')+off.toFixed(3)+'m aplicado a '+ptsOffset.length+' puntos');
+}
+
+// ═══ STEP 2: KRIGING ══════════════════════════════════════════════
+async function aplicarKriging(){
+  const srcPts=ptsOffset.length?ptsOffset:ptsOrig;
+  if(srcPts.length<4){showToast('Mínimo 4 puntos para Kriging',true);return;}
+
+  const model=document.getElementById('krig-model').value;
+  const spacing=parseFloat(document.getElementById('krig-spacing').value)||2;
+
+  // Mostrar progreso
+  document.getElementById('krig-prog').style.display='';
+  document.getElementById('krig-stats').style.display='none';
+  setKrigProg(0.05,'Calculando variograma experimental…');
+  await sl(30);
+
+  // Proyección a metros
+  const lat0=d3.mean(srcPts,p=>p.lat), lon0=d3.mean(srcPts,p=>p.lon);
+  const R=6371000;
+  const toM=p=>({
+    x:(p.lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180,
+    y:(p.lat-lat0)*R*Math.PI/180,
+    z:p.z, orig:true, lat:p.lat, lon:p.lon
+  });
+  const mPts=srcPts.map(toM);
+
+  // ── Variograma experimental ──────────────────────────────────
+  setKrigProg(0.15,'Calculando variograma…');await sl(20);
+  const vario=calcVariograma(mPts,12);
+  drawVariograma(vario,model);
+
+  // ── Ajuste del variograma ────────────────────────────────────
+  const vParams=fitVariograma(vario,model);
+  document.getElementById('vario-params').innerHTML=
+    `Modelo: <span style="color:#1a8fe8">${model}</span> | `+
+    `Nugget: <span style="color:#ffd060">${vParams.nugget.toFixed(3)}</span> | `+
+    `Sill: <span style="color:#ffd060">${vParams.sill.toFixed(3)}</span> | `+
+    `Range: <span style="color:#ffd060">${vParams.range.toFixed(1)} m</span>`;
+
+  setKrigProg(0.30,'Generando grilla de interpolación…');await sl(20);
+
+  // ── Grilla de salida ─────────────────────────────────────────
+  const xMn=d3.min(mPts,p=>p.x), xMx=d3.max(mPts,p=>p.x);
+  const yMn=d3.min(mPts,p=>p.y), yMx=d3.max(mPts,p=>p.y);
+  const gridPts=[];
+  for(let gx=xMn;gx<=xMx;gx+=spacing){
+    for(let gy=yMn;gy<=yMx;gy+=spacing){
+      // Solo si está dentro del convex hull aproximado
+      if(dentroDeNube(mPts,gx,gy,spacing*2)){
+        gridPts.push({x:gx,y:gy});
+      }
+    }
+  }
+
+  setKrigProg(0.40,'Kriging en '+gridPts.length+' puntos…');await sl(20);
+
+  // ── Kriging ordinario ────────────────────────────────────────
+  const kPts=[];
+  const totalG=gridPts.length;
+  const chunk=Math.max(1,Math.floor(totalG/20));
+
+  for(let i=0;i<totalG;i++){
+    const gp=gridPts[i];
+    const zk=krigingOrd(mPts,gp.x,gp.y,vParams,model);
+    // Convertir de vuelta a lat/lon
+    const lat=lat0+gp.y/(R*Math.PI/180);
+    const lon=lon0+gp.x/(Math.cos(lat0*Math.PI/180)*R*Math.PI/180);
+    kPts.push({x:gp.x,y:gp.y,z:zk,orig:false,lat,lon});
+    if(i%chunk===0){
+      setKrigProg(0.40+0.55*(i/totalG),`Kriging: ${i}/${totalG} puntos…`);
+      await sl(0);
+    }
+  }
+
+  // Combinar originales + grilla
+  ptsKriging=[...mPts,...kPts];
+
+  setKrigProg(1,'Listo');
+  await sl(200);
+  document.getElementById('krig-prog').style.display='none';
+  document.getElementById('krig-stats').style.display='';
+  document.getElementById('k-orig').textContent=mPts.length;
+  document.getElementById('k-new').textContent=kPts.length;
+
+  document.getElementById('empty-krig').style.display='none';
+  document.getElementById('krig-content').style.display='';
+  renderSummaryKrig(kPts.length,mPts.length);
+  renderTableKrig(ptsKriging);
+
+  document.getElementById('tab-kriging').className='step-tab done';
+  document.getElementById('sec-export').style.display='';
+  setStep('kriging');
+  showToast('✓ Kriging: '+mPts.length+' orig + '+kPts.length+' interpolados');
+}
+
+// ═══ VARIOGRAMA ═══════════════════════════════════════════════════
+function calcVariograma(pts,nBins){
+  const dists=[];
+  for(let i=0;i<pts.length;i++)
+    for(let j=i+1;j<pts.length;j++){
+      const d=Math.sqrt((pts[i].x-pts[j].x)**2+(pts[i].y-pts[j].y)**2);
+      const g=0.5*(pts[i].z-pts[j].z)**2;
+      dists.push({d,g});
+    }
+  const maxD=d3.max(dists,p=>p.d)*0.6;
+  const bw=maxD/nBins;
+  const bins=Array.from({length:nBins},(_,i)=>({h:(i+0.5)*bw,gs:[]}));
+  dists.forEach(({d,g})=>{
+    const bi=Math.floor(d/bw);
+    if(bi<nBins)bins[bi].gs.push(g);
+  });
+  return bins.filter(b=>b.gs.length>0).map(b=>({h:b.h,g:d3.mean(b.gs),n:b.gs.length}));
+}
+
+function fitVariograma(vario,model){
+  if(!vario.length)return{nugget:0,sill:1,range:50};
+  const nugget=d3.min(vario,v=>v.g)*0.1;
+  const sill=d3.max(vario,v=>v.g)*0.95;
+  const range=vario[Math.floor(vario.length*0.6)].h;
+  return{nugget,sill,range};
+}
+
+function gammaModel(h,params,model){
+  const{nugget,sill,range}=params;
+  if(h===0)return 0;
+  const hr=h/range;
+  if(model==='spherical')return nugget+(sill-nugget)*(hr<=1?1.5*hr-0.5*hr**3:1);
+  if(model==='exponential')return nugget+(sill-nugget)*(1-Math.exp(-3*hr));
+  if(model==='gaussian')return nugget+(sill-nugget)*(1-Math.exp(-3*hr**2));
+  return nugget+(sill-nugget)*(1-Math.exp(-3*hr));
+}
+
+function drawVariograma(vario,model){
+  const canvas=document.getElementById('vario-canvas');
+  const W=canvas.offsetWidth||600, H=80;
+  canvas.width=W*2; canvas.height=H*2;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d'); ctx.scale(2,2);
+  ctx.fillStyle='#060e18'; ctx.fillRect(0,0,W,H);
+  if(!vario.length)return;
+  const maxH=d3.max(vario,v=>v.h), maxG=d3.max(vario,v=>v.g)*1.1;
+  const sx=v=>(v.h/maxH)*(W-20)+10;
+  const sy=v=>H-5-(v.g/maxG)*(H-10);
+  const params=fitVariograma(vario,model);
+  // Línea del modelo
+  ctx.strokeStyle='#ffd060'; ctx.lineWidth=1.5; ctx.beginPath();
+  for(let i=0;i<=100;i++){
+    const h=i/100*maxH;
+    const g=gammaModel(h,params,model);
+    i===0?ctx.moveTo(sx({h}),sy({g})):ctx.lineTo(sx({h}),sy({g}));
+  }
+  ctx.stroke();
+  // Puntos experimentales
+  vario.forEach(v=>{
+    ctx.fillStyle='#1a8fe8';
+    ctx.beginPath(); ctx.arc(sx(v),sy(v),3,0,Math.PI*2); ctx.fill();
+  });
+}
+
+// ═══ KRIGING ORDINARIO ════════════════════════════════════════════
+function krigingOrd(pts,px,py,params,model){
+  // Kriging simple con n vecinos más cercanos (max 12)
+  const dists=pts.map((p,i)=>({i,d:Math.sqrt((p.x-px)**2+(p.y-py)**2)}))
+               .sort((a,b)=>a.d-b.d).slice(0,Math.min(12,pts.length));
+  const near=dists.map(d=>pts[d.i]);
+  const n=near.length;
+  if(n===0)return d3.mean(pts,p=>p.z);
+  if(n===1)return near[0].z;
+
+  // Matriz de covarianzas entre puntos vecinos
+  const K=[];
+  for(let i=0;i<n;i++){
+    K.push([]);
+    for(let j=0;j<n;j++){
+      const h=Math.sqrt((near[i].x-near[j].x)**2+(near[i].y-near[j].y)**2);
+      K[i].push(params.sill-gammaModel(h,params,model));
+    }
+    K[i].push(1); // condición de insesgadez
+  }
+  K.push([...Array(n).fill(1),0]);
+
+  // Vector de covarianzas punto-vecinos
+  const k0=near.map(p=>{
+    const h=Math.sqrt((p.x-px)**2+(p.y-py)**2);
+    return params.sill-gammaModel(h,params,model);
+  });
+  k0.push(1);
+
+  // Resolver sistema (Gauss simple)
+  const w=solveLinear(K,k0);
+  if(!w)return d3.mean(near,p=>p.z);
+  return near.reduce((s,p,i)=>s+w[i]*p.z,0);
+}
+
+function solveLinear(A,b){
+  const n=A.length;
+  const M=A.map((r,i)=>[...r,b[i]]);
+  for(let col=0;col<n;col++){
+    let pivot=col;
+    for(let r=col+1;r<n;r++)if(Math.abs(M[r][col])>Math.abs(M[pivot][col]))pivot=r;
+    [M[col],M[pivot]]=[M[pivot],M[col]];
+    if(Math.abs(M[col][col])<1e-12)return null;
+    for(let r=0;r<n;r++){
+      if(r===col)continue;
+      const f=M[r][col]/M[col][col];
+      for(let c=col;c<=n;c++)M[r][c]-=f*M[col][c];
+    }
+  }
+  return M.map((r,i)=>r[n]/r[i]);
+}
+
+function dentroDeNube(pts,px,py,radio){
+  return pts.some(p=>Math.sqrt((p.x-px)**2+(p.y-py)**2)<radio);
+}
+
+// ═══ RENDER TABLAS Y RESÚMENES ════════════════════════════════════
+function renderSummary(id,pts,ptsRef){
+  const el=document.getElementById(id);
+  const zs=pts.map(p=>p.z);
+  const items=[
+    {v:pts.length,l:'PUNTOS'},
+    {v:d3.min(zs).toFixed(3)+' m',l:'MÍN'},
+    {v:d3.max(zs).toFixed(3)+' m',l:'MÁX'},
+    {v:d3.mean(zs).toFixed(3)+' m',l:'MEDIA'},
+  ];
+  if(ptsRef){
+    const diff=d3.mean(pts,p=>p.z)-d3.mean(ptsRef,p=>p.z);
+    items.push({v:(diff>=0?'+':'')+diff.toFixed(3)+' m',l:'Δ MEDIA',cls:diff>=0?'diff-pos':'diff-neg'});
+  }
+  el.innerHTML=items.map(s=>`<div class="sum-box">
+    <div class="sum-val ${s.cls||''}">${s.v}</div>
+    <div class="sum-lbl">${s.l}</div></div>`).join('');
+}
+
+function renderSummaryKrig(nNew,nOrig){
+  const el=document.getElementById('krig-summary');
+  el.innerHTML=[
+    {v:nOrig,l:'PUNTOS ORIG.'},
+    {v:nNew,l:'INTERPOLADOS'},
+    {v:nOrig+nNew,l:'TOTAL'},
+    {v:((nNew/(nOrig+nNew))*100).toFixed(0)+'%',l:'% INTERPOLADO'},
+  ].map(s=>`<div class="sum-box"><div class="sum-val">${s.v}</div><div class="sum-lbl">${s.l}</div></div>`).join('');
+}
+
+function renderTable(id,pts,ptsRef){
+  const MAX=300;
+  const cols=['N°','LATITUD','LONGITUD','PROF. (m)'];
+  if(ptsRef)cols.push('ORIGINAL','DIFERENCIA');
+  let html=`<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+  pts.slice(0,MAX).forEach((p,i)=>{
+    const ref=ptsRef?ptsRef[i]:null;
+    const diff=ref?(p.z-ref.z):null;
+    html+=`<tr>
+      <td>${p.idx}</td>
+      <td>${p.lat.toFixed(7)}</td>
+      <td>${p.lon.toFixed(7)}</td>
+      <td class="${ptsRef?'td-changed':''}">${p.z.toFixed(3)}</td>
+      ${ref?`<td>${ref.z.toFixed(3)}</td><td class="${diff>=0?'diff-pos':'diff-neg'}">${diff>=0?'+':''}${diff.toFixed(3)}</td>`:''}
+    </tr>`;
+  });
+  if(pts.length>MAX)html+=`<tr><td colspan="${cols.length}" style="text-align:center;color:#4a6a8a;padding:8px">… y ${pts.length-MAX} puntos más</td></tr>`;
+  html+='</tbody></table>';
+  document.getElementById(id).innerHTML=html;
+}
+
+function renderTableKrig(pts){
+  const MAX=200;
+  let html=`<table><thead><tr>
+    <th>TIPO</th><th>LATITUD</th><th>LONGITUD</th><th>PROF. (m)</th>
+  </tr></thead><tbody>`;
+  pts.slice(0,MAX).forEach(p=>{
+    html+=`<tr>
+      <td class="${p.orig?'':'td-new'}">${p.orig?'Medido':'Kriging'}</td>
+      <td>${p.lat.toFixed(7)}</td>
+      <td>${p.lon.toFixed(7)}</td>
+      <td class="${p.orig?'':'td-new'}">${p.z.toFixed(3)}</td>
+    </tr>`;
+  });
+  if(pts.length>MAX)html+=`<tr><td colspan="4" style="text-align:center;color:#4a6a8a;padding:8px">… y ${pts.length-MAX} puntos más en el CSV exportado</td></tr>`;
+  html+='</tbody></table>';
+  document.getElementById('krig-table').innerHTML=html;
+}
+
+// ═══ EXPORTAR CSV ═════════════════════════════════════════════════
+function exportarCSV(){
+  // Decidir qué datos exportar: kriging > offset > orig
+  let pts, tipo;
+  if(ptsKriging.length){pts=ptsKriging;tipo='Kriging';}
+  else if(ptsOffset.length){pts=ptsOffset;tipo='Offset';}
+  else{pts=ptsOrig;tipo='Original';}
+
+  const hasOrig=pts[0]&&pts[0].orig!==undefined;
+
+  // Construir CSV
+  let rows=['N,TIPO,LATITUD,LONGITUD,FINAL_M'];
+  if(offsetApplied!==0&&tipo!=='Kriging'){
+    rows=['N,TIPO,LATITUD,LONGITUD,FINAL_M,FINAL_M_ORIGINAL,OFFSET_APLICADO'];
+  }
+
+  pts.forEach((p,i)=>{
+    const tipo2=hasOrig?(p.orig?'MEDIDO':'KRIGING'):'MEDIDO';
+    if(offsetApplied!==0&&!hasOrig){
+      rows.push(`${i+1},${tipo2},${p.lat.toFixed(7)},${p.lon.toFixed(7)},${p.z.toFixed(3)},${ptsOrig[i]?.z.toFixed(3)||''},${offsetApplied.toFixed(3)}`);
+    } else {
+      rows.push(`${i+1},${tipo2},${p.lat.toFixed(7)},${p.lon.toFixed(7)},${p.z.toFixed(3)}`);
+    }
+  });
+
+  const now=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const ts=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+'_'+pad(now.getHours())+pad(now.getMinutes());
+  const fname='BatiProcesado_'+tipo+'_'+ts+'.csv';
+
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=fname;a.click();
+  showToast('✓ '+fname+' — '+pts.length+' puntos');
+}
+
+// ═══ NAVEGACIÓN DE PASOS ══════════════════════════════════════════
+function setStep(step){
+  ['orig','offset','kriging'].forEach(s=>{
+    document.getElementById('panel-'+s).className='view-panel'+(s===step?' active':'');
+  });
+  document.getElementById('tab-'+step).className=
+    document.getElementById('tab-'+step).className.replace('active','').trim()+' active';
+  // remover active de los otros
+  ['orig','offset','kriging'].filter(s=>s!==step).forEach(s=>{
+    const el=document.getElementById('tab-'+s);
+    el.className=el.className.replace(' active','').trim();
+  });
+  currentStep=step;
+}
+
+// ═══ UTILS ════════════════════════════════════════════════════════
+function setKrigProg(p,lbl){
+  document.getElementById('krig-pf').style.width=(p*100)+'%';
+  document.getElementById('krig-pl').textContent=lbl;
+}
+function sl(ms){return new Promise(r=>setTimeout(r,ms));}
+let _tt;
+function showToast(msg,err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=err?'show err':'show';
+  clearTimeout(_tt);_tt=setTimeout(()=>t.className='',3200);
+}
+</script>
+</body>
+</html>

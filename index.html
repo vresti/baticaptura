@@ -151,7 +151,7 @@
   .card.grafico:hover { border-color: var(--gold);  box-shadow: 0 8px 30px rgba(255,208,96,0.1); }
   .card:hover::after { opacity: 1; }
 
-  .card-icon { font-size: 36px; margin-bottom: 14px; display: block; }
+  .card-icon { font-size: 26px; margin-bottom: 8px; display: block; }
   .card-title {
     font-family: 'Orbitron', monospace;
     font-size: 13px; font-weight: 700; letter-spacing: 3px;
@@ -241,8 +241,10 @@
   .card.terreno::after  { background: radial-gradient(circle at 50% 0%, rgba(0,229,160,0.05), transparent 70%); }
   .card.terreno:hover   { border-color: var(--green); box-shadow: 0 8px 30px rgba(0,229,160,0.1); }
   .card.terreno .card-title { color: var(--green); }
+  .card.procesar .card-title { color: #f472b6; }
   .card.terreno .card-features li::before { color: var(--green); }
   .card.terreno .card-cta { background: rgba(0,229,160,0.1); border: 1px solid var(--green); color: var(--green); }
+  .card.procesar .card-cta { background: rgba(244,114,182,0.1); border: 1px solid #f472b6; color: #f472b6; }
 </style>
 </head>
 <body>
@@ -361,10 +363,26 @@
       <div class="card-cta">▶ ABRIR</div>
     </a>
 
+    <!-- BATIPROCESAR -->
+    <a class="card procesar" href="procesar.html">
+      <span class="card-icon">⚙</span>
+      <div class="card-title">BATIPROCESAR</div>
+      <div class="card-desc">
+        Procesamiento y corrección de datos batimétricos.
+      </div>
+      <ul class="card-features">
+        <li>Corrección de offset de marea</li>
+        <li>Kriging — interpolación avanzada</li>
+        <li>Variograma experimental</li>
+        <li>Export CSV procesado con timestamp</li>
+      </ul>
+      <div class="card-cta">▶ ABRIR</div>
+    </a>
+
   </div>
 
   <div class="footer">
-    VICTOR RESTI &nbsp;·&nbsp; DELTA DEL TIGRE &nbsp;·&nbsp;
+    BATISISTEMA &nbsp;·&nbsp; Sistema de Medicion Batimetrica &nbsp;·&nbsp;
     <a href="https://github.com/vresti/baticaptura" target="_blank">GITHUB</a>
   </div>
 
