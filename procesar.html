@@ -399,13 +399,14 @@ async function aplicarKriging(){
   setKrigProg(0.30,'Generando grilla de interpolación…');await sl(20);
 
   // ── Grilla de salida ─────────────────────────────────────────
+  const zMn=d3.min(mPts,p=>p.z), zMx=d3.max(mPts,p=>p.z); // rango real de datos
   const xMn=d3.min(mPts,p=>p.x), xMx=d3.max(mPts,p=>p.x);
   const yMn=d3.min(mPts,p=>p.y), yMx=d3.max(mPts,p=>p.y);
   const gridPts=[];
   for(let gx=xMn;gx<=xMx;gx+=spacing){
     for(let gy=yMn;gy<=yMx;gy+=spacing){
       // Solo si está dentro del convex hull aproximado
-      if(dentroDeNube(mPts,gx,gy,spacing*2)){
+      if(dentroDeNube(mPts,gx,gy,spacing*1.2)){
         gridPts.push({x:gx,y:gy});
       }
     }
@@ -420,7 +421,7 @@ async function aplicarKriging(){
 
   for(let i=0;i<totalG;i++){
     const gp=gridPts[i];
-    const zk=krigingOrd(mPts,gp.x,gp.y,vParams,model);
+    const zk=Math.max(zMn, Math.min(zMx, krigingOrd(mPts,gp.x,gp.y,vParams,model)));
     // Convertir de vuelta a lat/lon
     const lat=lat0+gp.y/(R*Math.PI/180);
     const lon=lon0+gp.x/(Math.cos(lat0*Math.PI/180)*R*Math.PI/180);
