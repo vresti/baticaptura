@@ -1135,12 +1135,14 @@ async function generarCertificadoPDF(){
     doc.setPage(i);
     doc.setFillColor(...DARK);doc.rect(0,PH-8,PW,8,'F');
     doc.setFont('helvetica','normal');doc.setTextColor(...GRAY);doc.setFontSize(6.5);
-    doc.text('Sistema de Medicion Batimetrica',M,PH-3);
+    doc.text('Relevamientos Batimetricos — Sistema de Medicion Batimetrica',M,PH-3);
     doc.text('Pag. '+i+' / '+total,PW/2,PH-3,{align:'center'});
     doc.text(now.toLocaleString('es-AR'),PW-M,PH-3,{align:'right'});
   }
 
-  doc.save('Certificado_Dragado_'+now.toISOString().substring(0,10)+'.pdf');
+  const pad=n=>String(n).padStart(2,'0');
+  const tsStr=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+'_'+pad(now.getHours())+pad(now.getMinutes());
+  doc.save('Batimetria_Certificado_Dragado_'+tsStr+'.pdf');
   showToast('✓ Certificado PDF listo');
 }
 
