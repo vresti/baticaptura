@@ -238,7 +238,7 @@ input[type=range] { width:100%; accent-color:var(--blu); cursor:pointer; }
       <div class="ctrl">
         <div class="ctrl-lbl">Potencia IDW: <span id="ipv">1.5</span></div>
         <input type="range" id="ip" min="1" max="4" step="0.5" value="1.5"
-               oninput="document.getElementById('ipv').textContent=this.value"/>
+               oninput="document.getElementById('ipv').textContent=this.value; updateIDW()"/>
       </div>
     </div>
 
@@ -630,43 +630,56 @@ async function generar3D(){
   // ── Puntos de sondaje — coloreados por dataset de origen ──
   const ptsGroup=new THREE.Group();
   const sphGeo=new THREE.SphereGeometry(0.6,8,8);
-  // Paleta por dataset: hasta 8 colores distintos
   const dsPalette=[0xffd060,0x00e5a0,0xff6060,0x60aaff,0xff8c00,0xcc66ff,0x00cccc,0xff99cc];
-  // Mapear nombre de dataset a índice
-  const dsNames=datasets.map(d=>d.name);
+
+  // Mapear cada punto a su dataset por sector name
+  // Primero construir mapa sector → índice de dataset
+  const dsMap={};
+  datasets.forEach((d,i)=>{
+    dsMap[d.name]=i;
+    // También mapear por sector field (que puede ser el nombre del archivo)
+    d.points.forEach(p=>{if(p.sector)dsMap[p.sector]=i;});
+  });
+
   pts.forEach(p=>{
-    const sx=scX(p.x), sy=scZ(p.z), sz=-scY(p.y);
-    // Color: si hay múltiples datasets → color por dataset, si no → por profundidad
+    const sx=scX(p.x), sz=-scY(p.y);
+    // Posición Y: usar profundidad interpolada del TIN en este punto
+    // para que la esfera quede exactamente sobre la superficie
+    const zInterp=tinInterp(tris,p.x,p.y,p.z);
+    const sy=scZ(zInterp)+0.4; // +0.4 para que flote levemente sobre la malla
+
+    // Color por dataset
     let col;
     if(datasets.length>1){
-      const dsIdx=dsNames.findIndex(n=>n===p.sector||p.sector?.includes(n.split('.')[0]));
-      col=dsPalette[Math.max(0,dsIdx)%dsPalette.length];
+      const dsIdx=dsMap[p.sector]??dsMap[datasets.find(d=>d.points.includes(p))?.name]??0;
+      col=dsPalette[dsIdx%dsPalette.length];
     } else {
-      const t=(p.z-zMin)/(zMax-zMin||1);
-      col=palHex(t);
+      col=palHex((p.z-zMin)/(zMax-zMin||1));
     }
     const mat=new THREE.MeshPhongMaterial({color:col,emissive:col,emissiveIntensity:0.3});
     const sph=new THREE.Mesh(sphGeo,mat);
-    sph.position.set(sx,sy+0.3,sz);
+    sph.position.set(sx,sy,sz);
     sph.userData={z:p.z,lat:p.lat,lon:p.lon,sector:p.sector};
     ptsGroup.add(sph);
   });
   scene.add(ptsGroup);
   objects.pts=ptsGroup;
 
-  // ── Leyenda de datasets (si hay más de uno) ──
+  // ── Leyenda de sectores ──
+  let legEl=document.getElementById('legend3d');
   if(datasets.length>1){
-    const legEl=document.getElementById('legend3d')||document.createElement('div');
-    legEl.id='legend3d';
-    legEl.style.cssText='position:absolute;top:10px;right:10px;background:rgba(6,14,24,.85);border:1px solid rgba(26,99,180,.4);border-radius:8px;padding:8px 12px;font-family:monospace;font-size:10px;color:#ccdaea;z-index:10;';
-    legEl.innerHTML='<div style="font-weight:bold;margin-bottom:5px;color:#ffd060;letter-spacing:2px">SECTORES</div>'+
-      datasets.map((d,i)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-        <div style="width:12px;height:12px;border-radius:50%;background:#${dsPalette[i%dsPalette.length].toString(16).padStart(6,'0')}"></div>
-        <span>${d.name.length>20?d.name.slice(0,18)+'…':d.name}</span>
-      </div>`).join('');
-    document.getElementById('c3d-wrap').appendChild(legEl);
+    if(!legEl){legEl=document.createElement('div');legEl.id='legend3d';document.getElementById('c3d-wrap').appendChild(legEl);}
+    legEl.style.cssText='position:absolute;top:10px;right:10px;background:rgba(6,14,24,.88);border:1px solid rgba(255,208,96,.3);border-radius:8px;padding:8px 12px;font-family:monospace;font-size:10px;color:#ccdaea;z-index:10;max-width:180px;';
+    legEl.innerHTML='<div style="font-weight:bold;margin-bottom:6px;color:#ffd060;letter-spacing:2px;font-size:9px">SECTORES</div>'+
+      datasets.map((d,i)=>{
+        const hex='#'+dsPalette[i%dsPalette.length].toString(16).padStart(6,'0');
+        const nm=d.name.replace(/\.csv$/i,'');
+        return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${hex};flex-shrink:0"></div>
+          <span style="font-size:9px">${nm.length>18?nm.slice(0,16)+'…':nm}</span>
+        </div>`;
+      }).join('');
   } else {
-    const legEl=document.getElementById('legend3d');
     if(legEl)legEl.remove();
   }
 
@@ -759,6 +772,10 @@ function updateCamera(){
 function updateScale(){
   vScale=parseFloat(document.getElementById('vs').value);
   // Re-generar si ya hay datos
+  if(objects.surf) generar3D();
+}
+function updateIDW(){
+  idwPow=parseFloat(document.getElementById('ip').value);
   if(objects.surf) generar3D();
 }
 
