@@ -358,10 +358,10 @@ async function generarTerreno(){
         // Coords de escena de este pixel (mismo sistema que bPts)
         const px=(col/(tW-1))*SZ - SZ/2;
         const py=(row/(tH-1))*SZ*aspect - SZ*aspect/2;
-        const depth=tinInterp(bTris,px,py,0);
-        if(depth>0.2){
-          // Fade suave en el borde
-          const alpha=depth<0.5?(depth-0.2)/0.3:1.0;
+        const depth=tinInterp(bTris,px,py,null);
+        if(depth!==null&&depth>0.8){
+          // Solo cortar donde hay profundidad real (>0.8m evita zonas de empalme)
+          const alpha=depth<1.5?(depth-0.8)/0.7:1.0;
           const v=Math.round((1-alpha)*255);
           const pi=(row*tW+col)*4;
           id.data[pi]=id.data[pi+1]=id.data[pi+2]=v;
@@ -398,87 +398,66 @@ async function generarTerreno(){
 
   // ══ OBJETO 2: BATIMETRÍA — malla que se hunde bajo el terreno ══
   if(bPts&&bTris){
-    const bBBx={
-      xMn:d3.min(bPts,p=>p.x), xMx:d3.max(bPts,p=>p.x),
-      yMn:d3.min(bPts,p=>p.y), yMx:d3.max(bPts,p=>p.y)
-    };
-    const bW=bBBx.xMx-bBBx.xMn, bH=Math.abs(bBBx.yMx-bBBx.yMn);
-    const bgN=100, bgW=bgN, bgH=Math.max(4,Math.round(bgN*bH/bW));
-    const bGeo=new THREE.PlaneGeometry(bW,bH,bgW-1,bgH-1);
-    bGeo.rotateX(-Math.PI/2);
+    const scaleD=vSB*2.5;
 
-    const bPos=bGeo.attributes.position;
-    const bCols=[];
-    const scaleD=vSB*2.5; // escala vertical batimetría
+    // ── Construir geometría desde los triángulos TIN directamente ──
+    // Solo triángulos donde la profundidad media es significativa
+    // Esto garantiza que no hay vértices flotantes ni paredes
 
-    for(let row=0;row<bgH;row++){
-      for(let col=0;col<bgW;col++){
-        const vi=row*bgW+col;
-        const wx=bBBx.xMn+(col/(bgW-1))*bW;
-        const wy=bBBx.yMn+(row/(bgH-1))*bH;
-        const depth=tinInterp(bTris,wx,wy,null);
-        if(depth!==null){
-          const d=Math.max(0,Math.min(zMx,depth));
-          bPos.setY(vi, -(d/zMx)*scaleD);  // hundir hacia abajo
-          const t=(d-zMn)/zR;
-          const[r,g,b]=palRGB(t);
-          bCols.push(r,g,b);
-        } else {
-          bPos.setY(vi, 0);
-          bCols.push(0.1,0.2,0.3);
-        }
-      }
+    const bVerts=[], bCols=[], aVerts=[];
+    const DEPTH_THRESHOLD=0.3; // mínimo para mostrar batimetría/agua
+
+    for(const tri of bTris){
+      const pa=tri.pts[tri.a], pb=tri.pts[tri.b], pc=tri.pts[tri.c];
+      const za=pa.z, zb=pb.z, zc=pc.z;
+      const dAvg=(za+zb+zc)/3;
+      if(dAvg<DEPTH_THRESHOLD)continue; // triángulo fuera del canal
+
+      // Clampear profundidades
+      const da=Math.max(0,Math.min(zMx,za));
+      const db=Math.max(0,Math.min(zMx,zb));
+      const dc=Math.max(0,Math.min(zMx,zc));
+
+      // Batimetría — triángulo hundiéndose bajo el terreno
+      bVerts.push(pa.x, -(da/zMx)*scaleD, pa.y);
+      bVerts.push(pb.x, -(db/zMx)*scaleD, pb.y);
+      bVerts.push(pc.x, -(dc/zMx)*scaleD, pc.y);
+      const[ra,ga,ba]=palRGB((da-zMn)/zR);
+      const[rb,gb,bb]=palRGB((db-zMn)/zR);
+      const[rc,gc,bc]=palRGB((dc-zMn)/zR);
+      bCols.push(ra,ga,ba, rb,gb,bb, rc,gc,bc);
+
+      // Agua — mismos triángulos pero a y=0.2 (plano de agua)
+      aVerts.push(pa.x,0.2,pa.y, pb.x,0.2,pb.y, pc.x,0.2,pc.y);
     }
-    bGeo.setAttribute('color',new THREE.Float32BufferAttribute(bCols,3));
-    bGeo.computeVertexNormals();
 
-    const bMat=new THREE.MeshPhongMaterial({
-      vertexColors:true,side:THREE.DoubleSide,shininess:30
-    });
-    const bMesh=new THREE.Mesh(bGeo,bMat);
-    bMesh.position.set((bBBx.xMn+bBBx.xMx)/2, 0, (bBBx.yMn+bBBx.yMx)/2);
-    bMesh.renderOrder=1;
-    scene.add(bMesh);
-    objects.bati=bMesh;
+    if(bVerts.length>0){
+      // Malla batimétrica
+      const bGeo=new THREE.BufferGeometry();
+      bGeo.setAttribute('position',new THREE.Float32BufferAttribute(bVerts,3));
+      bGeo.setAttribute('color',new THREE.Float32BufferAttribute(bCols,3));
+      bGeo.computeVertexNormals();
+      const bMat=new THREE.MeshPhongMaterial({vertexColors:true,side:THREE.DoubleSide,shininess:30});
+      const bMesh=new THREE.Mesh(bGeo,bMat);
+      bMesh.renderOrder=1;
+      scene.add(bMesh);
+      objects.bati=bMesh;
 
-    prog(0.80);
+      prog(0.80);
 
-    // ══ OBJETO 3: AGUA — misma forma que el agujero ════════════════
-    // Grilla densa sobre la zona de batimetría, solo donde hay profundidad
-    const aGeo=new THREE.PlaneGeometry(bW,bH,bgW-1,bgH-1);
-    aGeo.rotateX(-Math.PI/2);
-    const aPos=aGeo.attributes.position;
-    const aIdx=[];
-    // Vertices válidos = donde hay profundidad
-    const aValid=new Uint8Array(bgW*bgH);
-
-    for(let row=0;row<bgH;row++){
-      for(let col=0;col<bgW;col++){
-        const vi=row*bgW+col;
-        const wx=bBBx.xMn+(col/(bgW-1))*bW;
-        const wy=bBBx.yMn+(row/(bgH-1))*bH;
-        const depth=tinInterp(bTris,wx,wy,null);
-        if(depth!==null&&depth>0.2){
-          aPos.setY(vi,0.2); // ligeramente sobre el terreno
-          aValid[vi]=1;
-        } else {
-          aPos.setY(vi,-999); // hundir invisiblemente
-          aValid[vi]=0;
-        }
-      }
+      // Malla de agua — exactamente sobre los mismos triángulos
+      const aGeo=new THREE.BufferGeometry();
+      aGeo.setAttribute('position',new THREE.Float32BufferAttribute(aVerts,3));
+      aGeo.computeVertexNormals();
+      const aMat=new THREE.MeshPhongMaterial({
+        color:0x1a7090,transparent:true,opacity:0.65,
+        side:THREE.DoubleSide,shininess:150,specular:0xaaddff,depthWrite:false
+      });
+      const aMesh=new THREE.Mesh(aGeo,aMat);
+      aMesh.renderOrder=2;
+      scene.add(aMesh);
+      objects.agua=aMesh;
     }
-    aGeo.computeVertexNormals();
-
-    const aMat=new THREE.MeshPhongMaterial({
-      color:0x1a7090,transparent:true,opacity:0.60,
-      side:THREE.FrontSide,shininess:150,specular:0xaaddff,
-      depthWrite:false
-    });
-    const aMesh=new THREE.Mesh(aGeo,aMat);
-    aMesh.position.set((bBBx.xMn+bBBx.xMx)/2,0,(bBBx.yMn+bBBx.yMx)/2);
-    aMesh.renderOrder=2;
-    scene.add(aMesh);
-    objects.agua=aMesh;
 
     prog(0.90);
 
