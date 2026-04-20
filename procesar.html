@@ -141,8 +141,9 @@ tr:hover td{background:rgba(26,143,232,.06)}
   <div class="sec">
     <div class="sec-ttl">▸ 2. Densificar con TIN</div>
     <div class="info-box">
-      Genera puntos intermedios usando <strong>TIN Delaunay</strong>.<br>
-      Sin picos · Sin artefactos · Exacto en los puntos medidos.
+      Genera una <strong>grilla uniforme</strong> usando TIN Delaunay.<br>
+      Densidad constante en toda el área relevada.<br>
+      Mismo espaciado en zonas densas y en gaps entre pasadas.
     </div>
     <div class="ctrl">
       <div class="ctrl-lbl">Espaciado de grilla <span style="color:#ccdaea">(metros)</span></div>
@@ -345,41 +346,48 @@ async function densificarTIN(){
   setProg(0.15,'Triangulando TIN Delaunay…'); await sl(20);
   const tris=delaunay(mPts);
 
-  setProg(0.25,'Generando grilla '+spacing+'m…'); await sl(20);
+  setProg(0.25,'Calculando área de cobertura…'); await sl(20);
 
-  // Bounding box
+  // ── Grilla UNIFORME sobre todo el bounding box ────────────────────
+  // La grilla se genera primero sobre TODA el área
+  // El TIN decide si un nodo está dentro del hull o no
+  // Resultado: densidad constante en toda el área relevada
   const xMn=d3.min(mPts,p=>p.x), xMx=d3.max(mPts,p=>p.x);
   const yMn=d3.min(mPts,p=>p.y), yMx=d3.max(mPts,p=>p.y);
 
-  // Puntos de grilla dentro del TIN
-  const grilla=[];
-  for(let gx=xMn;gx<=xMx;gx+=spacing){
-    for(let gy=yMn;gy<=yMx;gy+=spacing){
-      // Verificar si está dentro del convex hull (radio = spacing * 1.2)
-      if(mPts.some(p=>Math.sqrt((p.x-gx)**2+(p.y-gy)**2)<=spacing*1.2)){
-        grilla.push({x:gx,y:gy});
-      }
-    }
-  }
+  // Calcular cuántos nodos va a generar
+  const nCols=Math.round((xMx-xMn)/spacing)+1;
+  const nRows=Math.round((yMx-yMn)/spacing)+1;
+  const totalNodos=nCols*nRows;
 
-  setProg(0.35,'Interpolando '+grilla.length+' puntos…'); await sl(20);
+  setProg(0.30,'Generando grilla '+nCols+'×'+nRows+' = '+totalNodos+' nodos…'); await sl(20);
 
   const nuevos=[];
-  const chunk=Math.max(1,Math.floor(grilla.length/20));
+  const chunk=Math.max(1,Math.floor(totalNodos/20));
+  let idx=0;
 
-  for(let i=0;i<grilla.length;i++){
-    const gp=grilla[i];
-    const zTIN=tinInterp(tris,gp.x,gp.y,null);
-    if(zTIN===null)continue; // fuera del TIN — no agregar
+  for(let row=0;row<nRows;row++){
+    for(let col=0;col<nCols;col++){
+      // Posición exacta en la grilla — espaciado CONSTANTE
+      const gx=xMn+col*spacing;
+      const gy=yMn+row*spacing;
 
-    const zVal=Math.max(zMn,Math.min(zMx,zTIN)); // clampear al rango real
-    const lat=lat0+gp.y/(R*Math.PI/180);
-    const lon=lon0+gp.x/(Math.cos(lat0*Math.PI/180)*R*Math.PI/180);
-    nuevos.push({x:gp.x,y:gp.y,z:zVal,orig:false,lat,lon});
+      // TIN baricéntrico: solo genera punto si está dentro del hull
+      // Si está fuera → tinInterp devuelve null → se descarta
+      const zTIN=tinInterp(tris,gx,gy,null);
 
-    if(i%chunk===0){
-      setProg(0.35+0.50*(i/grilla.length),`Interpolando ${i}/${grilla.length}…`);
-      await sl(0);
+      if(zTIN!==null){
+        const zVal=Math.max(zMn,Math.min(zMx,zTIN));
+        const lat=lat0+gy/(R*Math.PI/180);
+        const lon=lon0+gx/(Math.cos(lat0*Math.PI/180)*R*Math.PI/180);
+        nuevos.push({x:gx,y:gy,z:zVal,orig:false,lat,lon});
+      }
+
+      idx++;
+      if(idx%chunk===0){
+        setProg(0.30+0.55*(idx/totalNodos),`Interpolando ${idx}/${totalNodos} nodos…`);
+        await sl(0);
+      }
     }
   }
 
