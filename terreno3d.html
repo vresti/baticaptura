@@ -514,22 +514,44 @@ async function generarTerreno() {
     await colorearLaguna(batiPts, SZ, H/W, vSB);
   }
 
-  // ── PASO 3: Espejo de agua en y=0 — tapa el agujero ──
-  // Usamos el mismo alphaMap invertido para que solo cubra la laguna
+  // ── PASO 3: Espejo de agua — misma forma que el agujero del terreno ──
   if(batiPts) {
-    // Espejo local sobre la laguna
-    const sxMin=d3.min(batiPts,p=>p.x)-3, sxMax=d3.max(batiPts,p=>p.x)+3;
-    const szMin=d3.min(batiPts,p=>p.z)-3, szMax=d3.max(batiPts,p=>p.z)+3;
-    const lW=sxMax-sxMin, lH=Math.abs(szMax-szMin);
-    const wlGeo=new THREE.PlaneGeometry(lW,lH);
+    // Usar alphaMap INVERTIDO como textura del agua
+    // Solo donde el terreno tiene agujero → el agua aparece
+    const acWater = document.createElement('canvas');
+    acWater.width = terrW; acWater.height = terrH;
+    const ctxW = acWater.getContext('2d');
+    // Fondo negro (transparente)
+    ctxW.fillStyle = 'black';
+    ctxW.fillRect(0,0,terrW,terrH);
+
+    // Copiar el alphaMap: donde el terreno es negro (agujero) → agua blanca (visible)
+    const imgAlpha = actx.getImageData(0,0,terrW,terrH);
+    const imgWater = ctxW.createImageData(terrW,terrH);
+    for(let i=0;i<terrW*terrH;i++){
+      const v=255-imgAlpha.data[i*4]; // invertir: agujero=blanco
+      imgWater.data[i*4]=imgWater.data[i*4+1]=imgWater.data[i*4+2]=v;
+      imgWater.data[i*4+3]=255;
+    }
+    ctxW.putImageData(imgWater,0,0);
+    const waterAlphaTex=new THREE.CanvasTexture(acWater);
+    waterAlphaTex.flipY=true;
+
+    // Agua sobre todo el terreno pero visible solo donde hay agujero
+    const wlGeo=new THREE.PlaneGeometry(SZ, SZ*(H/W), terrW-1, terrH-1);
     wlGeo.rotateX(-Math.PI/2);
     const wlMat=new THREE.MeshPhongMaterial({
-      color:0x1a7090, transparent:true, opacity:0.55,
-      side:THREE.DoubleSide, shininess:150, specular:0xaaddff
+      color:0x1a7090,
+      alphaMap:waterAlphaTex,
+      alphaTest:0.05,
+      transparent:false,
+      side:THREE.FrontSide,
+      shininess:150,
+      specular:0xaaddff
     });
     const wlMesh=new THREE.Mesh(wlGeo,wlMat);
-    wlMesh.renderOrder = 2;
-    wlMesh.position.set((sxMin+sxMax)/2, 0.12, (szMin+szMax)/2);
+    wlMesh.renderOrder=2;
+    wlMesh.position.y=0.15;
     scene.add(wlMesh);
     objects.agua=wlMesh;
   } else {
