@@ -183,6 +183,11 @@ tr:hover td{background:rgba(26,143,232,.07)}
       <div class="ctrl-lbl">Espaciado de grilla (metros)</div>
       <input type="number" class="num-input" id="krig-spacing" value="2" step="0.5" min="0.5" max="20">
     </div>
+    <div class="ctrl">
+      <div class="ctrl-lbl">Suavizado: <span id="smooth-v">2</span> pasadas</div>
+      <input type="range" id="krig-smooth" min="0" max="5" step="1" value="2"
+             oninput="document.getElementById('smooth-v').textContent=this.value">
+    </div>
     <div class="krig-grid" id="krig-stats" style="display:none">
       <div class="krig-box"><div class="krig-val" id="k-orig">—</div><div class="krig-lbl">PUNTOS ORIG.</div></div>
       <div class="krig-box"><div class="krig-val" id="k-new">—</div><div class="krig-lbl">PUNTOS NUEVOS</div></div>
