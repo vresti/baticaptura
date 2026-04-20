@@ -445,6 +445,13 @@
       <span id="lock-icon">🔒</span>
       <span id="btn-grabar-txt"> ESPERANDO GPS</span>
     </button>
+    <button id="btn-poste" onclick="grabarPoste()" disabled
+      style="width:100%;margin-top:8px;padding:10px;border-radius:8px;
+      background:rgba(255,208,96,.12);border:2px solid rgba(255,208,96,.4);
+      color:#ffd060;font-family:'Orbitron',monospace;font-size:12px;
+      font-weight:700;letter-spacing:3px;cursor:pointer;transition:all .2s">
+      📍 MARCAR POSTE
+    </button>
   </div>
 
   <!-- GAS -->
@@ -728,6 +735,9 @@ function updateOdometro() {
 
 // ─── Estado botón ─────────────────────────────────────────────────────────────
 function setGrabarState(state) {
+  // Habilitar btn-poste cuando hay GPS
+  const bp=document.getElementById('btn-poste');
+  if(bp) bp.disabled = !hasGPS;
   const btn=document.getElementById('btn-grabar');
   const icon=document.getElementById('lock-icon');
   const txt=document.getElementById('btn-grabar-txt');
@@ -787,6 +797,8 @@ function updateCoords(lat,lon,hdop,sats) {
     clearTimeout(freshTimer); freshTimer=setTimeout(()=>el.classList.remove('fresh'),800);
   });
   updateOdometro();
+  const bp2=document.getElementById('btn-poste');
+  if(bp2) bp2.disabled=false;
 }
 function setGPSStatus(txt,on) {
   document.getElementById('gps-status-txt').textContent=txt;
@@ -917,6 +929,31 @@ function showToast(msg,err=false,tipo='') {
   t.className='toast show'+(err?' err':tipo==='marea'?' marea-toast':tipo==='sector'?' sector-toast':'');
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>t.className='toast',3200);
+}
+
+// ─── Grabar Poste ─────────────────────────────────────────────────────────────
+function grabarPoste() {
+  if(!hasGPS){showToast('Sin GPS — no se puede marcar poste',true);return;}
+  const hora=new Date().toTimeString().substring(0,8);
+  const sector=document.getElementById('sector-nombre').value.trim()||'—';
+  const punto={
+    n:puntos.length+1,
+    sector:'POSTE',
+    lat:currentLat.toFixed(7),
+    lon:currentLon.toFixed(7),
+    eco:'0.00', off:'0.00', mar:'0.00',
+    final:'0.00',
+    dist:'—', hora, hdop:currentHdop
+  };
+  puntos.push(punto);
+  lastGrabbedLat=currentLat; lastGrabbedLon=currentLon;
+  firstPoint=false;
+  addRow(punto,true);
+  autoSave();
+  const el=document.getElementById('btn-poste');
+  if(el){el.textContent='✓ POSTE MARCADO';el.style.borderColor='#00e5a0';el.style.color='#00e5a0';}
+  setTimeout(()=>{if(el){el.innerHTML='📍 MARCAR POSTE';el.style.borderColor='rgba(255,208,96,.4)';el.style.color='#ffd060';}},1800);
+  showToast('📍 Poste #'+punto.n+' marcado — '+currentLat.toFixed(5)+', '+currentLon.toFixed(5));
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────

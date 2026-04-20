@@ -245,8 +245,12 @@ function parseCSV(filename,text){
     const pts=[];
     rows.forEach(row=>{
       const lat=parseFloat(row[latC]),lon=parseFloat(row[lonC]),z=parseFloat(row[prC]);
-      if(isNaN(lat)||isNaN(lon)||isNaN(z))return;
-      pts.push({lat,lon,z,sector:row[seC]||filename});
+      const sec=(row[seC]||filename).trim().toUpperCase();
+      if(isNaN(lat)||isNaN(lon))return;
+      // Postes: z=0, sector=POSTE
+      if(sec==='POSTE'){pts.push({lat,lon,z:0,sector:'POSTE',esPoste:true});return;}
+      if(isNaN(z))return;
+      pts.push({lat,lon,z,sector:row[seC]||filename,esPoste:false});
     });
     if(!pts.length){showToast(`${filename}: sin puntos válidos`,true);return;}
     const ix=datasets.findIndex(d=>d.name===filename);
@@ -273,8 +277,10 @@ function rebuild(){
   if(allPoints.length){
     const mn=d3.min(allPoints,p=>p.z).toFixed(2);
     const mx=d3.max(allPoints,p=>p.z).toFixed(2);
+    const nSond=allPoints.filter(p=>!p.esPoste).length;
+    const nPost=allPoints.filter(p=>p.esPoste).length;
     document.getElementById('hinfo').textContent=
-      `${allPoints.length} SONDAJES  |  ${mn}m — ${mx}m  |  ${datasets.length} SECTOR(ES)`;
+      `${nSond} SONDAJES${nPost?' | '+nPost+' POSTES':''}  |  ${mn}m — ${mx}m  |  ${datasets.length} SECTOR(ES)`;
   }
 }
 function rmDS(n){datasets=datasets.filter(d=>d.name!==n);rebuild();}
@@ -309,9 +315,15 @@ async function generarMapa(){
   const idwP=parseFloat(document.getElementById('ip').value);
   const title=document.getElementById('mt').value.trim()||'RELEVAMIENTO BATIMÉTRICO';
 
-  const lat0=d3.mean(allPoints,p=>p.lat), lon0=d3.mean(allPoints,p=>p.lon);
+  // Separar postes de sondajes
+  const soloSondajes=allPoints.filter(p=>!p.esPoste);
+  const soloPostes=allPoints.filter(p=>p.esPoste);
 
-  const pts=allPoints.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,z:p.z,lat:p.lat,lon:p.lon,sector:p.sector};});
+  const lat0=d3.mean(soloSondajes.length?soloSondajes:allPoints,p=>p.lat);
+  const lon0=d3.mean(soloSondajes.length?soloSondajes:allPoints,p=>p.lon);
+
+  const pts=soloSondajes.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,z:p.z,lat:p.lat,lon:p.lon,sector:p.sector};});
+  const ptsPostes=soloPostes.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,lat:p.lat,lon:p.lon};});
 
   prog(0.10);
 
@@ -481,6 +493,35 @@ async function generarMapa(){
       .attr('font-size','8px').attr('fill','rgba(0,0,0,0.85)')
       .text(p.z.toFixed(1));
   });
+
+  // ── Postes — estrella amarilla ★ ─────────────────────────────────────────
+  if(ptsPostes.length>0){
+    const gPostes=g.append('g').attr('id','layer-postes').attr('clip-path','url(#pc)');
+    ptsPostes.forEach(p=>{
+      const sx=ox+(p.x-x0)/W*pW;
+      const sy=oy+pH-(p.y-y0)/H*pH;
+      if(sx<ox-10||sx>ox+pW+10||sy<oy-10||sy>oy+pH+10)return;
+      // Círculo de fondo
+      gPostes.append('circle').attr('cx',sx).attr('cy',sy).attr('r',9)
+        .attr('fill','rgba(255,208,96,.25)').attr('stroke','#ffd060').attr('stroke-width',1.5);
+      // Estrella
+      gPostes.append('text').attr('x',sx).attr('y',sy+4.5)
+        .attr('text-anchor','middle')
+        .attr('font-size','13px')
+        .attr('fill','#ffd060')
+        .attr('stroke','rgba(0,0,0,.5)').attr('stroke-width','0.5px')
+        .text('★');
+      // Tooltip
+      gPostes.append('circle').attr('cx',sx).attr('cy',sy).attr('r',10)
+        .attr('fill','transparent').attr('cursor','pointer')
+        .on('mousemove',function(event){
+          const tt=document.getElementById('tooltip');
+          tt.innerHTML=`<b>📍 POSTE</b>  ${p.lat.toFixed(5)}S  ${Math.abs(p.lon).toFixed(5)}O`;
+          tt.style.left=(event.clientX+14)+'px';tt.style.top=(event.clientY-10)+'px';
+          tt.className='tooltip show';
+        }).on('mouseleave',()=>document.getElementById('tooltip').className='tooltip');
+    });
+  }
 
   // Borde
   g.append('rect').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH)

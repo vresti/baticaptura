@@ -242,13 +242,22 @@ function parseCSV(name,text){
   const latC=fc('LATITUD','LAT'), lonC=fc('LONGITUD','LON');
   const prC=fc('FINAL_M','FINAL','PROF_M','PROF','Z','DEPTH');
   if(!latC||!lonC||!prC){showToast('Sin LAT/LON/PROF en '+name,true);return;}
-  const pts=rows.map(r=>({lat:+r[latC],lon:+r[lonC],z:+r[prC],src:name}))
-              .filter(p=>!isNaN(p.lat)&&!isNaN(p.lon)&&!isNaN(p.z));
+  const secC=fc('SECTOR');
+  const pts=rows.map(r=>({
+    lat:+r[latC], lon:+r[lonC], z:+r[prC],
+    src:name,
+    sector:(secC?r[secC]:'').trim().toUpperCase()
+  })).filter(p=>!isNaN(p.lat)&&!isNaN(p.lon));
+  // Separar postes de sondajes
+  const postesPts=pts.filter(p=>p.sector==='POSTE');
+  const sondajePts=pts.filter(p=>p.sector!=='POSTE'&&!isNaN(p.z));
+  if(!sondajePts.length&&!postesPts.length){showToast('Sin puntos válidos en '+name,true);return;}
   if(!pts.length){showToast('Sin puntos válidos en '+name,true);return;}
   // Reemplazar si ya existe
   const ix=datasets.findIndex(d=>d.name===name);
-  if(ix>=0)datasets[ix]={name,points:pts};
-  else datasets.push({name,points:pts});
+  const dsObj={name,points:sondajePts,postes:postesPts};
+  if(ix>=0)datasets[ix]=dsObj;
+  else datasets.push(dsObj);
   renderDsList();
   document.getElementById('btn-gen').disabled=false;
   showToast('✓ '+name+' ('+pts.length+' pts)');
@@ -347,8 +356,9 @@ async function generar3D(){
   const idwPow=parseFloat(document.getElementById('ip').value);
   const SZ=100;
 
-  // Unificar todos los puntos
+  // Unificar sondajes (para TIN) y postes (solo visualización)
   const allRaw=datasets.flatMap(d=>d.points);
+  const allPostes=datasets.flatMap(d=>d.postes||[]);
   const lat0=d3.mean(allRaw,p=>p.lat), lon0=d3.mean(allRaw,p=>p.lon);
   const pts=allRaw.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,z:p.z,src:p.src};});
 
@@ -426,6 +436,63 @@ async function generar3D(){
   });
   scene.add(objects.pts);
 
+  // ── POSTES VIRTUALES ───────────────────────────────────────────
+  // Línea vertical desde zMax hasta superficie + esfera en superficie
+  if(allPostes.length>0){
+    const postesGroup=new THREE.Group();
+    allPostes.forEach(p=>{
+      const mx=toM(p.lat,p.lon,lat0,lon0);
+      const sx=scX(mx.x), sz=-scY(mx.y);
+      const yTop=0.5;           // superficie del agua
+      const yBot=scZ(zMx)*1.1; // punto más profundo del relevamiento
+
+      // Línea vertical — amarillo intenso
+      const lineGeo=new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(sx,yTop,sz),
+        new THREE.Vector3(sx,yBot,sz)
+      ]);
+      const lineMat=new THREE.LineBasicMaterial({color:0xffd060,linewidth:3});
+      postesGroup.add(new THREE.Line(lineGeo,lineMat));
+
+      // Esfera en la superficie — boya
+      const boyaGeo=new THREE.SphereGeometry(1.2,12,12);
+      const boyaMat=new THREE.MeshPhongMaterial({
+        color:0xffd060, emissive:0xff8800, emissiveIntensity:0.6, shininess:80
+      });
+      const boya=new THREE.Mesh(boyaGeo,boyaMat);
+      boya.position.set(sx,yTop+1.2,sz);
+      postesGroup.add(boya);
+
+      // Disco en la superficie (anillo del agua)
+      const ringGeo=new THREE.RingGeometry(1.4,2.0,16);
+      ringGeo.rotateX(-Math.PI/2);
+      const ringMat=new THREE.MeshBasicMaterial({color:0xffd060,transparent:true,opacity:0.4,side:THREE.DoubleSide});
+      const ring=new THREE.Mesh(ringGeo,ringMat);
+      ring.position.set(sx,yTop+0.1,sz);
+      postesGroup.add(ring);
+    });
+    objects.postes=postesGroup;
+    scene.add(postesGroup);
+
+    // Agregar toggle de postes en capas si no existe
+    if(!document.getElementById('lb-postes')){
+      const lDiv=document.querySelector('.layers');
+      if(lDiv){
+        const btn=document.createElement('div');
+        btn.className='lbtn on';btn.id='lb-postes';
+        btn.textContent='Postes';btn.style.cssText='grid-column:1/-1;background:rgba(255,208,96,.15);border-color:#ffd060;color:#ffd060;';
+        btn.onclick=()=>togLayer('postes');
+        lDiv.appendChild(btn);
+        layers.postes=true;
+      }
+    }
+  } else if(objects.postes){
+    scene.remove(objects.postes);
+    objects.postes=null;
+    const btn=document.getElementById('lb-postes');
+    if(btn)btn.remove();
+  }
+
   // ── ESPEJO DE AGUA ─────────────────────────────────────────────
   const wGeo2=new THREE.PlaneGeometry(SZ*1.02,SZ*1.02);
   wGeo2.rotateX(-Math.PI/2);
@@ -490,7 +557,8 @@ async function generar3D(){
   // Mostrar paneles
   ['layers-sec','stats-sec','leg-sec','exp-sec'].forEach(id=>document.getElementById(id).style.display='');
   document.getElementById('hinfo').innerHTML=
-    allRaw.length+' SONDAJES | '+zMn.toFixed(2)+'m — '+zMx.toFixed(2)+'m | <a href="index.html" style="color:#ffd060;text-decoration:none">← HUB</a>';
+    allRaw.length+' SONDAJES'+(allPostes.length?' | '+allPostes.length+' POSTES':'')+
+    ' | '+zMn.toFixed(2)+'m — '+zMx.toFixed(2)+'m | <a href="index.html" style="color:#ffd060;text-decoration:none">← HUB</a>';
   document.getElementById('btn-gen').disabled=false;
   showToast('✓ '+allRaw.length+' puntos — '+datasets.length+' sector'+(datasets.length>1?'es':''));
 }
@@ -502,11 +570,12 @@ function togLayer(name){
   applyLayers();
 }
 function applyLayers(){
-  if(objects.surf) objects.surf.visible=layers.surf;
-  if(objects.wire) objects.wire.visible=layers.wire;
-  if(objects.pts)  objects.pts.visible=layers.pts;
-  if(objects.agua) objects.agua.visible=layers.agua;
-  if(objects.grid) objects.grid.visible=layers.grid;
+  if(objects.surf)   objects.surf.visible=layers.surf;
+  if(objects.wire)   objects.wire.visible=layers.wire;
+  if(objects.pts)    objects.pts.visible=layers.pts;
+  if(objects.agua)   objects.agua.visible=layers.agua;
+  if(objects.grid)   objects.grid.visible=layers.grid;
+  if(objects.postes) objects.postes.visible=layers.postes!==false;
   lights.forEach(l=>l.visible=layers.luz);
 }
 
@@ -575,7 +644,9 @@ function initThree(){
 
 function clearObjs(){
   Object.values(objects).forEach(o=>{if(o)scene.remove(o);});
-  objects={surf:null,pts:null,agua:null,grid:null,wire:null};
+  objects={surf:null,pts:null,agua:null,grid:null,wire:null,postes:null};
+  // Limpiar botón de postes
+  const btn=document.getElementById('lb-postes');if(btn)btn.remove();
 }
 function resetScene(){
   if(renderer){clearObjs();}
