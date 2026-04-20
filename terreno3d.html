@@ -2,358 +2,248 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
 <title>Terreno3D — BatiSistema</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@400;600&display=swap');
-
-:root {
-  --bg:#050d14; --panel:#0a1a28; --bord:#0e3a5c;
-  --amb:#ffd060; --grn:#00e5a0; --blu:#1a8fe8;
-  --dim:#2a4a6a; --txt:#c8dcea; --dtxt:#4a7a9a;
-  --red:#ff4455;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--txt);font-family:'Exo 2',sans-serif;
-  height:100vh;overflow:hidden;display:flex;flex-direction:column;}
-
-/* HEADER */
-header{background:var(--panel);border-bottom:2px solid var(--bord);
-  padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.logo-title{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;
-  letter-spacing:4px;color:var(--amb);}
-.logo-sub{font-size:9px;color:var(--dtxt);letter-spacing:2px;margin-top:2px;}
-.header-info{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dtxt);text-align:right;}
-
-/* LAYOUT */
-.main{display:flex;flex:1;min-height:0;}
-
-/* SIDEBAR */
-.sidebar{width:260px;background:var(--panel);border-right:1px solid var(--bord);
-  padding:14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex-shrink:0;}
-.panel{background:rgba(0,0,0,0.2);border:1px solid var(--bord);border-radius:6px;padding:10px 12px;}
-.panel-title{font-size:8px;letter-spacing:3px;color:var(--blu);text-transform:uppercase;
-  margin-bottom:8px;font-weight:600;border-bottom:1px solid var(--bord);padding-bottom:5px;}
-
-/* Upload */
-.upload-area{border:2px dashed var(--bord);border-radius:6px;padding:14px;
-  text-align:center;cursor:pointer;transition:all 0.2s;background:rgba(0,0,0,0.2);}
-.upload-area:hover,.upload-area.drag{border-color:var(--blu);background:rgba(26,143,232,0.05);}
-.upload-area.loaded{border-color:var(--grn);border-style:solid;background:rgba(0,229,160,0.05);}
-.upload-icon{font-size:22px;margin-bottom:4px;}
-.upload-text{font-size:10px;color:var(--dtxt);letter-spacing:1px;}
-.upload-name{font-size:9px;color:var(--grn);margin-top:3px;font-family:'Share Tech Mono',monospace;}
-
-/* Upload CSV batimetría */
-.upload-bati{border:2px dashed var(--bord);border-radius:6px;padding:10px;
-  text-align:center;cursor:pointer;transition:all 0.2s;background:rgba(0,0,0,0.2);margin-top:6px;}
-.upload-bati:hover{border-color:var(--amb);}
-.upload-bati.loaded{border-color:var(--amb);border-style:solid;}
-
-/* Controles */
-.ctrl{display:flex;flex-direction:column;gap:4px;margin-bottom:6px;}
-.ctrl-lbl{font-size:8px;letter-spacing:2px;color:var(--dtxt);}
-input[type=range]{width:100%;accent-color:var(--blu);cursor:pointer;}
-.ctrl select{width:100%;background:#020a12;border:1px solid var(--bord);
-  color:var(--txt);border-radius:4px;padding:4px 7px;
-  font-size:11px;font-family:'Share Tech Mono',monospace;outline:none;}
-
-/* Botones */
-.btn-primary{width:100%;padding:9px;background:var(--blu);color:white;border:none;
-  border-radius:6px;font-family:'Orbitron',monospace;font-size:10px;
-  letter-spacing:3px;cursor:pointer;transition:all 0.2s;}
-.btn-primary:hover{filter:brightness(1.2);}
-.btn-primary:disabled{opacity:0.3;cursor:not-allowed;}
-
-/* Toggle capas */
-.layer-row{display:flex;gap:5px;margin-bottom:5px;}
-.lbtn{flex:1;padding:5px;border-radius:5px;cursor:pointer;font-size:10px;
-  font-family:'Exo 2',sans-serif;font-weight:600;letter-spacing:1px;
-  border:1px solid;transition:all 0.15s;text-align:center;}
-.lbtn.on{background:rgba(26,143,232,0.2);border-color:var(--blu);color:var(--blu);}
-.lbtn.off{background:rgba(0,0,0,0.2);border-color:var(--bord);color:var(--dtxt);}
-
-/* Info geo */
-.geo-info{font-family:'Share Tech Mono',monospace;font-size:9px;
-  color:var(--dtxt);line-height:1.8;}
-.geo-val{color:var(--amb);}
-
-/* Stats */
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
-.stat{background:rgba(0,0,0,0.3);border:1px solid var(--bord);
-  border-radius:4px;padding:6px;text-align:center;}
-.stat-val{font-family:'Orbitron',monospace;font-size:13px;color:var(--amb);font-weight:700;}
-.stat-lbl{font-size:7px;letter-spacing:2px;color:var(--dtxt);margin-top:1px;}
-
-/* CANVAS */
-.canvas-area{flex:1;position:relative;overflow:hidden;}
-#c3d{display:block;width:100%;height:100%;}
-
-/* Overlay */
-.overlay{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
-  background:rgba(5,13,20,0.85);border:1px solid var(--bord);border-radius:16px;
-  padding:5px 14px;font-family:'Share Tech Mono',monospace;font-size:10px;
-  color:var(--dtxt);pointer-events:none;white-space:nowrap;}
-
-/* Progress */
-.prog-bar{position:absolute;top:0;left:0;right:0;height:3px;background:var(--amb);
-  transform-origin:left;transform:scaleX(0);transition:transform 0.3s;z-index:20;}
-
-/* Toast */
-.toast{position:fixed;bottom:20px;right:20px;background:var(--panel);
-  border:1px solid var(--grn);border-radius:8px;padding:8px 14px;font-size:11px;
-  color:var(--grn);font-family:'Share Tech Mono',monospace;
-  transform:translateY(60px);opacity:0;transition:all 0.3s;z-index:100;}
-.toast.show{transform:translateY(0);opacity:1;}
-.toast.err{border-color:var(--red);color:var(--red);}
-
-/* Empty */
-.empty{position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:14px;color:var(--dtxt);text-align:center;}
-.empty-icon{font-size:64px;opacity:0.2;}
-.empty-title{font-family:'Orbitron',monospace;font-size:14px;color:var(--blu);
-  opacity:0.4;letter-spacing:3px;}
-.empty-sub{font-size:12px;max-width:280px;line-height:1.6;}
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@300;400;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#06111e;color:#ccdaea;font-family:'Exo 2',sans-serif}
+.layout{display:grid;grid-template-columns:260px 1fr;grid-template-rows:42px 1fr;height:100vh}
+header{grid-column:1/-1;background:#040c16;border-bottom:2px solid #1a237e;
+  display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.logo{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;letter-spacing:3px;color:#ffd060}
+.logo-sub{font-size:7px;letter-spacing:2px;color:#4a6a8a;margin-top:1px}
+.hinfo{font-family:'Share Tech Mono',monospace;font-size:9px;color:#4a6a8a}
+.sidebar{background:#040c16;border-right:1px solid rgba(26,99,180,.25);
+  padding:10px 8px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.sec{background:rgba(255,255,255,.03);border:1px solid rgba(26,99,180,.2);border-radius:5px;padding:8px 10px}
+.sec-ttl{font-size:7px;letter-spacing:3px;color:#1a8fe8;text-transform:uppercase;
+  font-weight:600;margin-bottom:7px;border-bottom:1px solid rgba(26,99,180,.2);padding-bottom:4px}
+.drop-zone{border:2px dashed rgba(26,99,180,.35);border-radius:5px;padding:12px 8px;
+  text-align:center;cursor:pointer;transition:all .2s;margin-bottom:5px}
+.drop-zone:hover,.drop-zone.over{border-color:#1a8fe8;background:rgba(26,143,232,.06)}
+.drop-zone.loaded{border-color:#00e5a0;border-style:solid;background:rgba(0,229,160,.04)}
+.drop-ico{font-size:20px;margin-bottom:3px}
+.drop-lbl{font-size:9px;letter-spacing:2px;color:#4a6a8a}
+.drop-name{font-size:9px;color:#00e5a0;font-family:'Share Tech Mono',monospace;margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctrl{margin-bottom:7px}
+.ctrl-lbl{font-size:7px;letter-spacing:2px;color:#4a6a8a;margin-bottom:3px;display:flex;justify-content:space-between}
+input[type=range]{width:100%;accent-color:#1a8fe8;cursor:pointer}
+select{width:100%;background:#060e18;border:1px solid rgba(26,99,180,.3);color:#ccdaea;
+  padding:4px 6px;font-size:10px;font-family:'Share Tech Mono',monospace;border-radius:4px;outline:none}
+.btn-go{width:100%;padding:9px;background:#1a237e;color:white;border:none;border-radius:5px;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;cursor:pointer;transition:.2s}
+.btn-go:hover:not(:disabled){background:#283593}
+.btn-go:disabled{opacity:.3;cursor:not-allowed}
+.layers{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.lbtn{padding:5px 4px;border-radius:4px;cursor:pointer;font-size:9px;font-family:'Share Tech Mono',monospace;
+  border:1px solid;transition:all .15s;text-align:center}
+.lbtn.on{background:rgba(26,143,232,.2);border-color:#1a8fe8;color:#1a8fe8}
+.lbtn.off{background:rgba(0,0,0,.2);border-color:rgba(26,99,180,.25);color:#4a6a8a}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.stat-box{background:#060e18;border:1px solid rgba(26,99,180,.2);border-radius:4px;padding:5px;text-align:center}
+.stat-v{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:#1a8fe8}
+.stat-l{font-size:6px;letter-spacing:2px;color:#4a6a8a;margin-top:1px}
+.geo-info{font-family:'Share Tech Mono',monospace;font-size:8px;color:#4a6a8a;line-height:1.8}
+.geo-val{color:#1a8fe8}
+.main{position:relative;overflow:hidden}
+#c3d{display:block;width:100%;height:100%}
+.overlay{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  background:rgba(4,12,22,.85);border:1px solid rgba(26,99,180,.3);border-radius:14px;
+  padding:4px 14px;font-family:'Share Tech Mono',monospace;font-size:9px;color:#4a6a8a;
+  pointer-events:none;display:none}
+#pb{position:absolute;top:0;left:0;right:0;height:3px;background:#ffd060;
+  transform:scaleX(0);transform-origin:left;transition:transform .25s;z-index:50;
+  visibility:hidden;opacity:0}
+#toast{position:fixed;bottom:18px;right:18px;background:#0d1f3c;color:#ccdaea;
+  border:1px solid #ffd060;border-radius:7px;padding:7px 14px;font-size:10px;
+  font-family:'Share Tech Mono',monospace;opacity:0;transform:translateY(20px);
+  transition:all .3s;z-index:9999;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.err{border-color:#ef5350}
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px;color:#2a4a6a;text-align:center}
+.empty-ico{font-size:56px;opacity:.2}
+.empty-ttl{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px}
 </style>
 </head>
 <body>
-<div class="toast" id="toast"></div>
+<div id="toast"></div>
+<div class="layout">
 
 <header>
   <div>
-    <div class="logo-title">🛸 Terreno3D</div>
+    <div class="logo">🛸 Terreno3D</div>
     <div class="logo-sub">ORTOFOTO DRONE + BATIMETRÍA — BATISISTEMA</div>
   </div>
-  <div class="header-info" id="hinfo">
-    Sin datos · <a href="index.html" style="color:var(--amb);text-decoration:none">← HUB</a>
-  </div>
+  <div class="hinfo" id="hinfo">Sin datos | <a href="index.html" style="color:#ffd060;text-decoration:none">← HUB</a></div>
 </header>
 
-<div class="main">
+<aside class="sidebar">
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-
-    <div class="panel">
-      <div class="panel-title">▸ Ortofoto Drone</div>
-      <!-- GeoTIFF -->
-      <label class="upload-area" id="ua-tif" for="fi-tif">
-        <div class="upload-icon">🛸</div>
-        <div class="upload-text">CARGAR orto_50cm.tif</div>
-        <div class="upload-name" id="name-tif">GeoTIFF reducido</div>
-      </label>
-      <input type="file" id="fi-tif" accept=".tif,.tiff" style="display:none"/>
-
-      <!-- CSV Batimetría (opcional) -->
-      <label class="upload-bati" id="ua-bati" for="fi-bati">
-        <div style="font-size:10px;color:var(--dtxt)">🌊 CSV Batimetría (opcional)</div>
-        <div class="upload-name" id="name-bati">Canal adyacente</div>
-      </label>
-      <input type="file" id="fi-bati" accept=".csv" style="display:none"/>
+  <div class="sec">
+    <div class="sec-ttl">▸ Ortofoto Drone</div>
+    <div class="drop-zone" id="dz-tif"
+         onclick="document.getElementById('fi-tif').click()"
+         ondragover="event.preventDefault();this.classList.add('over')"
+         ondragleave="this.classList.remove('over')"
+         ondrop="onDropTif(event)">
+      <div class="drop-ico">🛸</div>
+      <div class="drop-lbl">CARGAR GeoTIFF</div>
+      <div class="drop-name" id="name-tif">orto_50cm.tif, orto.tif…</div>
     </div>
+    <input type="file" id="fi-tif" accept=".tif,.tiff" style="display:none"
+           onchange="loadTIF(this.files[0]);this.value=''">
 
-    <div class="panel">
-      <div class="panel-title">▸ Configuración</div>
-      <div class="ctrl">
-        <div class="ctrl-lbl">Escala vertical terreno: <span id="vsv-t">3×</span></div>
-        <input type="range" id="vs-t" min="1" max="15" step="0.5" value="3"
-               oninput="document.getElementById('vsv-t').textContent=this.value+'×'"/>
-      </div>
-      <div class="ctrl">
-        <div class="ctrl-lbl">Escala vertical batimetría: <span id="vsv-b">5×</span></div>
-        <input type="range" id="vs-b" min="1" max="20" step="0.5" value="5"
-               oninput="document.getElementById('vsv-b').textContent=this.value+'×'"/>
-      </div>
-      <div class="ctrl">
-        <div class="ctrl-lbl">Resolución malla terreno</div>
-        <select id="mesh-res">
-          <option value="100">Rápida (100×100)</option>
-          <option value="200" selected>Normal (200×200)</option>
-          <option value="400">Alta (400×400)</option>
-        </select>
-      </div>
+    <div class="drop-zone" id="dz-bati"
+         onclick="document.getElementById('fi-bati').click()"
+         ondragover="event.preventDefault();this.classList.add('over')"
+         ondragleave="this.classList.remove('over')"
+         ondrop="onDropBati(event)">
+      <div class="drop-ico">🌊</div>
+      <div class="drop-lbl">CSV BATIMETRÍA (opcional)</div>
+      <div class="drop-name" id="name-bati">Canal, laguna, río…</div>
     </div>
+    <input type="file" id="fi-bati" accept=".csv" style="display:none"
+           onchange="loadBatiCSV(this.files[0]);this.value=''">
+  </div>
 
-    <button class="btn-primary" id="btn-gen" onclick="generarTerreno()" disabled>
-      ▶ GENERAR TERRENO 3D
-    </button>
-
-    <div class="panel" id="layer-panel" style="display:none">
-      <div class="panel-title">▸ Capas</div>
-      <div class="layer-row">
-        <div class="lbtn on" id="lb-orto"  onclick="togLayer('orto')">Ortofoto</div>
-        <div class="lbtn on" id="lb-agua"  onclick="togLayer('agua')">Agua</div>
-      </div>
-      <div class="layer-row">
-        <div class="lbtn on"  id="lb-bati"  onclick="togLayer('bati')">Batimetría</div>
-        <div class="lbtn off" id="lb-wire"  onclick="togLayer('wire')">Wireframe</div>
-      </div>
+  <div class="sec">
+    <div class="sec-ttl">▸ Configuración</div>
+    <div class="ctrl">
+      <div class="ctrl-lbl"><span>Escala vertical terreno</span><span id="vsv-t">3×</span></div>
+      <input type="range" id="vs-t" min="1" max="15" step="0.5" value="3"
+             oninput="document.getElementById('vsv-t').textContent=this.value+'×'">
     </div>
-
-    <div class="panel" id="geo-panel" style="display:none">
-      <div class="panel-title">▸ Datos geográficos</div>
-      <div class="geo-info" id="geo-info"></div>
+    <div class="ctrl">
+      <div class="ctrl-lbl"><span>Escala vertical batimetría</span><span id="vsv-b">5×</span></div>
+      <input type="range" id="vs-b" min="1" max="20" step="0.5" value="5"
+             oninput="document.getElementById('vsv-b').textContent=this.value+'×'">
     </div>
-
-    <div class="panel" id="stats-panel" style="display:none">
-      <div class="panel-title">▸ Estadísticas</div>
-      <div class="stats-grid" id="stats-grid"></div>
-    </div>
-
-    <div class="panel" id="exp-panel" style="display:none">
-      <div class="panel-title">▸ Exportar</div>
-      <button class="btn-primary" style="background:rgba(255,208,96,0.15);border:1px solid var(--amb);color:var(--amb)"
-              onclick="expPNG()">↓ PNG vista actual</button>
-    </div>
-
-  </aside>
-
-  <!-- CANVAS 3D -->
-  <div class="canvas-area">
-    <div class="prog-bar" id="pb"></div>
-    <canvas id="c3d"></canvas>
-    <div class="empty" id="empty-state">
-      <div class="empty-icon">🛸</div>
-      <div class="empty-title">TERRENO 3D</div>
-      <div class="empty-sub">
-        Cargá el archivo <b>orto_50cm.tif</b> generado por BatiSistema y presioná GENERAR.<br><br>
-        Opcionalmente agregá un CSV de batimetría para ver el canal adyacente.
-      </div>
-    </div>
-    <div class="overlay" id="overlay" style="display:none">
-      🖱 Rotar · Scroll zoom · Derecho mover
+    <div class="ctrl">
+      <div class="ctrl-lbl">Resolución malla terreno</div>
+      <select id="mesh-res">
+        <option value="100">Rápida (100×100)</option>
+        <option value="200" selected>Normal (200×200)</option>
+        <option value="300">Alta (300×300)</option>
+      </select>
     </div>
   </div>
+
+  <button class="btn-go" id="btn-gen" onclick="generarTerreno()" disabled>▶ GENERAR TERRENO 3D</button>
+
+  <div class="sec" id="layer-panel" style="display:none">
+    <div class="sec-ttl">▸ Capas</div>
+    <div class="layers">
+      <div class="lbtn on" id="lb-orto"  onclick="togLayer('orto')">Ortofoto</div>
+      <div class="lbtn on" id="lb-agua"  onclick="togLayer('agua')">Agua</div>
+      <div class="lbtn on" id="lb-bati"  onclick="togLayer('bati')">Batimetría</div>
+      <div class="lbtn off" id="lb-wire" onclick="togLayer('wire')">Wireframe</div>
+    </div>
+  </div>
+
+  <div class="sec" id="geo-panel" style="display:none">
+    <div class="sec-ttl">▸ Datos Geográficos</div>
+    <div class="geo-info" id="geo-info"></div>
+  </div>
+
+  <div class="sec" id="stats-panel" style="display:none">
+    <div class="sec-ttl">▸ Batimetría</div>
+    <div class="stat-grid" id="stat-grid"></div>
+  </div>
+
+</aside>
+
+<main class="main">
+  <div id="pb"></div>
+  <canvas id="c3d"></canvas>
+  <div class="empty" id="empty">
+    <div class="empty-ico">🛸</div>
+    <div class="empty-ttl">TERRENO 3D</div>
+    <div style="font-size:11px;max-width:220px">Cargá el GeoTIFF del drone y opcionalmente un CSV de batimetría</div>
+  </div>
+  <div class="overlay" id="overlay">🖱 Rotar · Scroll zoom · Clic derecho mover</div>
+</main>
 
 </div>
 
 <script>
-// ─── Estado ───────────────────────────────────────────────────────────────────
+// ═══ ESTADO ═══════════════════════════════════════════════════════
 let tifData=null, batiData=null;
 let renderer=null, scene=null, camera=null;
 let objects={orto:null,agua:null,bati:null,wire:null};
 let layers={orto:true,agua:true,bati:true,wire:false};
 let isDrag=false, isRight=false, prevM={x:0,y:0};
-let sph={theta:0.5,phi:0.9,radius:200}, tgt={x:0,y:0,z:0};
+let sph={theta:0.5,phi:0.75,radius:180}, tgt={x:0,y:0,z:0};
 
-// ─── Eventos de archivo ───────────────────────────────────────────────────────
-window.addEventListener('load',()=>{
-  const fit=document.getElementById('fi-tif');
-  const fib=document.getElementById('fi-bati');
-  if(fit) fit.addEventListener('change',function(){
-    if(this.files&&this.files.length>0){loadTIF(this.files[0]);this.value='';}
-  });
-  if(fib) fib.addEventListener('change',function(){
-    if(this.files&&this.files.length>0){loadBatiCSV(this.files[0]);this.value='';}
-  });
-  // Drag & drop en canvas
-  const ca=document.querySelector('.canvas-area');
-  ca.addEventListener('dragover',e=>{e.preventDefault();});
-  ca.addEventListener('drop',e=>{
-    e.preventDefault();
-    const f=e.dataTransfer.files[0];
-    if(!f)return;
-    if(f.name.match(/\.tiff?$/i)) loadTIF(f);
-    else if(f.name.match(/\.csv$/i)) loadBatiCSV(f);
-  });
-  document.getElementById('ua-tif').addEventListener('dragover',e=>{e.preventDefault();document.getElementById('ua-tif').classList.add('drag');});
-  document.getElementById('ua-tif').addEventListener('dragleave',()=>document.getElementById('ua-tif').classList.remove('drag'));
-  document.getElementById('ua-tif').addEventListener('drop',e=>{e.preventDefault();document.getElementById('ua-tif').classList.remove('drag');if(e.dataTransfer.files[0])loadTIF(e.dataTransfer.files[0]);});
-});
+// ═══ CARGA TIF ════════════════════════════════════════════════════
+function onDropTif(e){e.preventDefault();document.getElementById('dz-tif').classList.remove('over');
+  const f=e.dataTransfer.files[0];if(f)loadTIF(f);}
+function onDropBati(e){e.preventDefault();document.getElementById('dz-bati').classList.remove('over');
+  const f=e.dataTransfer.files[0];if(f)loadBatiCSV(f);}
 
-// ─── Cargar GeoTIFF ───────────────────────────────────────────────────────────
-async function loadTIF(file) {
-  prog(0.1);
-  showToast('Leyendo GeoTIFF...');
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const tiff = await GeoTIFF.fromArrayBuffer(arrayBuffer);
-    const image = await tiff.getImage();
-
-    const bbox   = image.getBoundingBox(); // [west,south,east,north] en WGS84
-    const width  = image.getWidth();
-    const height = image.getHeight();
-
-    // Leer las 3 primeras bandas (RGB) — ignorar alpha por ahora
-    const rasters = await image.readRasters({interleave:true});
-
+async function loadTIF(file){
+  prog(0.1); toast('Leyendo GeoTIFF…');
+  try{
+    const ab=await file.arrayBuffer();
+    const tiff=await GeoTIFF.fromArrayBuffer(ab);
+    const img=await tiff.getImage();
+    const bbox=img.getBoundingBox(); // [west,south,east,north]
+    const W=img.getWidth(), H=img.getHeight();
+    const rasters=await img.readRasters({interleave:true});
+    const bands=img.getSamplesPerPixel();
     prog(0.6);
-
-    // Convertir a ImageData para textura Three.js
-    const canvas = document.createElement('canvas');
-    canvas.width = width; canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    const imgData = ctx.createImageData(width, height);
-
-    const bands = image.getSamplesPerPixel();
-    for(let i=0; i<width*height; i++){
-      imgData.data[i*4]   = rasters[i*bands];     // R
-      imgData.data[i*4+1] = rasters[i*bands+1];   // G
-      imgData.data[i*4+2] = rasters[i*bands+2];   // B
-      imgData.data[i*4+3] = bands>=4 ? rasters[i*bands+3] : 255; // A
+    const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+    const ctx=cv.getContext('2d');
+    const id=ctx.createImageData(W,H);
+    for(let i=0;i<W*H;i++){
+      id.data[i*4]  =rasters[i*bands];
+      id.data[i*4+1]=rasters[i*bands+1];
+      id.data[i*4+2]=rasters[i*bands+2];
+      id.data[i*4+3]=bands>=4?rasters[i*bands+3]:255;
     }
-    ctx.putImageData(imgData,0,0);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.flipY = true;   // orientación correcta para PlaneGeometry
-    texture.needsUpdate = true;
-
-    tifData = {
-      bbox,   // [west,south,east,north]
-      width, height,
-      texture,
-      // Dimensiones reales en metros
-      W: (bbox[2]-bbox[0]) * Math.cos((bbox[1]+bbox[3])/2 * Math.PI/180) * 111320,
-      H: (bbox[3]-bbox[1]) * 111320,
-      lat0: (bbox[1]+bbox[3])/2,
-      lon0: (bbox[0]+bbox[2])/2
-    };
-
-    prog(0.9);
-    document.getElementById('ua-tif').className='upload-area loaded';
-    document.getElementById('name-tif').textContent = file.name + ` (${width}×${height}px)`;
+    ctx.putImageData(id,0,0);
+    const tex=new THREE.CanvasTexture(cv);
+    tex.flipY=true; tex.needsUpdate=true;
+    const latC=(bbox[1]+bbox[3])/2;
+    tifData={bbox,W,H,tex,
+      mW:(bbox[2]-bbox[0])*Math.cos(latC*Math.PI/180)*111320,
+      mH:(bbox[3]-bbox[1])*111320,
+      lat0:latC, lon0:(bbox[0]+bbox[2])/2};
+    document.getElementById('dz-tif').className='drop-zone loaded';
+    document.getElementById('name-tif').textContent=file.name+` (${W}×${H}px)`;
     document.getElementById('btn-gen').disabled=false;
-
-    // Info geográfica
-    document.getElementById('hinfo').innerHTML=
-      `${width}×${height}px | ${tifData.W.toFixed(0)}m×${tifData.H.toFixed(0)}m | <a href="index.html" style="color:var(--amb);text-decoration:none">← HUB</a>`;
-
-    prog(1); setTimeout(()=>prog(0),500);
-    showToast(`✓ GeoTIFF cargado — ${(file.size/1024/1024).toFixed(1)}MB`);
-  } catch(e) {
-    prog(0);
-    showToast('Error al leer GeoTIFF: '+e.message, true);
-    console.error(e);
-  }
+    document.getElementById('hinfo').innerHTML=`${W}×${H}px | ${tifData.mW.toFixed(0)}m×${tifData.mH.toFixed(0)}m | <a href="index.html" style="color:#ffd060;text-decoration:none">← HUB</a>`;
+    prog(1);setTimeout(()=>prog(0),500);
+    toast(`✓ GeoTIFF — ${(file.size/1024/1024).toFixed(1)}MB`);
+  }catch(e){prog(0);toast('Error TIF: '+e.message,true);console.error(e);}
 }
 
-// ─── Cargar CSV batimetría ────────────────────────────────────────────────────
-function loadBatiCSV(file) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    const rows = d3.csvParse(e.target.result);
-    const UC   = rows.columns.map(c=>c.trim().toUpperCase());
-    const fc   = (...ns)=>{for(const n of ns){const i=UC.findIndex(c=>c===n||c.includes(n));if(i>=0)return rows.columns[i];}return null;};
-    const latC = fc('LATITUD','LAT');
-    const lonC = fc('LONGITUD','LON');
-    const prC  = fc('FINAL_M','FINAL','PROF_M','PROF','Z');
-    if(!latC||!lonC||!prC){showToast('Sin columnas LAT/LON/PROF',true);return;}
-    const pts=[];
-    rows.forEach(row=>{
-      const lat=parseFloat(row[latC]),lon=parseFloat(row[lonC]),z=parseFloat(row[prC]);
-      if(!isNaN(lat)&&!isNaN(lon)&&!isNaN(z)) pts.push({lat,lon,z});
-    });
+function loadBatiCSV(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    const rows=d3.csvParse(e.target.result);
+    const UC=rows.columns.map(c=>c.trim().toUpperCase());
+    const fc=(...ns)=>{for(const n of ns){const i=UC.findIndex(c=>c===n||c.includes(n));if(i>=0)return rows.columns[i];}return null;};
+    const latC=fc('LATITUD','LAT'), lonC=fc('LONGITUD','LON'), prC=fc('FINAL_M','FINAL','PROF_M','PROF','Z');
+    if(!latC||!lonC||!prC){toast('Sin LAT/LON/PROF',true);return;}
+    const pts=rows.map(row=>({lat:+row[latC],lon:+row[lonC],z:+row[prC]}))
+                  .filter(p=>!isNaN(p.lat)&&!isNaN(p.lon)&&!isNaN(p.z)&&p.z>0);
+    if(!pts.length){toast('Sin puntos válidos',true);return;}
     batiData={name:file.name,pts};
-    document.getElementById('ua-bati').className='upload-bati loaded';
+    document.getElementById('dz-bati').className='drop-zone loaded';
     document.getElementById('name-bati').textContent=`${file.name} (${pts.length} pts)`;
-    showToast(`✓ Batimetría: ${pts.length} puntos`);
+    toast(`✓ Batimetría: ${pts.length} puntos`);
   };
-  reader.readAsText(file);
+  r.readAsText(file);
 }
 
-// ─── TIN Delaunay (sin picos) ──────────────────────────────────────────────────
+// ═══ TIN DELAUNAY ═════════════════════════════════════════════════
 function circumcircle(ax,ay,bx,by,cx,cy){
   const D=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
   if(Math.abs(D)<1e-10)return null;
@@ -393,380 +283,316 @@ function tinInterp(tris,px,py,fb){
   }
   return fb;
 }
-// IDW como fallback
-function idw(pts,x,y,pow){
-  let sw=0,swz=0;
-  for(const p of pts){
-    const d2=(p.x-x)**2+(p.y-y)**2;
-    if(d2<0.01)return p.z;
-    const w=1/Math.pow(d2,pow/2);sw+=w;swz+=w*p.z;
-  }
-  return swz/sw;
+
+// ═══ PALETA BATIMÉTRICA ═══════════════════════════════════════════
+function palRGB(t){
+  const P=[[210,240,215],[150,220,210],[90,190,225],[50,150,210],[25,110,190],[10,70,160],[4,40,120],[1,18,70]];
+  t=Math.max(0,Math.min(1,t));
+  const n=P.length-1,i=Math.floor(t*n),f=t*n-i;
+  const a=P[Math.min(i,n)],b=P[Math.min(i+1,n)];
+  return[Math.round(a[0]+(b[0]-a[0])*f)/255,Math.round(a[1]+(b[1]-a[1])*f)/255,Math.round(a[2]+(b[2]-a[2])*f)/255];
 }
 
-// ─── Generar terreno 3D ───────────────────────────────────────────────────────
-async function generarTerreno() {
-  if(!tifData){showToast('Cargá el GeoTIFF primero',true);return;}
+// ═══ GENERAR TERRENO ══════════════════════════════════════════════
+async function generarTerreno(){
+  if(!tifData){toast('Cargá el GeoTIFF primero',true);return;}
   prog(0.05);
   document.getElementById('btn-gen').disabled=true;
-  document.getElementById('empty-state').style.display='none';
+  document.getElementById('empty').style.display='none';
   await sl(30);
 
-  const vST  = parseFloat(document.getElementById('vs-t').value);
-  const vSB  = parseFloat(document.getElementById('vs-b').value);
-  const mRes = parseInt(document.getElementById('mesh-res').value);
+  const vST=parseFloat(document.getElementById('vs-t').value);
+  const vSB=parseFloat(document.getElementById('vs-b').value);
+  const mRes=parseInt(document.getElementById('mesh-res').value);
+  const SZ=100;
+  const {mW,mH,lat0,lon0,bbox}=tifData;
+  const aspect=mH/mW; // altura / ancho
 
-  const {W, H, lat0, lon0, bbox} = tifData;
-  const SZ = 100;
+  // Inicializar Three.js
+  if(!renderer) initThree();
+  else clearObjs();
 
-  initThree();
-  prog(0.15);
+  prog(0.10);
 
-  // ── Convertir puntos batimétricos a coordenadas de escena ──
-  let batiPts = null;
-  if(batiData && batiData.pts.length > 3) {
-    const R=6371000;
-    batiPts = batiData.pts.map(p=>({
-      x: (p.lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180 / W * SZ,
-      z: -(p.lat-lat0)*R*Math.PI/180 / H * SZ*(H/W),
-      depth: p.z
+  // ── Convertir puntos batimétricos a coords de escena ─────────────
+  // Escena: X=[-SZ/2..SZ/2], Z=[-SZ*aspect/2..SZ*aspect/2], Y=altura
+  const R=6371000;
+  let bPts=null, bTris=null;
+  let zMn=0,zMx=1,zR=1;
+
+  if(batiData&&batiData.pts.length>=3){
+    bPts=batiData.pts.map(p=>({
+      x:(p.lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180 / mW * SZ,
+      y:(p.lat-lat0)*R*Math.PI/180 / mH * SZ*aspect,  // coordenada Z de escena
+      z:p.z  // profundidad
     }));
+    zMn=d3.min(bPts,p=>p.z); zMx=d3.max(bPts,p=>p.z); zR=zMx-zMn||1;
+    // TIN sobre coords planas (x,y)
+    bTris=delaunay(bPts);
   }
 
-  prog(0.2);
+  prog(0.15);
 
-  // ── PASO 1: Terreno con ortofoto ──────────────────────────────
-  // Si hay batimetría, generar alphaMap con agujero donde está la laguna
-  const terrW = mRes, terrH = Math.round(mRes*(H/W));
-  const geoTerr = new THREE.PlaneGeometry(SZ, SZ*(H/W), terrW-1, terrH-1);
-  geoTerr.rotateX(-Math.PI/2);
+  // ══ OBJETO 1: TERRENO PLANO CON ORTOFOTO ════════════════════════
+  // El terreno es SIEMPRE plano (y=0) — la ortofoto se drapeaa sobre él
+  // Donde hay batimetría → agujero usando alphaTest
 
-  // AlphaMap: blanco=visible, negro=transparente
-  let alphaTexture = null;
-  if(batiPts) {
-    const zDataMax = d3.max(batiPts,p=>p.depth)||4;
-    const ac = document.createElement('canvas');
-    ac.width = terrW; ac.height = terrH;
-    const actx = ac.getContext('2d');
-    // Empezar todo blanco (terreno visible)
-    actx.fillStyle = 'white';
-    actx.fillRect(0,0,terrW,terrH);
+  const tW=mRes, tH=Math.round(mRes*aspect);
+  const terrGeo=new THREE.PlaneGeometry(SZ, SZ*aspect, tW-1, tH-1);
+  terrGeo.rotateX(-Math.PI/2);
 
-    // TIN para el alphaMap
-    const alphaTris=delaunay(batiPts.map(p=>({x:p.x,y:p.z,z:p.depth})));
+  // AlphaMap: blanco=terreno visible, negro=agujero (agua)
+  // Solo se genera si hay batimetría
+  let alphaTex=null;
+  if(bPts&&bTris){
+    prog(0.20);
+    const ac=document.createElement('canvas');
+    ac.width=tW; ac.height=tH;
+    const actx=ac.getContext('2d');
+    actx.fillStyle='white';
+    actx.fillRect(0,0,tW,tH);
+    const id=actx.getImageData(0,0,tW,tH);
 
-    // Por cada pixel del alphaMap, verificar si está en zona de laguna
-    const imgD = actx.getImageData(0,0,terrW,terrH);
-    for(let row=0;row<terrH;row++){
-      for(let col=0;col<terrW;col++){
-        // Coordenada de escena de este pixel
-        const vx = (col/(terrW-1))*SZ - SZ/2;
-        const vz = (row/(terrH-1))*SZ*(H/W) - SZ/2*(H/W);
-
-        // TIN baricéntrico para el alphaMap
-        const zAlpha=tinInterp(alphaTris,vx,vz,0);
-        const depth=Math.max(0,zAlpha);
-
-        // Si hay profundidad significativa → perforar el terreno
-        if(depth > 0.15) {
-          // Fade suave en el borde de la laguna
-          const alpha = depth < 0.4 ? (depth-0.15)/0.25 : 1.0;
-          const px=(row*terrW+col)*4;
-          imgD.data[px]=imgD.data[px+1]=imgD.data[px+2]=Math.round((1-alpha)*255);
-          imgD.data[px+3]=255;
+    for(let row=0;row<tH;row++){
+      for(let col=0;col<tW;col++){
+        // Coords de escena de este pixel (mismo sistema que bPts)
+        const px=(col/(tW-1))*SZ - SZ/2;
+        const py=(row/(tH-1))*SZ*aspect - SZ*aspect/2;
+        const depth=tinInterp(bTris,px,py,0);
+        if(depth>0.2){
+          // Fade suave en el borde
+          const alpha=depth<0.5?(depth-0.2)/0.3:1.0;
+          const v=Math.round((1-alpha)*255);
+          const pi=(row*tW+col)*4;
+          id.data[pi]=id.data[pi+1]=id.data[pi+2]=v;
         }
       }
     }
-    actx.putImageData(imgD,0,0);
-    alphaTexture = new THREE.CanvasTexture(ac);
-    window._alphaCanvas = ac;  // guardar para el agua
+    actx.putImageData(id,0,0);
+    alphaTex=new THREE.CanvasTexture(ac);
+    alphaTex.flipY=true;
     prog(0.45);
-  } else {
-    prog(0.3);
   }
 
-  const matTerr = new THREE.MeshPhongMaterial({
-    map: tifData.texture,
-    alphaMap: alphaTexture,
-    alphaTest: alphaTexture ? 0.05 : 0,   // corte limpio en el agujero
-    transparent: false,                    // sin transparencia — corte duro
-    side: THREE.FrontSide,
-    shininess: 8,
-    depthWrite: true
+  const terrMat=new THREE.MeshPhongMaterial({
+    map:tifData.tex,
+    alphaMap:alphaTex,
+    alphaTest:alphaTex?0.5:0,  // corte duro en el borde del agujero
+    side:THREE.FrontSide,
+    shininess:5,
+    depthWrite:true
   });
-  const meshTerr = new THREE.Mesh(geoTerr, matTerr);
-  meshTerr.renderOrder = 0;  // terreno primero
-  scene.add(meshTerr);
-  objects.orto = meshTerr;
+  const terrMesh=new THREE.Mesh(terrGeo,terrMat);
+  terrMesh.renderOrder=0;
+  scene.add(terrMesh);
+  objects.orto=terrMesh;
 
-  // Wireframe
-  const wireGeo = new THREE.WireframeGeometry(geoTerr);
-  const wireMesh = new THREE.LineSegments(wireGeo,
-    new THREE.LineBasicMaterial({color:0x1a3a5c,transparent:true,opacity:0.10}));
-  wireMesh.visible = false;
-  scene.add(wireMesh);
-  objects.wire = wireMesh;
+  // Wireframe del terreno
+  const wireGeo=new THREE.WireframeGeometry(terrGeo);
+  objects.wire=new THREE.LineSegments(wireGeo,
+    new THREE.LineBasicMaterial({color:0x1a3a5c,transparent:true,opacity:0.08}));
+  objects.wire.visible=false;
+  scene.add(objects.wire);
 
-  prog(0.6);
-  await sl(10);
+  prog(0.55);
 
-  // ── PASO 2: Laguna — malla batimétrica que llena el agujero ──
-  if(batiPts) {
-    await colorearLaguna(batiPts, SZ, H/W, vSB);
-  }
+  // ══ OBJETO 2: BATIMETRÍA — malla que se hunde bajo el terreno ══
+  if(bPts&&bTris){
+    const bBBx={
+      xMn:d3.min(bPts,p=>p.x), xMx:d3.max(bPts,p=>p.x),
+      yMn:d3.min(bPts,p=>p.y), yMx:d3.max(bPts,p=>p.y)
+    };
+    const bW=bBBx.xMx-bBBx.xMn, bH=Math.abs(bBBx.yMx-bBBx.yMn);
+    const bgN=100, bgW=bgN, bgH=Math.max(4,Math.round(bgN*bH/bW));
+    const bGeo=new THREE.PlaneGeometry(bW,bH,bgW-1,bgH-1);
+    bGeo.rotateX(-Math.PI/2);
 
-  // ── PASO 3: Espejo de agua — misma forma que el agujero del terreno ──
-  if(batiPts) {
-    // Usar alphaMap INVERTIDO como máscara del agua
-    const acWater = document.createElement('canvas');
-    acWater.width = terrW; acWater.height = terrH;
-    const ctxW = acWater.getContext('2d');
-    ctxW.fillStyle = 'black';
-    ctxW.fillRect(0,0,terrW,terrH);
+    const bPos=bGeo.attributes.position;
+    const bCols=[];
+    const scaleD=vSB*2.5; // escala vertical batimetría
 
-    // Leer el canvas del alphaMap guardado
-    const srcCtx = window._alphaCanvas.getContext('2d');
-    const imgAlpha = srcCtx.getImageData(0,0,terrW,terrH);
-    const imgWater = ctxW.createImageData(terrW,terrH);
-    for(let i=0;i<terrW*terrH;i++){
-      // Invertir: donde terreno es negro (agujero) → agua blanca (visible)
-      const v = 255 - imgAlpha.data[i*4];
-      imgWater.data[i*4] = imgWater.data[i*4+1] = imgWater.data[i*4+2] = v;
-      imgWater.data[i*4+3] = 255;
+    for(let row=0;row<bgH;row++){
+      for(let col=0;col<bgW;col++){
+        const vi=row*bgW+col;
+        const wx=bBBx.xMn+(col/(bgW-1))*bW;
+        const wy=bBBx.yMn+(row/(bgH-1))*bH;
+        const depth=tinInterp(bTris,wx,wy,null);
+        if(depth!==null){
+          const d=Math.max(0,Math.min(zMx,depth));
+          bPos.setY(vi, -(d/zMx)*scaleD);  // hundir hacia abajo
+          const t=(d-zMn)/zR;
+          const[r,g,b]=palRGB(t);
+          bCols.push(r,g,b);
+        } else {
+          bPos.setY(vi, 0);
+          bCols.push(0.1,0.2,0.3);
+        }
+      }
     }
-    ctxW.putImageData(imgWater,0,0);
-    const waterAlphaTex = new THREE.CanvasTexture(acWater);
-    waterAlphaTex.flipY = true;
+    bGeo.setAttribute('color',new THREE.Float32BufferAttribute(bCols,3));
+    bGeo.computeVertexNormals();
 
-    // Agua sobre todo el terreno pero visible solo donde hay agujero
-    const wlGeo=new THREE.PlaneGeometry(SZ, SZ*(H/W), terrW-1, terrH-1);
-    wlGeo.rotateX(-Math.PI/2);
-    const wlMat=new THREE.MeshPhongMaterial({
-      color:0x1a7090,
-      alphaMap:waterAlphaTex,
-      alphaTest:0.05,
-      transparent:false,
-      side:THREE.FrontSide,
-      shininess:150,
-      specular:0xaaddff
+    const bMat=new THREE.MeshPhongMaterial({
+      vertexColors:true,side:THREE.DoubleSide,shininess:30
     });
-    const wlMesh=new THREE.Mesh(wlGeo,wlMat);
-    wlMesh.renderOrder=2;
-    wlMesh.position.y=0.15;
-    scene.add(wlMesh);
-    objects.agua=wlMesh;
+    const bMesh=new THREE.Mesh(bGeo,bMat);
+    bMesh.position.set((bBBx.xMn+bBBx.xMx)/2, 0, (bBBx.yMn+bBBx.yMx)/2);
+    bMesh.renderOrder=1;
+    scene.add(bMesh);
+    objects.bati=bMesh;
+
+    prog(0.80);
+
+    // ══ OBJETO 3: AGUA — misma forma que el agujero ════════════════
+    // Grilla densa sobre la zona de batimetría, solo donde hay profundidad
+    const aGeo=new THREE.PlaneGeometry(bW,bH,bgW-1,bgH-1);
+    aGeo.rotateX(-Math.PI/2);
+    const aPos=aGeo.attributes.position;
+    const aIdx=[];
+    // Vertices válidos = donde hay profundidad
+    const aValid=new Uint8Array(bgW*bgH);
+
+    for(let row=0;row<bgH;row++){
+      for(let col=0;col<bgW;col++){
+        const vi=row*bgW+col;
+        const wx=bBBx.xMn+(col/(bgW-1))*bW;
+        const wy=bBBx.yMn+(row/(bgH-1))*bH;
+        const depth=tinInterp(bTris,wx,wy,null);
+        if(depth!==null&&depth>0.2){
+          aPos.setY(vi,0.2); // ligeramente sobre el terreno
+          aValid[vi]=1;
+        } else {
+          aPos.setY(vi,-999); // hundir invisiblemente
+          aValid[vi]=0;
+        }
+      }
+    }
+    aGeo.computeVertexNormals();
+
+    const aMat=new THREE.MeshPhongMaterial({
+      color:0x1a7090,transparent:true,opacity:0.60,
+      side:THREE.FrontSide,shininess:150,specular:0xaaddff,
+      depthWrite:false
+    });
+    const aMesh=new THREE.Mesh(aGeo,aMat);
+    aMesh.position.set((bBBx.xMn+bBBx.xMx)/2,0,(bBBx.yMn+bBBx.yMx)/2);
+    aMesh.renderOrder=2;
+    scene.add(aMesh);
+    objects.agua=aMesh;
+
+    prog(0.90);
+
+    // Stats
+    const sg=document.getElementById('stat-grid');
+    sg.innerHTML=[
+      {v:batiData.pts.length,l:'PUNTOS'},
+      {v:zMn.toFixed(2)+'m',l:'MÍN'},
+      {v:zMx.toFixed(2)+'m',l:'MÁX'},
+      {v:d3.mean(batiData.pts,p=>p.z).toFixed(2)+'m',l:'MEDIA'},
+    ].map(s=>`<div class="stat-box"><div class="stat-v">${s.v}</div><div class="stat-l">${s.l}</div></div>`).join('');
+    document.getElementById('stats-panel').style.display='';
+
   } else {
-    // Espejo global si no hay batimetría
-    const wGeo=new THREE.PlaneGeometry(SZ*1.05,SZ*1.05*(H/W));
+    // Sin batimetría — agua global tenue
+    const wGeo=new THREE.PlaneGeometry(SZ,SZ*aspect);
     wGeo.rotateX(-Math.PI/2);
-    const wMat=new THREE.MeshPhongMaterial({
-      color:0x1a4060, transparent:true, opacity:0.15,
-      side:THREE.DoubleSide, shininess:80
-    });
-    const wMesh=new THREE.Mesh(wGeo,wMat);
-    wMesh.renderOrder = 2;
-    wMesh.position.y=0.12;
+    const wMesh=new THREE.Mesh(wGeo,new THREE.MeshPhongMaterial({
+      color:0x1a4060,transparent:true,opacity:0.12,side:THREE.DoubleSide
+    }));
+    wMesh.position.y=0.1;
+    wMesh.renderOrder=2;
     scene.add(wMesh);
     objects.agua=wMesh;
   }
 
-  prog(0.9);
+  // Geo info
+  document.getElementById('geo-info').innerHTML=
+    `<span class="geo-val">Lat:</span> ${bbox[1].toFixed(5)}S — ${bbox[3].toFixed(5)}S<br>
+     <span class="geo-val">Lon:</span> ${Math.abs(bbox[0]).toFixed(5)}O — ${Math.abs(bbox[2]).toFixed(5)}O<br>
+     <span class="geo-val">Ancho:</span> ${mW.toFixed(0)}m · <span class="geo-val">Alto:</span> ${mH.toFixed(0)}m`;
+
+  // Aplicar capas
+  applyLayers();
 
   // Cámara
-  sph={theta:0.5,phi:0.8,radius:160};
+  sph={theta:0.5,phi:0.75,radius:170};
   tgt={x:0,y:0,z:0};
-  updateCamera();
+  updCam();
 
-  // Info geográfica
-  document.getElementById('geo-info').innerHTML=`
-    <span class="geo-val">Lat:</span> ${bbox[1].toFixed(5)}S — ${bbox[3].toFixed(5)}S<br>
-    <span class="geo-val">Lon:</span> ${Math.abs(bbox[0]).toFixed(5)}O — ${Math.abs(bbox[2]).toFixed(5)}O<br>
-    <span class="geo-val">Ancho:</span> ${W.toFixed(0)}m<br>
-    <span class="geo-val">Alto:</span> ${H.toFixed(0)}m<br>
-    <span class="geo-val">Área:</span> ${(W*H/10000).toFixed(1)} ha
-  `;
-
-  buildStats();
-  ['layer-panel','geo-panel','stats-panel','exp-panel'].forEach(id=>
-    document.getElementById(id).style.display=''
-  );
+  ['layer-panel','geo-panel','exp-panel'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.style.display='';
+  });
   document.getElementById('overlay').style.display='';
   document.getElementById('btn-gen').disabled=false;
-
-  prog(1); setTimeout(()=>prog(0),600);
-  showToast('✓ Terreno 3D generado');
+  prog(1);await sl(50);prog(0);
+  toast('✓ Terreno 3D generado');
 }
 
-// ─── Batimetría del canal ─────────────────────────────────────────────────────
-// ─── Colorear laguna — malla batimétrica que llena el agujero del terreno ───
-async function colorearLaguna(batiPts, SZ, aspect, vSB) {
-  const zMax = d3.max(batiPts,p=>p.depth)||4;
-  const zMin = d3.min(batiPts,p=>p.depth)||0;
-  const zR   = zMax-zMin||1;
-
-  // Bounding box con margen generoso para empalme suave
-  const sxMin=d3.min(batiPts,p=>p.x)-4, sxMax=d3.max(batiPts,p=>p.x)+4;
-  const szMin=d3.min(batiPts,p=>p.z)-4, szMax=d3.max(batiPts,p=>p.z)+4;
-  const bW=sxMax-sxMin, bH=Math.abs(szMax-szMin);
-
-  const gN=120, gW=gN, gH=Math.max(4,Math.round(gN*bH/bW));
-  const geo=new THREE.PlaneGeometry(bW,bH,gW-1,gH-1);
-  geo.rotateX(-Math.PI/2);
-  const pos=geo.attributes.position;
-  const colors=[];
-  const scaleDepth = vSB * 3;
-
-  // Paleta náutica
-  const palRGB=t=>{
-    const P=[[210,240,215],[150,220,210],[90,190,225],[50,150,210],[25,110,190],[10,70,160],[4,40,120],[1,18,70]];
-    t=Math.max(0,Math.min(1,t));
-    const n=P.length-1,i=Math.floor(t*n),f=t*n-i;
-    const a=P[Math.min(i,n)],b=P[Math.min(i+1,n)];
-    return[Math.round(a[0]+(b[0]-a[0])*f)/255,Math.round(a[1]+(b[1]-a[1])*f)/255,Math.round(a[2]+(b[2]-a[2])*f)/255];
-  };
-
-  // Construir TIN una sola vez
-  const batiTris=delaunay(batiPts.map(p=>({x:p.x,y:p.z,z:p.depth}))
-    .map(p=>({x:p.x,y:p.y,z:p.z})));
-  // Re-mapear para que tinInterp use x/y como coordenadas planas y z como profundidad
-  const batiTrisXZ=delaunay(batiPts.map((p,i)=>({x:p.x,y:p.z,z:p.depth,idx:i}))
-    .map(p=>({x:p.x,y:p.y,z:p.z})));
-
-  for(let row=0;row<gH;row++){
-    for(let col=0;col<gW;col++){
-      const vi=row*gW+col;
-      const wx=sxMin+(col/(gW-1))*bW;
-      const wz=szMin+(row/(gH-1))*bH;
-
-      // TIN baricéntrico — sin picos
-      const zTin=tinInterp(batiTrisXZ,wx,wz,null);
-      const depth=zTin!==null ? Math.max(0,Math.min(zMax,zTin)) : 0;
-      const t=(depth-zMin)/zR;
-
-      // Empalme suave: orilla=0, centro=profundidad máxima
-      const yVal = depth > 0.1 ? -(depth/zMax)*scaleDepth : 0;
-      pos.setY(vi, yVal);
-      const[r,g,b]=palRGB(t);
-      colors.push(r,g,b);
-    }
-  }
-  geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-  geo.computeVertexNormals();
-
-  const mat=new THREE.MeshPhongMaterial({
-    vertexColors:true,side:THREE.DoubleSide,
-    transparent:false,opacity:1,shininess:40
-  });
-  const mesh=new THREE.Mesh(geo,mat);
-  mesh.position.set((sxMin+sxMax)/2, 0, (szMin+szMax)/2);
-  scene.add(mesh);
-  objects.bati=mesh;
+// ═══ CAPAS ════════════════════════════════════════════════════════
+function togLayer(n){
+  layers[n]=!layers[n];
+  document.getElementById('lb-'+n).className='lbtn '+(layers[n]?'on':'off');
+  applyLayers();
+}
+function applyLayers(){
+  if(objects.orto) objects.orto.visible=layers.orto;
+  if(objects.agua) objects.agua.visible=layers.agua;
+  if(objects.bati) objects.bati.visible=layers.bati;
+  if(objects.wire) objects.wire.visible=layers.wire;
 }
 
-// ─── Three.js// ─── Three.js ─────────────────────────────────────────────────────────────────
+// ═══ THREE.JS SETUP ═══════════════════════════════════════════════
 function initThree(){
-  if(renderer){
-    // Limpiar escena existente
-    while(scene.children.length) scene.remove(scene.children[0]);
-    objects={orto:null,agua:null,bati:null,wire:null};
-    addLights();
-    return;
-  }
-  const wrap=document.querySelector('.canvas-area');
-  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c3d'),antialias:true,preserveDrawingBuffer:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-  renderer.setSize(wrap.clientWidth,wrap.clientHeight);
-  renderer.setClearColor(0x050d14);
+  const wrap=document.querySelector('.main');
+  const W=wrap.clientWidth,H=wrap.clientHeight;
+  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c3d'),antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(W,H);
+  renderer.setClearColor(0x06111e);
+  renderer.sortObjects=true;
   scene=new THREE.Scene();
-  scene.fog=new THREE.FogExp2(0x050d14,0.003);
-  camera=new THREE.PerspectiveCamera(50,wrap.clientWidth/wrap.clientHeight,0.1,2000);
+  scene.fog=new THREE.FogExp2(0x06111e,0.004);
+  camera=new THREE.PerspectiveCamera(50,W/H,0.1,2000);
 
-  addLights();
+  scene.add(new THREE.AmbientLight(0xffffff,0.9));
+  const d=new THREE.DirectionalLight(0xffffff,0.8);
+  d.position.set(60,100,60); scene.add(d);
+  const d2=new THREE.DirectionalLight(0x4477aa,0.4);
+  d2.position.set(-60,40,-80); scene.add(d2);
 
   const c=document.getElementById('c3d');
   c.addEventListener('mousedown',e=>{isDrag=true;isRight=e.button===2;prevM={x:e.clientX,y:e.clientY};});
   c.addEventListener('mousemove',e=>{
     if(!isDrag)return;
     const dx=e.clientX-prevM.x,dy=e.clientY-prevM.y;prevM={x:e.clientX,y:e.clientY};
-    if(isRight){tgt.x-=dx*0.15;tgt.z+=dy*0.15;}
-    else{sph.theta-=dx*0.005;sph.phi=Math.max(0.05,Math.min(Math.PI*0.9,sph.phi-dy*0.005));}
-    updateCamera();
+    if(isRight){tgt.x-=dx*0.1;tgt.z+=dy*0.1;}
+    else{sph.theta-=dx*0.005;sph.phi=Math.max(0.05,Math.min(Math.PI*0.95,sph.phi-dy*0.005));}
+    updCam();
   });
-  c.addEventListener('mouseup',()=>{isDrag=false;isRight=false;});
-  c.addEventListener('mouseleave',()=>{isDrag=false;});
-  c.addEventListener('wheel',e=>{e.preventDefault();sph.radius=Math.max(20,Math.min(600,sph.radius+e.deltaY*0.2));updateCamera();},{passive:false});
+  c.addEventListener('mouseup',()=>isDrag=false);
+  c.addEventListener('mouseleave',()=>isDrag=false);
+  c.addEventListener('wheel',e=>{e.preventDefault();sph.radius=Math.max(20,Math.min(800,sph.radius+e.deltaY*0.25));updCam();},{passive:false});
   c.addEventListener('contextmenu',e=>e.preventDefault());
-  window.addEventListener('resize',()=>{
-    const w=document.querySelector('.canvas-area');
-    if(!renderer)return;
-    camera.aspect=w.clientWidth/w.clientHeight;camera.updateProjectionMatrix();
-    renderer.setSize(w.clientWidth,w.clientHeight);
-  });
-  (function render(){requestAnimationFrame(render);if(renderer&&scene&&camera)renderer.render(scene,camera);})();
-}
 
-function addLights(){
-  scene.add(new THREE.AmbientLight(0xffffff,0.7));
-  const d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(50,80,50);scene.add(d1);
-  const d2=new THREE.DirectionalLight(0x88aacc,0.4);d2.position.set(-50,40,-50);scene.add(d2);
+  let ld=0;
+  c.addEventListener('touchstart',e=>{if(e.touches.length===1){isDrag=true;prevM={x:e.touches[0].clientX,y:e.touches[0].clientY};}else if(e.touches.length===2)ld=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);});
+  c.addEventListener('touchmove',e=>{e.preventDefault();
+    if(e.touches.length===1&&isDrag){const dx=e.touches[0].clientX-prevM.x,dy=e.touches[0].clientY-prevM.y;prevM={x:e.touches[0].clientX,y:e.touches[0].clientY};sph.theta-=dx*0.005;sph.phi=Math.max(0.05,Math.min(Math.PI*0.95,sph.phi-dy*0.005));updCam();}
+    else if(e.touches.length===2){const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);sph.radius=Math.max(20,Math.min(800,sph.radius-(nd-ld)*0.4));ld=nd;updCam();}
+  },{passive:false});
+  c.addEventListener('touchend',()=>isDrag=false);
+  window.addEventListener('resize',()=>{renderer.setSize(wrap.clientWidth,wrap.clientHeight);camera.aspect=wrap.clientWidth/wrap.clientHeight;camera.updateProjectionMatrix();});
+  updCam();
+  (function loop(){requestAnimationFrame(loop);renderer.render(scene,camera);})();
 }
+function clearObjs(){Object.values(objects).forEach(o=>{if(o)scene.remove(o);});objects={orto:null,agua:null,bati:null,wire:null};}
+function updCam(){const{theta,phi,radius}=sph;camera.position.set(tgt.x+radius*Math.sin(phi)*Math.sin(theta),tgt.y+radius*Math.cos(phi),tgt.z+radius*Math.sin(phi)*Math.cos(theta));camera.lookAt(tgt.x,tgt.y,tgt.z);}
 
-function updateCamera(){
-  const{theta,phi,radius}=sph;
-  camera.position.set(
-    tgt.x+radius*Math.sin(phi)*Math.sin(theta),
-    tgt.y+radius*Math.cos(phi),
-    tgt.z+radius*Math.sin(phi)*Math.cos(theta)
-  );
-  camera.lookAt(tgt.x,tgt.y,tgt.z);
-}
-
-// ─── Toggle capas ─────────────────────────────────────────────────────────────
-function togLayer(name){
-  layers[name]=!layers[name];
-  document.getElementById('lb-'+name).className='lbtn '+(layers[name]?'on':'off');
-  if(objects[name]){
-    if(name==='wire'&&objects.wire) objects.wire.visible=layers[name];
-    else if(objects[name]) objects[name].visible=layers[name];
-  }
-}
-
-// ─── Estadísticas ─────────────────────────────────────────────────────────────
-function buildStats(){
-  const el=document.getElementById('stats-grid');el.innerHTML='';
-  const stats=[
-    {v:tifData?`${tifData.W.toFixed(0)}m`:'—',l:'ANCHO'},
-    {v:tifData?`${tifData.H.toFixed(0)}m`:'—',l:'ALTO'},
-    {v:tifData?`${(tifData.W*tifData.H/10000).toFixed(1)}ha`:'—',l:'ÁREA'},
-    {v:batiData?`${batiData.pts.length}pts`:'—',l:'SONDAJES'},
-  ];
-  stats.forEach(s=>{
-    const b=document.createElement('div');b.className='stat';
-    b.innerHTML=`<div class="stat-val">${s.v}</div><div class="stat-lbl">${s.l}</div>`;
-    el.appendChild(b);
-  });
-}
-
-// ─── Exportar PNG ─────────────────────────────────────────────────────────────
-function expPNG(){
-  if(!renderer){showToast('Generá el terreno primero',true);return;}
-  renderer.render(scene,camera);
-  const a=document.createElement('a');
-  a.download='terreno3d_'+new Date().toISOString().substring(0,10)+'.png';
-  a.href=renderer.domElement.toDataURL('image/png');
-  a.click();
-  showToast('✓ PNG exportado');
-}
-
-// ─── Utilidades ───────────────────────────────────────────────────────────────
-function prog(p){document.getElementById('pb').style.transform=`scaleX(${p})`;}
+// ═══ UTILS ════════════════════════════════════════════════════════
+function prog(p){const pb=document.getElementById('pb');pb.style.visibility=p>0?'visible':'hidden';pb.style.opacity=p>0?'1':'0';pb.style.transform=`scaleX(${p})`;}
 function sl(ms){return new Promise(r=>setTimeout(r,ms));}
-let tT;
-function showToast(msg,err=false){
-  const t=document.getElementById('toast');t.textContent=msg;
-  t.className='toast show'+(err?' err':'');
-  clearTimeout(tT);tT=setTimeout(()=>t.className='toast',3500);
-}
+let _tt;
+function toast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.className=err?'show err':'show';clearTimeout(_tt);_tt=setTimeout(()=>t.className='',3200);}
 </script>
 </body>
 </html>
