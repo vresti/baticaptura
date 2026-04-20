@@ -165,7 +165,7 @@ tr:hover td{background:rgba(26,143,232,.07)}
 
   <!-- PASO 2: KRIGING -->
   <div class="sec" id="sec-kriging">
-    <div class="sec-ttl">▸ 2. Kriging (Opcional)</div>
+    <div class="sec-ttl">▸ 2. Interpolación TIN (Opcional)</div>
     <div class="info-box">
       Genera una grilla regular interpolada.<br>
       Los puntos originales se conservan.<br>
@@ -191,7 +191,7 @@ tr:hover td{background:rgba(26,143,232,.07)}
       <div class="prog-bar-h"><div class="prog-bar-f" id="krig-pf" style="width:0%"></div></div>
       <div class="prog-lbl" id="krig-pl">Calculando variograma…</div>
     </div>
-    <button class="btn-go" id="btn-krig" onclick="aplicarKriging()" disabled>◈ INTERPOLAR KRIGING</button>
+    <button class="btn-go" id="btn-krig" onclick="aplicarKriging()" disabled>◈ INTERPOLAR TIN</button>
   </div>
 
   <!-- EXPORTAR -->
@@ -213,7 +213,7 @@ tr:hover td{background:rgba(26,143,232,.07)}
       ⊕ OFFSET APLICADO
     </div>
     <div class="step-tab disabled" id="tab-kriging" onclick="setStep('kriging')">
-      ◈ KRIGING
+      ◈ INTERPOLACIÓN TIN
     </div>
   </div>
 
@@ -260,9 +260,9 @@ tr:hover td{background:rgba(26,143,232,.07)}
       </div>
       <div id="krig-content" style="display:none">
         <div class="card">
-          <div class="card-ttl">VARIOGRAMA EXPERIMENTAL</div>
+          <div class="card-ttl">DISTRIBUCIÓN DE PROFUNDIDADES</div>
           <canvas class="vario-canvas" id="vario-canvas"></canvas>
-          <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:#4a6a8a;margin-top:6px" id="vario-params"></div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:#4a6a8a;margin-top:6px" id="vario-params">Histograma de valores medidos — referencia de distribución real</div>
         </div>
         <div class="summary-grid" id="krig-summary"></div>
         <div class="card">
@@ -362,81 +362,103 @@ function aplicarOffset(){
 // ═══ STEP 2: KRIGING ══════════════════════════════════════════════
 async function aplicarKriging(){
   const srcPts=ptsOffset.length?ptsOffset:ptsOrig;
-  if(srcPts.length<4){showToast('Mínimo 4 puntos para Kriging',true);return;}
+  if(srcPts.length<4){showToast('Mínimo 4 puntos para interpolar',true);return;}
 
-  const model=document.getElementById('krig-model').value;
   const spacing=parseFloat(document.getElementById('krig-spacing').value)||2;
+  const smoothPasses=parseInt(document.getElementById('krig-smooth').value)||0;
 
-  // Mostrar progreso
   document.getElementById('krig-prog').style.display='';
   document.getElementById('krig-stats').style.display='none';
-  setKrigProg(0.05,'Calculando variograma experimental…');
-  await sl(30);
+  setKrigProg(0.05,'Proyectando coordenadas…');await sl(30);
 
   // Proyección a metros
   const lat0=d3.mean(srcPts,p=>p.lat), lon0=d3.mean(srcPts,p=>p.lon);
   const R=6371000;
-  const toM=p=>({
+  const mPts=srcPts.map(p=>({
     x:(p.lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180,
     y:(p.lat-lat0)*R*Math.PI/180,
     z:p.z, orig:true, lat:p.lat, lon:p.lon
-  });
-  const mPts=srcPts.map(toM);
+  }));
 
-  // ── Variograma experimental ──────────────────────────────────
-  setKrigProg(0.15,'Calculando variograma…');await sl(20);
-  const vario=calcVariograma(mPts,12);
-  drawVariograma(vario,model);
+  const zMn=d3.min(mPts,p=>p.z), zMx=d3.max(mPts,p=>p.z);
 
-  // ── Ajuste del variograma ────────────────────────────────────
-  const vParams=fitVariograma(vario,model);
-  document.getElementById('vario-params').innerHTML=
-    `Modelo: <span style="color:#1a8fe8">${model}</span> | `+
-    `Nugget: <span style="color:#ffd060">${vParams.nugget.toFixed(3)}</span> | `+
-    `Sill: <span style="color:#ffd060">${vParams.sill.toFixed(3)}</span> | `+
-    `Range: <span style="color:#ffd060">${vParams.range.toFixed(1)} m</span>`;
+  setKrigProg(0.15,'Triangulando TIN Delaunay…');await sl(20);
 
-  setKrigProg(0.30,'Generando grilla de interpolación…');await sl(20);
+  // TIN Delaunay sobre los puntos medidos
+  const tris=delaunay(mPts);
 
-  // ── Grilla de salida ─────────────────────────────────────────
-  const zMn=d3.min(mPts,p=>p.z), zMx=d3.max(mPts,p=>p.z); // rango real de datos
+  setKrigProg(0.25,'Generando grilla de interpolación…');await sl(20);
+
+  // Grilla de salida
   const xMn=d3.min(mPts,p=>p.x), xMx=d3.max(mPts,p=>p.x);
   const yMn=d3.min(mPts,p=>p.y), yMx=d3.max(mPts,p=>p.y);
   const gridPts=[];
   for(let gx=xMn;gx<=xMx;gx+=spacing){
     for(let gy=yMn;gy<=yMx;gy+=spacing){
-      // Solo si está dentro del convex hull aproximado
       if(dentroDeNube(mPts,gx,gy,spacing*1.2)){
         gridPts.push({x:gx,y:gy});
       }
     }
   }
 
-  setKrigProg(0.40,'Kriging en '+gridPts.length+' puntos…');await sl(20);
+  setKrigProg(0.35,'Interpolando '+gridPts.length+' puntos…');await sl(20);
 
-  // ── Kriging ordinario ────────────────────────────────────────
-  const kPts=[];
+  // Interpolar cada punto de la grilla usando TIN baricéntrico
   const totalG=gridPts.length;
   const chunk=Math.max(1,Math.floor(totalG/20));
+  const kPts=[];
 
   for(let i=0;i<totalG;i++){
     const gp=gridPts[i];
-    const zk=Math.max(zMn, Math.min(zMx, krigingOrd(mPts,gp.x,gp.y,vParams,model)));
+    // TIN baricéntrico — sin picos, exacto en los puntos medidos
+    const zTin=tinInterp(tris,gp.x,gp.y,null);
+    if(zTin===null)continue; // fuera del hull — no interpolamos
+
+    // Clampear al rango real
+    const zVal=Math.max(zMn,Math.min(zMx,zTin));
+
     // Convertir de vuelta a lat/lon
     const lat=lat0+gp.y/(R*Math.PI/180);
     const lon=lon0+gp.x/(Math.cos(lat0*Math.PI/180)*R*Math.PI/180);
-    kPts.push({x:gp.x,y:gp.y,z:zk,orig:false,lat,lon});
+    kPts.push({x:gp.x,y:gp.y,z:zVal,orig:false,lat,lon});
+
     if(i%chunk===0){
-      setKrigProg(0.40+0.55*(i/totalG),`Kriging: ${i}/${totalG} puntos…`);
+      setKrigProg(0.35+0.45*(i/totalG),`Interpolando: ${i}/${totalG}…`);
       await sl(0);
+    }
+  }
+
+  // Suavizado gaussiano (media ponderada de vecinos en la grilla)
+  if(smoothPasses>0&&kPts.length>0){
+    setKrigProg(0.82,'Suavizando…');await sl(20);
+
+    // Construir grilla indexada para suavizado eficiente
+    for(let pass=0;pass<smoothPasses;pass++){
+      const smoothed=kPts.map(p=>{
+        // Vecinos en radio = spacing * 1.5
+        const r=spacing*1.5;
+        const neighbors=kPts.filter(q=>
+          q!==p && Math.abs(q.x-p.x)<=r && Math.abs(q.y-p.y)<=r &&
+          Math.sqrt((q.x-p.x)**2+(q.y-p.y)**2)<=r
+        );
+        if(!neighbors.length)return p.z;
+        // Media ponderada gaussiana
+        let sw=1,swz=p.z; // incluir el punto mismo con peso 1
+        neighbors.forEach(q=>{
+          const d=Math.sqrt((q.x-p.x)**2+(q.y-p.y)**2);
+          const w=Math.exp(-0.5*(d/spacing)**2);
+          sw+=w;swz+=w*q.z;
+        });
+        return Math.max(zMn,Math.min(zMx,swz/sw));
+      });
+      kPts.forEach((p,i)=>p.z=smoothed[i]);
     }
   }
 
   // Combinar originales + grilla
   ptsKriging=[...mPts,...kPts];
 
-  setKrigProg(1,'Listo');
-  await sl(200);
+  setKrigProg(1,'Listo');await sl(200);
   document.getElementById('krig-prog').style.display='none';
   document.getElementById('krig-stats').style.display='';
   document.getElementById('k-orig').textContent=mPts.length;
@@ -444,13 +466,17 @@ async function aplicarKriging(){
 
   document.getElementById('empty-krig').style.display='none';
   document.getElementById('krig-content').style.display='';
+
+  // Variograma: ahora muestra la distribución de profundidades
+  drawDistribucion(mPts);
+
   renderSummaryKrig(kPts.length,mPts.length);
   renderTableKrig(ptsKriging);
 
   document.getElementById('tab-kriging').className='step-tab done';
   document.getElementById('sec-export').style.display='';
   setStep('kriging');
-  showToast('✓ Kriging: '+mPts.length+' orig + '+kPts.length+' interpolados');
+  showToast('✓ TIN: '+mPts.length+' orig + '+kPts.length+' interpolados + '+smoothPasses+' pasadas suavizado');
 }
 
 // ═══ VARIOGRAMA ═══════════════════════════════════════════════════
@@ -493,31 +519,33 @@ function gammaModel(h,params,model){
   return nugget+(sill-nugget)*(1-Math.exp(-3*hr));
 }
 
-function drawVariograma(vario,model){
+function drawDistribucion(pts){
+  // Histograma de distribución de profundidades
   const canvas=document.getElementById('vario-canvas');
   const W=canvas.offsetWidth||600, H=80;
   canvas.width=W*2; canvas.height=H*2;
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
   const ctx=canvas.getContext('2d'); ctx.scale(2,2);
   ctx.fillStyle='#060e18'; ctx.fillRect(0,0,W,H);
-  if(!vario.length)return;
-  const maxH=d3.max(vario,v=>v.h), maxG=d3.max(vario,v=>v.g)*1.1;
-  const sx=v=>(v.h/maxH)*(W-20)+10;
-  const sy=v=>H-5-(v.g/maxG)*(H-10);
-  const params=fitVariograma(vario,model);
-  // Línea del modelo
-  ctx.strokeStyle='#ffd060'; ctx.lineWidth=1.5; ctx.beginPath();
-  for(let i=0;i<=100;i++){
-    const h=i/100*maxH;
-    const g=gammaModel(h,params,model);
-    i===0?ctx.moveTo(sx({h}),sy({g})):ctx.lineTo(sx({h}),sy({g}));
-  }
-  ctx.stroke();
-  // Puntos experimentales
-  vario.forEach(v=>{
-    ctx.fillStyle='#1a8fe8';
-    ctx.beginPath(); ctx.arc(sx(v),sy(v),3,0,Math.PI*2); ctx.fill();
+  if(!pts.length)return;
+  const zs=pts.map(p=>p.z);
+  const zMn=d3.min(zs), zMx=d3.max(zs);
+  const nBins=20, bw=(zMx-zMn)/nBins||1;
+  const bins=Array(nBins).fill(0);
+  zs.forEach(z=>{ const i=Math.min(nBins-1,Math.floor((z-zMn)/bw)); bins[i]++; });
+  const maxBin=Math.max(...bins);
+  const bW=(W-20)/nBins;
+  bins.forEach((cnt,i)=>{
+    const h=(cnt/maxBin)*(H-10);
+    const x=10+i*bW;
+    const t=i/nBins;
+    // Mismo gradiente que la paleta batimétrica
+    const r=Math.round(210-(210-1)*t), g=Math.round(240-(240-18)*t), b=Math.round(215-(215-70)*t);
+    ctx.fillStyle=`rgb(${r},${g},${b})`;
+    ctx.fillRect(x, H-5-h, bW-1, h);
   });
+  ctx.strokeStyle='rgba(26,143,232,.3)';ctx.lineWidth=.5;
+  ctx.strokeRect(10,5,W-20,H-10);
 }
 
 // ═══ KRIGING ORDINARIO ════════════════════════════════════════════

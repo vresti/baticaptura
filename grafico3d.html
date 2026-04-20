@@ -138,8 +138,17 @@ input[type=range]{width:100%;accent-color:#1a8fe8;cursor:pointer;height:4px}
     </div>
     <div class="ctrl">
       <div class="ctrl-lbl"><span>Escala vertical</span><span id="vsv">3×</span></div>
-      <input type="range" id="vs" min="1" max="20" step="0.5" value="3"
-             oninput="vsv.textContent=this.value+'×'; scheduleRegen()">
+      <input type="range" id="vs" min="0.1" max="20" step="0.1" value="3"
+             oninput="vsv.textContent=(+this.value).toFixed(1)+'×'; scheduleRegen()">
+      <button onclick="aplicarEscalaReal()" 
+        style="width:100%;margin-top:5px;padding:5px;background:rgba(255,208,96,.1);
+        border:1px solid rgba(255,208,96,.3);border-radius:4px;color:#ffd060;
+        font-size:8px;letter-spacing:2px;font-family:'Orbitron',monospace;cursor:pointer"
+        title="Ajusta la escala para que 1m vertical = 1m horizontal">
+        ⊘ ESCALA REAL 1:1:1
+      </button>
+      <div id="escala-info" style="font-family:'Share Tech Mono',monospace;font-size:8px;
+        color:#4a6a8a;text-align:center;margin-top:3px;display:none"></div>
     </div>
     <div class="ctrl">
       <div class="ctrl-lbl"><span>Potencia IDW</span><span id="ipv">1.5</span></div>
@@ -582,6 +591,55 @@ function updCam(){
     tgt.z+radius*Math.sin(phi)*Math.cos(theta)
   );
   camera.lookAt(tgt.x,tgt.y,tgt.z);
+}
+
+
+// ═══ ESCALA REAL 1:1:1 ═══════════════════════════════════════
+function aplicarEscalaReal(){
+  if(!objects.surf){showToast('Generá el gráfico primero',true);return;}
+
+  // Necesitamos las dimensiones reales del canal
+  const allRaw=datasets.flatMap(d=>d.points);
+  const lat0=d3.mean(allRaw,p=>p.lat), lon0=d3.mean(allRaw,p=>p.lon);
+  const R=6371000;
+  const mPts=allRaw.map(p=>({
+    x:(p.lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180,
+    y:(p.lat-lat0)*R*Math.PI/180,
+    z:p.z
+  }));
+
+  const W=d3.max(mPts,p=>p.x)-d3.min(mPts,p=>p.x); // ancho E-O en metros
+  const H=d3.max(mPts,p=>p.y)-d3.min(mPts,p=>p.y); // largo N-S en metros
+  const zR=d3.max(mPts,p=>p.z)-d3.min(mPts,p=>p.z); // rango vertical en metros
+
+  // Dimensión horizontal dominante
+  const dimH=Math.max(W,H);
+
+  // Escala real: para que zR metros verticales = dimH metros horizontales
+  // En el renderizador: scZ = -((z-zMin)/zR) * SZ * 0.28 * vSc
+  // La superficie horizontal ocupa SZ=100 unidades
+  // Para 1:1:1: necesitamos que zR metros → SZ unidades
+  // Es decir: vSc = (SZ / (SZ * 0.28)) / (dimH / zR)
+  //         = (1/0.28) / (dimH/zR)
+  //         = zR / (dimH * 0.28)
+  const escalaReal = zR / (dimH * 0.28);
+  const escalaRealRound = Math.round(escalaReal * 10) / 10;
+
+  // Aplicar
+  const slider = document.getElementById('vs');
+  slider.value = Math.max(0.1, Math.min(20, escalaRealRound));
+  document.getElementById('vsv').textContent = escalaRealRound.toFixed(1) + '×';
+
+  // Mostrar info
+  const info = document.getElementById('escala-info');
+  info.style.display = '';
+  info.innerHTML = 
+    `1m vertical = 1m horizontal<br>` +
+    `Canal: ${dimH.toFixed(0)}m × ${zR.toFixed(1)}m prof<br>` +
+    `Exageración real: ${escalaRealRound.toFixed(1)}×`;
+
+  generar3D();
+  showToast('✓ Escala 1:1:1 — '+escalaRealRound.toFixed(1)+'× exageración real');
 }
 
 // ═══ REGENERAR CON DEBOUNCE ══════════════════════════════════════
