@@ -297,6 +297,8 @@ async function loadTIF(file) {
     }
     ctx.putImageData(imgData,0,0);
     const texture = new THREE.CanvasTexture(canvas);
+    texture.flipY = true;   // orientación correcta para PlaneGeometry
+    texture.needsUpdate = true;
 
     tifData = {
       bbox,   // [west,south,east,north]
@@ -351,7 +353,47 @@ function loadBatiCSV(file) {
   reader.readAsText(file);
 }
 
-// ─── IDW ──────────────────────────────────────────────────────────────────────
+// ─── TIN Delaunay (sin picos) ──────────────────────────────────────────────────
+function circumcircle(ax,ay,bx,by,cx,cy){
+  const D=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
+  if(Math.abs(D)<1e-10)return null;
+  const ux=((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/D;
+  const uy=((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D;
+  return{x:ux,y:uy,r:Math.sqrt((ax-ux)**2+(ay-uy)**2)};
+}
+function delaunay(pts){
+  if(pts.length<3)return[];
+  const xMn=Math.min(...pts.map(p=>p.x))-1,xMx=Math.max(...pts.map(p=>p.x))+1;
+  const yMn=Math.min(...pts.map(p=>p.y))-1,yMx=Math.max(...pts.map(p=>p.y))+1;
+  const dx=xMx-xMn,dy=yMx-yMn;
+  const st=[{x:xMn-dx,y:yMn-dy,_s:true},{x:xMx+dx*2,y:yMn-dy,_s:true},{x:xMn-dx,y:yMx+dy*2,_s:true}];
+  const all=[...pts,...st];const n=pts.length;
+  let tris=[{a:n,b:n+1,c:n+2}];
+  for(let i=0;i<n;i++){
+    const p=all[i],bad=[],edges=[];
+    for(const t of tris){
+      const cc=circumcircle(all[t.a].x,all[t.a].y,all[t.b].x,all[t.b].y,all[t.c].x,all[t.c].y);
+      if(cc&&(p.x-cc.x)**2+(p.y-cc.y)**2<=cc.r*cc.r+1e-10){bad.push(t);edges.push([t.a,t.b],[t.b,t.c],[t.c,t.a]);}
+    }
+    const poly=edges.filter(e=>!edges.some(f=>f!==e&&f[0]===e[1]&&f[1]===e[0]));
+    for(const t of bad)tris=tris.filter(x=>x!==t);
+    for(const e of poly)tris.push({a:e[0],b:e[1],c:i});
+  }
+  return tris.filter(t=>!all[t.a]._s&&!all[t.b]._s&&!all[t.c]._s).map(t=>({a:t.a,b:t.b,c:t.c,pts:all}));
+}
+function tinInterp(tris,px,py,fb){
+  for(const t of tris){
+    const ax=t.pts[t.a].x,ay=t.pts[t.a].y,bx=t.pts[t.b].x,by=t.pts[t.b].y,cx=t.pts[t.c].x,cy=t.pts[t.c].y;
+    const d=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy);
+    if(Math.abs(d)<1e-10)continue;
+    const u=((by-cy)*(px-cx)+(cx-bx)*(py-cy))/d;
+    const v=((cy-ay)*(px-cx)+(ax-cx)*(py-cy))/d;
+    const w=1-u-v;
+    if(u>=-1e-3&&v>=-1e-3&&w>=-1e-3)return u*t.pts[t.a].z+v*t.pts[t.b].z+w*t.pts[t.c].z;
+  }
+  return fb;
+}
+// IDW como fallback
 function idw(pts,x,y,pow){
   let sw=0,swz=0;
   for(const p of pts){
@@ -410,6 +452,9 @@ async function generarTerreno() {
     actx.fillStyle = 'white';
     actx.fillRect(0,0,terrW,terrH);
 
+    // TIN para el alphaMap
+    const alphaTris=delaunay(batiPts.map(p=>({x:p.x,y:p.z,z:p.depth})));
+
     // Por cada pixel del alphaMap, verificar si está en zona de laguna
     const imgD = actx.getImageData(0,0,terrW,terrH);
     for(let row=0;row<terrH;row++){
@@ -418,19 +463,14 @@ async function generarTerreno() {
         const vx = (col/(terrW-1))*SZ - SZ/2;
         const vz = (row/(terrH-1))*SZ*(H/W) - SZ/2*(H/W);
 
-        // IDW: ¿qué profundidad hay aquí?
-        let sw=0,swz=0;
-        for(const p of batiPts){
-          const d2=(p.x-vx)**2+(p.z-vz)**2;
-          if(d2<0.001){swz=p.depth;sw=1;break;}
-          const w=1/Math.pow(d2,0.8);sw+=w;swz+=w*p.depth;
-        }
-        const depth=swz/sw;
+        // TIN baricéntrico para el alphaMap
+        const zAlpha=tinInterp(alphaTris,vx,vz,0);
+        const depth=Math.max(0,zAlpha);
 
         // Si hay profundidad significativa → perforar el terreno
-        if(depth > 0.25) {
+        if(depth > 0.15) {
           // Fade suave en el borde de la laguna
-          const alpha = depth < 0.5 ? (depth-0.25)/0.25 : 1.0;
+          const alpha = depth < 0.4 ? (depth-0.15)/0.25 : 1.0;
           const px=(row*terrW+col)*4;
           imgD.data[px]=imgD.data[px+1]=imgD.data[px+2]=Math.round((1-alpha)*255);
           imgD.data[px+3]=255;
@@ -447,12 +487,14 @@ async function generarTerreno() {
   const matTerr = new THREE.MeshPhongMaterial({
     map: tifData.texture,
     alphaMap: alphaTexture,
-    transparent: alphaTexture !== null,
-    side: THREE.DoubleSide,
+    alphaTest: alphaTexture ? 0.05 : 0,   // corte limpio en el agujero
+    transparent: false,                    // sin transparencia — corte duro
+    side: THREE.FrontSide,
     shininess: 8,
     depthWrite: true
   });
   const meshTerr = new THREE.Mesh(geoTerr, matTerr);
+  meshTerr.renderOrder = 0;  // terreno primero
   scene.add(meshTerr);
   objects.orto = meshTerr;
 
@@ -486,7 +528,8 @@ async function generarTerreno() {
       side:THREE.DoubleSide, shininess:150, specular:0xaaddff
     });
     const wlMesh=new THREE.Mesh(wlGeo,wlMat);
-    wlMesh.position.set((sxMin+sxMax)/2, 0.05, (szMin+szMax)/2);
+    wlMesh.renderOrder = 2;
+    wlMesh.position.set((sxMin+sxMax)/2, 0.12, (szMin+szMax)/2);
     scene.add(wlMesh);
     objects.agua=wlMesh;
   } else {
@@ -498,7 +541,8 @@ async function generarTerreno() {
       side:THREE.DoubleSide, shininess:80
     });
     const wMesh=new THREE.Mesh(wGeo,wMat);
-    wMesh.position.y=0.05;
+    wMesh.renderOrder = 2;
+    wMesh.position.y=0.12;
     scene.add(wMesh);
     objects.agua=wMesh;
   }
@@ -558,20 +602,22 @@ async function colorearLaguna(batiPts, SZ, aspect, vSB) {
     return[Math.round(a[0]+(b[0]-a[0])*f)/255,Math.round(a[1]+(b[1]-a[1])*f)/255,Math.round(a[2]+(b[2]-a[2])*f)/255];
   };
 
+  // Construir TIN una sola vez
+  const batiTris=delaunay(batiPts.map(p=>({x:p.x,y:p.z,z:p.depth}))
+    .map(p=>({x:p.x,y:p.y,z:p.z})));
+  // Re-mapear para que tinInterp use x/y como coordenadas planas y z como profundidad
+  const batiTrisXZ=delaunay(batiPts.map((p,i)=>({x:p.x,y:p.z,z:p.depth,idx:i}))
+    .map(p=>({x:p.x,y:p.y,z:p.z})));
+
   for(let row=0;row<gH;row++){
     for(let col=0;col<gW;col++){
       const vi=row*gW+col;
       const wx=sxMin+(col/(gW-1))*bW;
       const wz=szMin+(row/(gH-1))*bH;
 
-      // IDW suave
-      let sw=0,swz=0;
-      for(const p of batiPts){
-        const d2=(p.x-wx)**2+(p.z-wz)**2;
-        if(d2<0.001){swz=p.depth;sw=1;break;}
-        const w=1/Math.pow(d2,0.8);sw+=w;swz+=w*p.depth;
-      }
-      const depth=Math.max(0,Math.min(zMax,swz/sw));
+      // TIN baricéntrico — sin picos
+      const zTin=tinInterp(batiTrisXZ,wx,wz,null);
+      const depth=zTin!==null ? Math.max(0,Math.min(zMax,zTin)) : 0;
       const t=(depth-zMin)/zR;
 
       // Empalme suave: orilla=0, centro=profundidad máxima
