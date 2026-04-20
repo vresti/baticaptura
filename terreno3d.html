@@ -479,6 +479,7 @@ async function generarTerreno() {
     }
     actx.putImageData(imgD,0,0);
     alphaTexture = new THREE.CanvasTexture(ac);
+    window._alphaCanvas = ac;  // guardar para el agua
     prog(0.45);
   } else {
     prog(0.3);
@@ -516,26 +517,26 @@ async function generarTerreno() {
 
   // ── PASO 3: Espejo de agua — misma forma que el agujero del terreno ──
   if(batiPts) {
-    // Usar alphaMap INVERTIDO como textura del agua
-    // Solo donde el terreno tiene agujero → el agua aparece
+    // Usar alphaMap INVERTIDO como máscara del agua
     const acWater = document.createElement('canvas');
     acWater.width = terrW; acWater.height = terrH;
     const ctxW = acWater.getContext('2d');
-    // Fondo negro (transparente)
     ctxW.fillStyle = 'black';
     ctxW.fillRect(0,0,terrW,terrH);
 
-    // Copiar el alphaMap: donde el terreno es negro (agujero) → agua blanca (visible)
-    const imgAlpha = actx.getImageData(0,0,terrW,terrH);
+    // Leer el canvas del alphaMap guardado
+    const srcCtx = window._alphaCanvas.getContext('2d');
+    const imgAlpha = srcCtx.getImageData(0,0,terrW,terrH);
     const imgWater = ctxW.createImageData(terrW,terrH);
     for(let i=0;i<terrW*terrH;i++){
-      const v=255-imgAlpha.data[i*4]; // invertir: agujero=blanco
-      imgWater.data[i*4]=imgWater.data[i*4+1]=imgWater.data[i*4+2]=v;
-      imgWater.data[i*4+3]=255;
+      // Invertir: donde terreno es negro (agujero) → agua blanca (visible)
+      const v = 255 - imgAlpha.data[i*4];
+      imgWater.data[i*4] = imgWater.data[i*4+1] = imgWater.data[i*4+2] = v;
+      imgWater.data[i*4+3] = 255;
     }
     ctxW.putImageData(imgWater,0,0);
-    const waterAlphaTex=new THREE.CanvasTexture(acWater);
-    waterAlphaTex.flipY=true;
+    const waterAlphaTex = new THREE.CanvasTexture(acWater);
+    waterAlphaTex.flipY = true;
 
     // Agua sobre todo el terreno pero visible solo donde hay agujero
     const wlGeo=new THREE.PlaneGeometry(SZ, SZ*(H/W), terrW-1, terrH-1);
