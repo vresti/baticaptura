@@ -16,110 +16,83 @@ header{grid-column:1/-1;background:#040c16;border-bottom:2px solid #1a237e;
 .logo{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;letter-spacing:3px;color:#ffd060}
 .logo-sub{font-size:7px;letter-spacing:2px;color:#4a6a8a;margin-top:1px}
 .hinfo{font-family:'Share Tech Mono',monospace;font-size:9px;color:#4a6a8a}
-/* SIDEBAR */
 .sidebar{background:#040c16;border-right:1px solid rgba(26,99,180,.25);
   padding:10px 8px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
 .sec{background:rgba(255,255,255,.03);border:1px solid rgba(26,99,180,.2);border-radius:5px;padding:8px 10px}
 .sec-ttl{font-size:7px;letter-spacing:3px;color:#1a8fe8;text-transform:uppercase;
   font-weight:600;margin-bottom:7px;border-bottom:1px solid rgba(26,99,180,.2);padding-bottom:4px}
-/* Drop zone */
 .drop-zone{border:2px dashed rgba(26,99,180,.35);border-radius:5px;padding:16px 8px;
   text-align:center;cursor:pointer;transition:all .2s;margin-bottom:6px}
 .drop-zone:hover,.drop-zone.over{border-color:#1a8fe8;background:rgba(26,143,232,.06)}
 .drop-zone.loaded{border-color:#00e5a0;border-style:solid;background:rgba(0,229,160,.04)}
-.drop-ico{font-size:24px;margin-bottom:4px}
+.drop-ico{font-size:22px;margin-bottom:4px}
 .drop-lbl{font-size:9px;letter-spacing:2px;color:#4a6a8a}
-.drop-name{font-size:9px;color:#00e5a0;font-family:'Share Tech Mono',monospace;
-  margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Controls */
+.drop-name{font-size:9px;color:#00e5a0;font-family:'Share Tech Mono',monospace;margin-top:3px}
 .ctrl{margin-bottom:8px}
-.ctrl-lbl{font-size:7px;letter-spacing:2px;color:#4a6a8a;margin-bottom:4px}
-.ctrl-row{display:flex;align-items:center;gap:8px}
+.ctrl-lbl{font-size:7px;letter-spacing:2px;color:#4a6a8a;margin-bottom:4px;display:flex;justify-content:space-between}
 .num-input{background:#060e18;border:1px solid rgba(26,99,180,.35);color:#ffd060;
   padding:6px 10px;font-size:14px;font-family:'Orbitron',monospace;font-weight:700;
   border-radius:5px;width:100%;text-align:center;outline:none}
 .num-input:focus{border-color:#ffd060}
-.unit{font-size:9px;color:#4a6a8a;white-space:nowrap}
-/* Kriging */
-.krig-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
-.krig-box{background:#060e18;border:1px solid rgba(26,99,180,.2);border-radius:4px;padding:6px;text-align:center}
-.krig-val{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:#1a8fe8}
-.krig-lbl{font-size:6px;letter-spacing:2px;color:#4a6a8a;margin-top:2px}
-select{width:100%;background:#060e18;border:1px solid rgba(26,99,180,.3);color:#ccdaea;
-  padding:5px 6px;font-size:10px;font-family:'Share Tech Mono',monospace;border-radius:4px;outline:none}
-/* Buttons */
+input[type=range]{width:100%;accent-color:#1a8fe8;cursor:pointer}
+.info-box{background:rgba(26,143,232,.06);border:1px solid rgba(26,143,232,.2);
+  border-radius:5px;padding:8px 10px;font-size:10px;line-height:1.7;color:#8aaac0;margin-bottom:10px}
+.info-box strong{color:#1a8fe8}
 .btn-go{width:100%;padding:9px;background:#1a237e;color:white;border:none;border-radius:5px;
   font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;cursor:pointer;margin-top:2px;transition:.2s}
 .btn-go:hover:not(:disabled){background:#283593}
 .btn-go:disabled{opacity:.3;cursor:not-allowed}
-.btn-go.gold{background:rgba(201,162,39,.2);border:1px solid rgba(201,162,39,.4);color:#ffd060}
-.btn-go.gold:hover:not(:disabled){background:rgba(201,162,39,.35)}
-.btn-go.green{background:rgba(0,229,160,.15);border:1px solid rgba(0,229,160,.35);color:#00e5a0}
-.btn-go.green:hover:not(:disabled){background:rgba(0,229,160,.3)}
-/* MAIN AREA */
+.btn-gold{background:rgba(255,208,96,.12);border:1px solid rgba(255,208,96,.3);color:#ffd060}
+.btn-gold:hover:not(:disabled){background:rgba(255,208,96,.25)}
+.btn-green{background:rgba(0,229,160,.12);border:1px solid rgba(0,229,160,.3);color:#00e5a0}
+.btn-green:hover:not(:disabled){background:rgba(0,229,160,.25)}
+.prog-wrap{margin:8px 0;display:none}
+.prog-bar-h{height:4px;background:rgba(26,99,180,.2);border-radius:2px;overflow:hidden}
+.prog-bar-f{height:100%;background:#1a8fe8;border-radius:2px;transition:width .25s}
+.prog-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:#4a6a8a;margin-top:3px}
 .main{display:flex;flex-direction:column;overflow:hidden}
-/* Steps */
-.steps{display:flex;background:#040c16;border-bottom:1px solid rgba(26,99,180,.2);
-  padding:0 16px;flex-shrink:0}
-.step-tab{padding:8px 14px;cursor:pointer;font-size:10px;font-weight:600;letter-spacing:1px;
-  border-bottom:3px solid transparent;color:#4a6a8a;transition:all .2s;display:flex;align-items:center;gap:6px}
-.step-tab.active{color:#ffd060;border-bottom-color:#ffd060}
-.step-tab.done{color:#00e5a0;border-bottom-color:#00e5a0}
-.step-tab.disabled{cursor:not-allowed;opacity:.35}
-/* Panels */
-.panel-area{flex:1;overflow:auto;padding:20px}
-.view-panel{display:none}
-.view-panel.active{display:block}
-/* Cards */
+.tabs{display:flex;background:#040c16;border-bottom:1px solid rgba(26,99,180,.2);padding:0 16px;flex-shrink:0}
+.tab{padding:8px 14px;cursor:pointer;font-size:10px;font-weight:600;letter-spacing:1px;
+  border-bottom:3px solid transparent;color:#4a6a8a;transition:all .2s}
+.tab.active{color:#ffd060;border-bottom-color:#ffd060}
+.tab.done{color:#00e5a0;border-bottom-color:#00e5a0}
+.tab.off{opacity:.35;cursor:not-allowed}
+.panels{flex:1;overflow:auto;padding:18px}
+.panel{display:none}
+.panel.active{display:block}
 .card{background:rgba(255,255,255,.03);border:1px solid rgba(26,99,180,.2);
-  border-radius:8px;padding:16px 20px;margin-bottom:14px}
-.card-ttl{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:#ffd060;margin-bottom:12px}
-/* Summary */
-.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
-.sum-box{background:#060e18;border:1px solid rgba(26,99,180,.2);border-radius:6px;padding:10px;text-align:center}
-.sum-val{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:#1a8fe8}
-.sum-lbl{font-size:7px;letter-spacing:2px;color:#4a6a8a;margin-top:3px}
-/* Table */
-.tbl-wrap{overflow:auto;max-height:420px;border:1px solid rgba(26,99,180,.2);border-radius:6px}
+  border-radius:7px;padding:14px 18px;margin-bottom:12px}
+.card-ttl{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;
+  color:#ffd060;margin-bottom:10px}
+.sum-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.sum-box{background:#060e18;border:1px solid rgba(26,99,180,.2);border-radius:5px;padding:8px;text-align:center}
+.sum-v{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:#1a8fe8}
+.sum-l{font-size:6px;letter-spacing:2px;color:#4a6a8a;margin-top:2px}
+.tbl-wrap{overflow:auto;max-height:400px;border:1px solid rgba(26,99,180,.2);border-radius:5px}
 table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:10px}
 thead{position:sticky;top:0;background:#040c16;z-index:2}
-th{padding:7px 10px;text-align:left;font-size:7px;letter-spacing:2px;color:#4a6a8a;
-  border-bottom:1px solid rgba(26,99,180,.3);white-space:nowrap}
-td{padding:5px 10px;border-bottom:1px solid rgba(26,99,180,.1);white-space:nowrap}
-tr:nth-child(even) td{background:rgba(255,255,255,.02)}
-tr:hover td{background:rgba(26,143,232,.07)}
-.td-changed{color:#ffd060;font-weight:600}
+th{padding:6px 10px;text-align:left;font-size:7px;letter-spacing:2px;color:#4a6a8a;
+  border-bottom:1px solid rgba(26,99,180,.3)}
+td{padding:5px 10px;border-bottom:1px solid rgba(26,99,180,.08)}
+tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+tr:hover td{background:rgba(26,143,232,.06)}
 .td-new{color:#00e5a0}
-/* Diff indicator */
-.diff-pos{color:#00e5a0}
-.diff-neg{color:#ff6060}
-/* Progress */
-.prog-wrap{margin:12px 0}
-.prog-bar-h{height:4px;background:rgba(26,99,180,.2);border-radius:2px;overflow:hidden}
-.prog-bar-f{height:100%;background:#1a8fe8;border-radius:2px;transition:width .3s}
-.prog-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:#4a6a8a;margin-top:4px}
-/* Empty */
-.empty-state{text-align:center;padding:60px 20px;color:#2a4a6a}
-.empty-ico{font-size:56px;opacity:.2;margin-bottom:12px}
-.empty-ttl{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;margin-bottom:8px}
-/* Toast */
-#toast{position:fixed;bottom:18px;right:18px;background:#0d1f3c;color:#ccdaea;
-  border:1px solid #ffd060;border-radius:7px;padding:7px 14px;font-size:10px;
-  font-family:'Share Tech Mono',monospace;opacity:0;transform:translateY(20px);
+.td-chg{color:#ffd060;font-weight:600}
+.dp{color:#00e5a0}
+.dn{color:#ff6060}
+.empty-st{text-align:center;padding:50px;color:#2a4a6a}
+.empty-ico{font-size:48px;opacity:.2;margin-bottom:10px}
+.empty-ttl{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;margin-bottom:6px}
+#toast{position:fixed;bottom:16px;right:16px;background:#0d1f3c;color:#ccdaea;
+  border:1px solid #ffd060;border-radius:6px;padding:6px 12px;font-size:10px;
+  font-family:'Share Tech Mono',monospace;opacity:0;transform:translateY(16px);
   transition:all .3s;z-index:9999;pointer-events:none}
 #toast.show{opacity:1;transform:translateY(0)}
 #toast.err{border-color:#ef5350}
-/* Variogram preview */
-.vario-canvas{width:100%;height:80px;background:#060e18;border-radius:4px;border:1px solid rgba(26,99,180,.2);display:block}
-/* Info box */
-.info-box{background:rgba(26,143,232,.06);border:1px solid rgba(26,143,232,.2);
-  border-radius:5px;padding:10px 12px;font-size:11px;line-height:1.7;color:#8aaac0;margin-bottom:12px}
-.info-box strong{color:#1a8fe8}
 </style>
 </head>
 <body>
 <div id="toast"></div>
-
 <div class="layout">
 
 <header>
@@ -130,9 +103,9 @@ tr:hover td{background:rgba(26,143,232,.07)}
   <div class="hinfo" id="hinfo">Sin datos | <a href="index.html" style="color:#ffd060;text-decoration:none">← HUB</a></div>
 </header>
 
-<!-- SIDEBAR -->
 <aside class="sidebar">
 
+  <!-- CARGAR -->
   <div class="sec">
     <div class="sec-ttl">▸ Archivo CSV</div>
     <div class="drop-zone" id="drop-zone"
@@ -144,135 +117,116 @@ tr:hover td{background:rgba(26,143,232,.07)}
       <div class="drop-lbl">CARGAR CSV</div>
       <div class="drop-name" id="drop-name">Clic o arrastrar</div>
     </div>
-    <input type="file" id="fi" accept=".csv" style="display:none" onchange="loadCSV(this.files[0]);this.value=''">
+    <input type="file" id="fi" accept=".csv" style="display:none"
+           onchange="cargarCSV(this.files[0]);this.value=''">
   </div>
 
   <!-- PASO 1: OFFSET -->
-  <div class="sec" id="sec-offset">
+  <div class="sec">
     <div class="sec-ttl">▸ 1. Corrección de Offset</div>
     <div class="info-box">
       Suma una constante a <strong>FINAL_M</strong>.<br>
-      Positivo = canal más profundo.<br>
-      Negativo = canal más somero.
+      Positivo = más profundo · Negativo = más somero.
     </div>
     <div class="ctrl">
-      <div class="ctrl-lbl">Corrección a aplicar</div>
+      <div class="ctrl-lbl">Valor a sumar (metros)</div>
       <input type="number" class="num-input" id="offset-val" value="0" step="0.01" placeholder="0.00">
-      <div style="text-align:center;margin-top:4px;font-family:'Share Tech Mono',monospace;font-size:8px;color:#4a6a8a">metros (+ profundiza / - someriza)</div>
     </div>
-    <button class="btn-go gold" id="btn-offset" onclick="aplicarOffset()" disabled>⊕ APLICAR OFFSET</button>
+    <button class="btn-go btn-gold" id="btn-offset" onclick="aplicarOffset()" disabled>
+      ⊕ APLICAR OFFSET
+    </button>
   </div>
 
-  <!-- PASO 2: KRIGING -->
-  <div class="sec" id="sec-kriging">
-    <div class="sec-ttl">▸ 2. Interpolación TIN (Opcional)</div>
+  <!-- PASO 2: INTERPOLACIÓN TIN -->
+  <div class="sec">
+    <div class="sec-ttl">▸ 2. Densificar con TIN</div>
     <div class="info-box">
-      Genera una grilla regular interpolada.<br>
-      Los puntos originales se conservan.<br>
-      Se agregan puntos <strong>estimados</strong>.
+      Genera puntos intermedios usando <strong>TIN Delaunay</strong>.<br>
+      Sin picos · Sin artefactos · Exacto en los puntos medidos.
     </div>
     <div class="ctrl">
-      <div class="ctrl-lbl">Modelo de variograma</div>
-      <select id="krig-model">
-        <option value="spherical" selected>Esférico (recomendado)</option>
-        <option value="exponential">Exponencial</option>
-        <option value="gaussian">Gaussiano</option>
-      </select>
+      <div class="ctrl-lbl">Espaciado de grilla <span style="color:#ccdaea">(metros)</span></div>
+      <input type="number" class="num-input" id="tin-spacing" value="2" step="0.5" min="0.5" max="20">
     </div>
     <div class="ctrl">
-      <div class="ctrl-lbl">Espaciado de grilla (metros)</div>
-      <input type="number" class="num-input" id="krig-spacing" value="2" step="0.5" min="0.5" max="20">
+      <div class="ctrl-lbl">
+        <span>Suavizado gaussiano</span>
+        <span id="smooth-lbl" style="color:#ccdaea">2 pasadas</span>
+      </div>
+      <input type="range" id="tin-smooth" min="0" max="5" step="1" value="2"
+             oninput="document.getElementById('smooth-lbl').textContent=this.value+' pasadas'">
     </div>
-    <div class="ctrl">
-      <div class="ctrl-lbl">Suavizado: <span id="smooth-v">2</span> pasadas</div>
-      <input type="range" id="krig-smooth" min="0" max="5" step="1" value="2"
-             oninput="document.getElementById('smooth-v').textContent=this.value">
+    <div class="prog-wrap" id="tin-prog">
+      <div class="prog-bar-h"><div class="prog-bar-f" id="tin-pf" style="width:0%"></div></div>
+      <div class="prog-lbl" id="tin-pl">Procesando…</div>
     </div>
-    <div class="krig-grid" id="krig-stats" style="display:none">
-      <div class="krig-box"><div class="krig-val" id="k-orig">—</div><div class="krig-lbl">PUNTOS ORIG.</div></div>
-      <div class="krig-box"><div class="krig-val" id="k-new">—</div><div class="krig-lbl">PUNTOS NUEVOS</div></div>
-    </div>
-    <div class="prog-wrap" id="krig-prog" style="display:none">
-      <div class="prog-bar-h"><div class="prog-bar-f" id="krig-pf" style="width:0%"></div></div>
-      <div class="prog-lbl" id="krig-pl">Calculando variograma…</div>
-    </div>
-    <button class="btn-go" id="btn-krig" onclick="aplicarKriging()" disabled>◈ INTERPOLAR TIN</button>
+    <button class="btn-go" id="btn-tin" onclick="densificarTIN()" disabled>
+      ◈ DENSIFICAR CON TIN
+    </button>
   </div>
 
   <!-- EXPORTAR -->
   <div class="sec" id="sec-export" style="display:none">
     <div class="sec-ttl">▸ Exportar</div>
-    <button class="btn-go green" onclick="exportarCSV()">↓ GUARDAR CSV PROCESADO</button>
+    <button class="btn-go btn-green" onclick="exportarCSV()">↓ GUARDAR CSV PROCESADO</button>
   </div>
 
 </aside>
 
-<!-- MAIN -->
 <main class="main">
 
-  <div class="steps">
-    <div class="step-tab active" id="tab-orig" onclick="setStep('orig')">
-      📋 DATOS ORIGINALES
-    </div>
-    <div class="step-tab disabled" id="tab-offset" onclick="setStep('offset')">
-      ⊕ OFFSET APLICADO
-    </div>
-    <div class="step-tab disabled" id="tab-kriging" onclick="setStep('kriging')">
-      ◈ INTERPOLACIÓN TIN
-    </div>
+  <div class="tabs">
+    <div class="tab active" id="tab-orig"   onclick="irTab('orig')">📋 DATOS ORIGINALES</div>
+    <div class="tab off"    id="tab-offset" onclick="irTab('offset')">⊕ OFFSET</div>
+    <div class="tab off"    id="tab-tin"    onclick="irTab('tin')">◈ TIN DENSIFICADO</div>
   </div>
 
-  <div class="panel-area">
+  <div class="panels">
 
-    <!-- Panel: Original -->
-    <div class="view-panel active" id="panel-orig">
-      <div class="empty-state" id="empty-orig">
+    <!-- ORIGINAL -->
+    <div class="panel active" id="panel-orig">
+      <div class="empty-st" id="empty-orig">
         <div class="empty-ico">📂</div>
         <div class="empty-ttl">SIN DATOS</div>
         <div>Cargá un CSV de BatiCaptura para comenzar</div>
       </div>
       <div id="orig-content" style="display:none">
-        <div class="summary-grid" id="orig-summary"></div>
+        <div class="sum-grid" id="orig-sum"></div>
         <div class="card">
           <div class="card-ttl">SONDAJES ORIGINALES</div>
-          <div class="tbl-wrap" id="orig-table"></div>
+          <div class="tbl-wrap" id="orig-tbl"></div>
         </div>
       </div>
     </div>
 
-    <!-- Panel: Offset -->
-    <div class="view-panel" id="panel-offset">
-      <div class="empty-state" id="empty-offset">
+    <!-- OFFSET -->
+    <div class="panel" id="panel-offset">
+      <div class="empty-st" id="empty-offset">
         <div class="empty-ico">⊕</div>
-        <div class="empty-ttl">SIN OFFSET</div>
+        <div class="empty-ttl">SIN OFFSET APLICADO</div>
         <div>Ingresá un valor y presioná APLICAR OFFSET</div>
       </div>
       <div id="offset-content" style="display:none">
-        <div class="summary-grid" id="offset-summary"></div>
+        <div class="sum-grid" id="offset-sum"></div>
         <div class="card">
-          <div class="card-ttl">DATOS CON OFFSET APLICADO</div>
-          <div class="tbl-wrap" id="offset-table"></div>
+          <div class="card-ttl">DATOS CON OFFSET</div>
+          <div class="tbl-wrap" id="offset-tbl"></div>
         </div>
       </div>
     </div>
 
-    <!-- Panel: Kriging -->
-    <div class="view-panel" id="panel-kriging">
-      <div class="empty-state" id="empty-krig">
+    <!-- TIN -->
+    <div class="panel" id="panel-tin">
+      <div class="empty-st" id="empty-tin">
         <div class="empty-ico">◈</div>
-        <div class="empty-ttl">SIN KRIGING</div>
-        <div>Configurá los parámetros y presioná INTERPOLAR KRIGING</div>
+        <div class="empty-ttl">SIN DENSIFICAR</div>
+        <div>Configurá el espaciado y presioná DENSIFICAR CON TIN</div>
       </div>
-      <div id="krig-content" style="display:none">
+      <div id="tin-content" style="display:none">
+        <div class="sum-grid" id="tin-sum"></div>
         <div class="card">
-          <div class="card-ttl">DISTRIBUCIÓN DE PROFUNDIDADES</div>
-          <canvas class="vario-canvas" id="vario-canvas"></canvas>
-          <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:#4a6a8a;margin-top:6px" id="vario-params">Histograma de valores medidos — referencia de distribución real</div>
-        </div>
-        <div class="summary-grid" id="krig-summary"></div>
-        <div class="card">
-          <div class="card-ttl">GRILLA KRIGING (muestra primeros 200)</div>
-          <div class="tbl-wrap" id="krig-table"></div>
+          <div class="card-ttl">GRILLA DENSIFICADA (muestra primeros 300)</div>
+          <div class="tbl-wrap" id="tin-tbl"></div>
         </div>
       </div>
     </div>
@@ -283,478 +237,373 @@ tr:hover td{background:rgba(26,143,232,.07)}
 
 <script>
 // ═══ ESTADO ═══════════════════════════════════════════════════════
-let rawData=null;        // filas originales del CSV
-let rawCols=null;        // columnas originales
-let ptsOrig=[];          // [{lat,lon,z,row}] puntos originales
-let ptsOffset=[];        // puntos con offset aplicado
-let ptsKriging=[];       // puntos originales + grilla kriging
-let currentStep='orig';
-let offsetApplied=0;
+let ptsOrig=[];    // [{idx,lat,lon,z}]
+let ptsOffset=[];  // con offset aplicado
+let ptsTIN=[];     // originales + interpolados
+let offsetVal=0;
 
-// ═══ CARGA CSV ════════════════════════════════════════════════════
+// ═══ CARGA ════════════════════════════════════════════════════════
 function onDrop(e){
   e.preventDefault();
   document.getElementById('drop-zone').classList.remove('over');
   const f=e.dataTransfer.files[0];
-  if(f&&f.name.endsWith('.csv'))loadCSV(f);
+  if(f&&f.name.endsWith('.csv'))cargarCSV(f);
 }
 
-function loadCSV(file){
+function cargarCSV(file){
   if(!file)return;
   const r=new FileReader();
-  r.onload=e=>parseCSV(file.name,e.target.result);
+  r.onload=e=>parsearCSV(file.name,e.target.result);
   r.readAsText(file);
 }
 
-function parseCSV(name,text){
-  const data=d3.csvParse(text);
-  if(!data.length){showToast('Archivo vacío',true);return;}
-  rawData=data;
-  rawCols=data.columns;
-  const UC=rawCols.map(c=>c.trim().toUpperCase());
-  const fc=(...ns)=>{for(const n of ns){const i=UC.findIndex(c=>c===n||c.includes(n));if(i>=0)return rawCols[i];}return null;};
-  const latC=fc('LATITUD','LAT'), lonC=fc('LONGITUD','LON');
-  const prC=fc('FINAL_M','FINAL','PROF_M','PROF','Z');
-  if(!latC||!lonC||!prC){showToast('Sin columnas LAT/LON/PROF',true);return;}
+function parsearCSV(name,text){
+  const rows=d3.csvParse(text);
+  if(!rows.length){toast('Archivo vacío',true);return;}
+  const UC=rows.columns.map(c=>c.trim().toUpperCase());
+  const fc=(...ns)=>{
+    for(const n of ns){const i=UC.findIndex(c=>c===n||c.includes(n));if(i>=0)return rows.columns[i];}
+    return null;
+  };
+  const latC=fc('LATITUD','LAT');
+  const lonC=fc('LONGITUD','LON');
+  const prC =fc('FINAL_M','FINAL','PROF_M','PROF','Z','DEPTH');
+  if(!latC||!lonC||!prC){toast('Sin columnas LAT/LON/PROF válidas',true);return;}
 
-  ptsOrig=data.map((row,i)=>({
+  ptsOrig=rows.map((row,i)=>({
     idx:i+1,
-    lat:+row[latC],lon:+row[lonC],z:+row[prC],
-    row,latC,lonC,prC
-  })).filter(p=>!isNaN(p.lat)&&!isNaN(p.z));
+    lat:+row[latC], lon:+row[lonC], z:+row[prC]
+  })).filter(p=>!isNaN(p.lat)&&!isNaN(p.lon)&&!isNaN(p.z));
 
-  // UI
-  const dz=document.getElementById('drop-zone');
-  dz.className='drop-zone loaded';
-  document.getElementById('drop-name').textContent=name.length>28?name.slice(0,26)+'…':name;
+  if(!ptsOrig.length){toast('Sin puntos válidos',true);return;}
+
+  // Reset
+  ptsOffset=[];ptsTIN=[];offsetVal=0;
+  document.getElementById('drop-zone').className='drop-zone loaded';
+  document.getElementById('drop-name').textContent=name.length>26?name.slice(0,24)+'…':name;
   document.getElementById('btn-offset').disabled=false;
-  document.getElementById('btn-krig').disabled=false;
+  document.getElementById('btn-tin').disabled=false;
+  document.getElementById('sec-export').style.display='none';
   document.getElementById('hinfo').innerHTML=
     ptsOrig.length+' SONDAJES | <a href="index.html" style="color:#ffd060;text-decoration:none">← HUB</a>';
 
-  // Reset
-  ptsOffset=[];ptsKriging=[];offsetApplied=0;
-  document.getElementById('tab-offset').className='step-tab disabled';
-  document.getElementById('tab-kriging').className='step-tab disabled';
-  document.getElementById('sec-export').style.display='none';
+  // Mostrar datos originales
   document.getElementById('empty-orig').style.display='none';
   document.getElementById('orig-content').style.display='';
+  mostrarResumen('orig-sum', ptsOrig, null);
+  mostrarTabla('orig-tbl', ptsOrig, null);
 
-  renderSummary('orig-summary',ptsOrig,null);
-  renderTable('orig-table',ptsOrig,null);
-  setStep('orig');
-  showToast('✓ '+name+' — '+ptsOrig.length+' puntos');
+  // Reset tabs
+  setTab('orig','active');
+  setTab('offset','off');
+  setTab('tin','off');
+  irTab('orig');
+  toast('✓ '+name+' — '+ptsOrig.length+' puntos');
 }
 
-// ═══ STEP 1: OFFSET ═══════════════════════════════════════════════
+// ═══ PASO 1: OFFSET ═══════════════════════════════════════════════
 function aplicarOffset(){
-  const off=parseFloat(document.getElementById('offset-val').value)||0;
-  if(off===0){showToast('El offset es 0 — sin cambio',true);return;}
-  offsetApplied=off;
-  ptsOffset=ptsOrig.map(p=>({...p, z:+(p.z+off).toFixed(3)}));
+  const off=parseFloat(document.getElementById('offset-val').value);
+  if(isNaN(off)||off===0){toast('Ingresá un valor distinto de 0',true);return;}
+  offsetVal=off;
+  ptsOffset=ptsOrig.map(p=>({...p, z:+(p.z+off).toFixed(4)}));
 
   document.getElementById('empty-offset').style.display='none';
   document.getElementById('offset-content').style.display='';
-  renderSummary('offset-summary',ptsOffset,ptsOrig);
-  renderTable('offset-table',ptsOffset,ptsOrig);
-
-  document.getElementById('tab-offset').className='step-tab done';
+  mostrarResumen('offset-sum', ptsOffset, ptsOrig);
+  mostrarTabla('offset-tbl', ptsOffset, ptsOrig);
   document.getElementById('sec-export').style.display='';
-  setStep('offset');
-  showToast('✓ Offset '+( off>0?'+':'')+off.toFixed(3)+'m aplicado a '+ptsOffset.length+' puntos');
+  setTab('offset','done');
+  irTab('offset');
+  toast('✓ Offset '+(off>=0?'+':'')+off.toFixed(3)+'m aplicado');
 }
 
-// ═══ STEP 2: KRIGING ══════════════════════════════════════════════
-async function aplicarKriging(){
-  const srcPts=ptsOffset.length?ptsOffset:ptsOrig;
-  if(srcPts.length<4){showToast('Mínimo 4 puntos para interpolar',true);return;}
+// ═══ PASO 2: DENSIFICACIÓN TIN ════════════════════════════════════
+async function densificarTIN(){
+  const src=ptsOffset.length?ptsOffset:ptsOrig;
+  if(src.length<3){toast('Mínimo 3 puntos',true);return;}
 
-  const spacing=parseFloat(document.getElementById('krig-spacing').value)||2;
-  const smoothPasses=parseInt(document.getElementById('krig-smooth').value)||0;
+  const spacing=parseFloat(document.getElementById('tin-spacing').value)||2;
+  const smooth=parseInt(document.getElementById('tin-smooth').value)||0;
 
-  document.getElementById('krig-prog').style.display='';
-  document.getElementById('krig-stats').style.display='none';
-  setKrigProg(0.05,'Proyectando coordenadas…');await sl(30);
+  // Mostrar progreso
+  document.getElementById('tin-prog').style.display='';
+  setProg(0.05,'Proyectando a metros…'); await sl(30);
 
-  // Proyección a metros
-  const lat0=d3.mean(srcPts,p=>p.lat), lon0=d3.mean(srcPts,p=>p.lon);
+  // Proyección a metros planos
+  const lat0=d3.mean(src,p=>p.lat), lon0=d3.mean(src,p=>p.lon);
   const R=6371000;
-  const mPts=srcPts.map(p=>({
+  const mPts=src.map(p=>({
     x:(p.lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180,
     y:(p.lat-lat0)*R*Math.PI/180,
     z:p.z, orig:true, lat:p.lat, lon:p.lon
   }));
 
-  const zMn=d3.min(mPts,p=>p.z), zMx=d3.max(mPts,p=>p.z);
+  const zMn=d3.min(mPts,p=>p.z);
+  const zMx=d3.max(mPts,p=>p.z);
 
-  setKrigProg(0.15,'Triangulando TIN Delaunay…');await sl(20);
-
-  // TIN Delaunay sobre los puntos medidos
+  setProg(0.15,'Triangulando TIN Delaunay…'); await sl(20);
   const tris=delaunay(mPts);
 
-  setKrigProg(0.25,'Generando grilla de interpolación…');await sl(20);
+  setProg(0.25,'Generando grilla '+spacing+'m…'); await sl(20);
 
-  // Grilla de salida
+  // Bounding box
   const xMn=d3.min(mPts,p=>p.x), xMx=d3.max(mPts,p=>p.x);
   const yMn=d3.min(mPts,p=>p.y), yMx=d3.max(mPts,p=>p.y);
-  const gridPts=[];
+
+  // Puntos de grilla dentro del TIN
+  const grilla=[];
   for(let gx=xMn;gx<=xMx;gx+=spacing){
     for(let gy=yMn;gy<=yMx;gy+=spacing){
-      if(dentroDeNube(mPts,gx,gy,spacing*1.2)){
-        gridPts.push({x:gx,y:gy});
+      // Verificar si está dentro del convex hull (radio = spacing * 1.2)
+      if(mPts.some(p=>Math.sqrt((p.x-gx)**2+(p.y-gy)**2)<=spacing*1.2)){
+        grilla.push({x:gx,y:gy});
       }
     }
   }
 
-  setKrigProg(0.35,'Interpolando '+gridPts.length+' puntos…');await sl(20);
+  setProg(0.35,'Interpolando '+grilla.length+' puntos…'); await sl(20);
 
-  // Interpolar cada punto de la grilla usando TIN baricéntrico
-  const totalG=gridPts.length;
-  const chunk=Math.max(1,Math.floor(totalG/20));
-  const kPts=[];
+  const nuevos=[];
+  const chunk=Math.max(1,Math.floor(grilla.length/20));
 
-  for(let i=0;i<totalG;i++){
-    const gp=gridPts[i];
-    // TIN baricéntrico — sin picos, exacto en los puntos medidos
-    const zTin=tinInterp(tris,gp.x,gp.y,null);
-    if(zTin===null)continue; // fuera del hull — no interpolamos
+  for(let i=0;i<grilla.length;i++){
+    const gp=grilla[i];
+    const zTIN=tinInterp(tris,gp.x,gp.y,null);
+    if(zTIN===null)continue; // fuera del TIN — no agregar
 
-    // Clampear al rango real
-    const zVal=Math.max(zMn,Math.min(zMx,zTin));
-
-    // Convertir de vuelta a lat/lon
+    const zVal=Math.max(zMn,Math.min(zMx,zTIN)); // clampear al rango real
     const lat=lat0+gp.y/(R*Math.PI/180);
     const lon=lon0+gp.x/(Math.cos(lat0*Math.PI/180)*R*Math.PI/180);
-    kPts.push({x:gp.x,y:gp.y,z:zVal,orig:false,lat,lon});
+    nuevos.push({x:gp.x,y:gp.y,z:zVal,orig:false,lat,lon});
 
     if(i%chunk===0){
-      setKrigProg(0.35+0.45*(i/totalG),`Interpolando: ${i}/${totalG}…`);
+      setProg(0.35+0.50*(i/grilla.length),`Interpolando ${i}/${grilla.length}…`);
       await sl(0);
     }
   }
 
-  // Suavizado gaussiano (media ponderada de vecinos en la grilla)
-  if(smoothPasses>0&&kPts.length>0){
-    setKrigProg(0.82,'Suavizando…');await sl(20);
-
-    // Construir grilla indexada para suavizado eficiente
-    for(let pass=0;pass<smoothPasses;pass++){
-      const smoothed=kPts.map(p=>{
-        // Vecinos en radio = spacing * 1.5
+  // Suavizado gaussiano sobre los puntos nuevos
+  if(smooth>0&&nuevos.length>0){
+    setProg(0.87,'Suavizando…'); await sl(20);
+    for(let p=0;p<smooth;p++){
+      const suav=nuevos.map(pt=>{
         const r=spacing*1.5;
-        const neighbors=kPts.filter(q=>
-          q!==p && Math.abs(q.x-p.x)<=r && Math.abs(q.y-p.y)<=r &&
-          Math.sqrt((q.x-p.x)**2+(q.y-p.y)**2)<=r
-        );
-        if(!neighbors.length)return p.z;
-        // Media ponderada gaussiana
-        let sw=1,swz=p.z; // incluir el punto mismo con peso 1
-        neighbors.forEach(q=>{
-          const d=Math.sqrt((q.x-p.x)**2+(q.y-p.y)**2);
+        const vecinos=nuevos.filter(q=>q!==pt&&
+          Math.abs(q.x-pt.x)<=r&&Math.abs(q.y-pt.y)<=r&&
+          Math.sqrt((q.x-pt.x)**2+(q.y-pt.y)**2)<=r);
+        if(!vecinos.length)return pt.z;
+        let sw=1,swz=pt.z;
+        vecinos.forEach(q=>{
+          const d=Math.sqrt((q.x-pt.x)**2+(q.y-pt.y)**2);
           const w=Math.exp(-0.5*(d/spacing)**2);
           sw+=w;swz+=w*q.z;
         });
         return Math.max(zMn,Math.min(zMx,swz/sw));
       });
-      kPts.forEach((p,i)=>p.z=smoothed[i]);
+      nuevos.forEach((pt,i)=>pt.z=suav[i]);
     }
   }
 
-  // Combinar originales + grilla
-  ptsKriging=[...mPts,...kPts];
+  // Combinar: originales + nuevos
+  ptsTIN=[...mPts,...nuevos];
 
-  setKrigProg(1,'Listo');await sl(200);
-  document.getElementById('krig-prog').style.display='none';
-  document.getElementById('krig-stats').style.display='';
-  document.getElementById('k-orig').textContent=mPts.length;
-  document.getElementById('k-new').textContent=kPts.length;
+  setProg(1,'Listo'); await sl(200);
+  document.getElementById('tin-prog').style.display='none';
 
-  document.getElementById('empty-krig').style.display='none';
-  document.getElementById('krig-content').style.display='';
-
-  // Variograma: ahora muestra la distribución de profundidades
-  drawDistribucion(mPts);
-
-  renderSummaryKrig(kPts.length,mPts.length);
-  renderTableKrig(ptsKriging);
-
-  document.getElementById('tab-kriging').className='step-tab done';
+  // Mostrar resultado
+  document.getElementById('empty-tin').style.display='none';
+  document.getElementById('tin-content').style.display='';
+  mostrarResumenTIN(mPts.length,nuevos.length,zMn,zMx);
+  mostrarTablaTIN(ptsTIN);
   document.getElementById('sec-export').style.display='';
-  setStep('kriging');
-  showToast('✓ TIN: '+mPts.length+' orig + '+kPts.length+' interpolados + '+smoothPasses+' pasadas suavizado');
+  setTab('tin','done');
+  irTab('tin');
+  toast('✓ TIN: '+mPts.length+' orig + '+nuevos.length+' interpolados'+(smooth>0?' + '+smooth+' pasadas suavizado':''));
 }
 
-// ═══ VARIOGRAMA ═══════════════════════════════════════════════════
-function calcVariograma(pts,nBins){
-  const dists=[];
-  for(let i=0;i<pts.length;i++)
-    for(let j=i+1;j<pts.length;j++){
-      const d=Math.sqrt((pts[i].x-pts[j].x)**2+(pts[i].y-pts[j].y)**2);
-      const g=0.5*(pts[i].z-pts[j].z)**2;
-      dists.push({d,g});
-    }
-  const maxD=d3.max(dists,p=>p.d)*0.6;
-  const bw=maxD/nBins;
-  const bins=Array.from({length:nBins},(_,i)=>({h:(i+0.5)*bw,gs:[]}));
-  dists.forEach(({d,g})=>{
-    const bi=Math.floor(d/bw);
-    if(bi<nBins)bins[bi].gs.push(g);
-  });
-  return bins.filter(b=>b.gs.length>0).map(b=>({h:b.h,g:d3.mean(b.gs),n:b.gs.length}));
+// ═══ TIN — DELAUNAY ═══════════════════════════════════════════════
+function circumcircle(ax,ay,bx,by,cx,cy){
+  const D=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
+  if(Math.abs(D)<1e-10)return null;
+  const ux=((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/D;
+  const uy=((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D;
+  return{x:ux,y:uy,r:Math.sqrt((ax-ux)**2+(ay-uy)**2)};
 }
-
-function fitVariograma(vario,model){
-  if(!vario.length)return{nugget:0.01,sill:1,range:50};
-  const sill=d3.max(vario,v=>v.g);
-  // Nugget mínimo del 10% del sill — estabiliza la matrix
-  const nugget=Math.max(sill*0.10, d3.min(vario,v=>v.g)*0.5);
-  // Range en el punto donde el variograma alcanza el 80% del sill
-  const rngPt=vario.find(v=>v.g>=sill*0.80)||vario[Math.floor(vario.length*0.55)];
-  const range=rngPt?rngPt.h:vario[vario.length-1].h*0.6;
-  return{nugget, sill:sill*0.95, range};
-}
-
-function gammaModel(h,params,model){
-  const{nugget,sill,range}=params;
-  if(h===0)return 0;
-  const hr=h/range;
-  if(model==='spherical')return nugget+(sill-nugget)*(hr<=1?1.5*hr-0.5*hr**3:1);
-  if(model==='exponential')return nugget+(sill-nugget)*(1-Math.exp(-3*hr));
-  if(model==='gaussian')return nugget+(sill-nugget)*(1-Math.exp(-3*hr**2));
-  return nugget+(sill-nugget)*(1-Math.exp(-3*hr));
-}
-
-function drawDistribucion(pts){
-  // Histograma de distribución de profundidades
-  const canvas=document.getElementById('vario-canvas');
-  const W=canvas.offsetWidth||600, H=80;
-  canvas.width=W*2; canvas.height=H*2;
-  canvas.style.width=W+'px'; canvas.style.height=H+'px';
-  const ctx=canvas.getContext('2d'); ctx.scale(2,2);
-  ctx.fillStyle='#060e18'; ctx.fillRect(0,0,W,H);
-  if(!pts.length)return;
-  const zs=pts.map(p=>p.z);
-  const zMn=d3.min(zs), zMx=d3.max(zs);
-  const nBins=20, bw=(zMx-zMn)/nBins||1;
-  const bins=Array(nBins).fill(0);
-  zs.forEach(z=>{ const i=Math.min(nBins-1,Math.floor((z-zMn)/bw)); bins[i]++; });
-  const maxBin=Math.max(...bins);
-  const bW=(W-20)/nBins;
-  bins.forEach((cnt,i)=>{
-    const h=(cnt/maxBin)*(H-10);
-    const x=10+i*bW;
-    const t=i/nBins;
-    // Mismo gradiente que la paleta batimétrica
-    const r=Math.round(210-(210-1)*t), g=Math.round(240-(240-18)*t), b=Math.round(215-(215-70)*t);
-    ctx.fillStyle=`rgb(${r},${g},${b})`;
-    ctx.fillRect(x, H-5-h, bW-1, h);
-  });
-  ctx.strokeStyle='rgba(26,143,232,.3)';ctx.lineWidth=.5;
-  ctx.strokeRect(10,5,W-20,H-10);
-}
-
-// ═══ KRIGING ORDINARIO ════════════════════════════════════════════
-function krigingOrd(pts,px,py,params,model){
-  // Vecinos más cercanos — máximo 8 para mejor estabilidad
-  const dists=pts.map((p,i)=>({i,d:Math.sqrt((p.x-px)**2+(p.y-py)**2)}))
-               .sort((a,b)=>a.d-b.d).slice(0,Math.min(8,pts.length));
-  const near=dists.map(d=>pts[d.i]);
-  const n=near.length;
-  if(n===0)return d3.mean(pts,p=>p.z);
-  if(n===1)return near[0].z;
-
-  // Si el punto más cercano está muy próximo → retornar su valor directamente
-  if(dists[0].d<0.05)return near[0].z;
-
-  // Matriz de covarianzas con nugget en diagonal (regularización)
-  const K=[];
+function delaunay(pts){
+  if(pts.length<3)return[];
+  const xMn=Math.min(...pts.map(p=>p.x))-1,xMx=Math.max(...pts.map(p=>p.x))+1;
+  const yMn=Math.min(...pts.map(p=>p.y))-1,yMx=Math.max(...pts.map(p=>p.y))+1;
+  const dx=xMx-xMn,dy=yMx-yMn;
+  const st=[{x:xMn-dx,y:yMn-dy,_s:true},{x:xMx+dx*2,y:yMn-dy,_s:true},{x:xMn-dx,y:yMx+dy*2,_s:true}];
+  const all=[...pts,...st];const n=pts.length;
+  let tris=[{a:n,b:n+1,c:n+2}];
   for(let i=0;i<n;i++){
-    K.push([]);
-    for(let j=0;j<n;j++){
-      const h=Math.sqrt((near[i].x-near[j].x)**2+(near[i].y-near[j].y)**2);
-      let cov=params.sill-gammaModel(h,params,model);
-      if(i===j)cov+=params.nugget; // regularización diagonal
-      K[i].push(cov);
+    const p=all[i],bad=[],edges=[];
+    for(const t of tris){
+      const cc=circumcircle(all[t.a].x,all[t.a].y,all[t.b].x,all[t.b].y,all[t.c].x,all[t.c].y);
+      if(cc&&(p.x-cc.x)**2+(p.y-cc.y)**2<=cc.r*cc.r+1e-10){bad.push(t);edges.push([t.a,t.b],[t.b,t.c],[t.c,t.a]);}
     }
-    K[i].push(1);
+    const poly=edges.filter(e=>!edges.some(f=>f!==e&&f[0]===e[1]&&f[1]===e[0]));
+    for(const t of bad)tris=tris.filter(x=>x!==t);
+    for(const e of poly)tris.push({a:e[0],b:e[1],c:i});
   }
-  K.push([...Array(n).fill(1),0]);
-
-  const k0=near.map(p=>{
-    const h=Math.sqrt((p.x-px)**2+(p.y-py)**2);
-    return params.sill-gammaModel(h,params,model);
-  });
-  k0.push(1);
-
-  const w=solveLinear(K,k0);
-
-  // Si el sistema falló o hay pesos muy negativos → fallback a IDW
-  if(!w||w.some(wi=>wi<-0.5)){
-    // IDW como fallback robusto
-    let sw=0,swz=0;
-    near.forEach(p=>{
-      const d2=(p.x-px)**2+(p.y-py)**2;
-      const wi=1/Math.pow(Math.max(d2,0.01),0.8);
-      sw+=wi;swz+=wi*p.z;
-    });
-    return swz/sw;
+  return tris.filter(t=>!all[t.a]._s&&!all[t.b]._s&&!all[t.c]._s).map(t=>({a:t.a,b:t.b,c:t.c,pts:all}));
+}
+function tinInterp(tris,px,py,fb){
+  for(const t of tris){
+    const ax=t.pts[t.a].x,ay=t.pts[t.a].y;
+    const bx=t.pts[t.b].x,by=t.pts[t.b].y;
+    const cx=t.pts[t.c].x,cy=t.pts[t.c].y;
+    const d=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy);
+    if(Math.abs(d)<1e-10)continue;
+    const u=((by-cy)*(px-cx)+(cx-bx)*(py-cy))/d;
+    const v=((cy-ay)*(px-cx)+(ax-cx)*(py-cy))/d;
+    const w=1-u-v;
+    if(u>=-1e-3&&v>=-1e-3&&w>=-1e-3)
+      return u*t.pts[t.a].z+v*t.pts[t.b].z+w*t.pts[t.c].z;
   }
-
-  // Clampear pesos levemente negativos (ruido numérico)
-  const wc=w.slice(0,n).map(wi=>Math.max(wi,-0.1));
-  const wsum=wc.reduce((a,b)=>a+b,0);
-  // Normalizar para garantizar insesgadez
-  return near.reduce((s,p,i)=>s+(wc[i]/wsum)*p.z,0);
+  return fb;
 }
 
-function solveLinear(A,b){
-  const n=A.length;
-  const M=A.map((r,i)=>[...r,b[i]]);
-  for(let col=0;col<n;col++){
-    let pivot=col;
-    for(let r=col+1;r<n;r++)if(Math.abs(M[r][col])>Math.abs(M[pivot][col]))pivot=r;
-    [M[col],M[pivot]]=[M[pivot],M[col]];
-    if(Math.abs(M[col][col])<1e-12)return null;
-    for(let r=0;r<n;r++){
-      if(r===col)continue;
-      const f=M[r][col]/M[col][col];
-      for(let c=col;c<=n;c++)M[r][c]-=f*M[col][c];
-    }
-  }
-  return M.map((r,i)=>r[n]/r[i]);
-}
-
-function dentroDeNube(pts,px,py,radio){
-  return pts.some(p=>Math.sqrt((p.x-px)**2+(p.y-py)**2)<radio);
-}
-
-// ═══ RENDER TABLAS Y RESÚMENES ════════════════════════════════════
-function renderSummary(id,pts,ptsRef){
+// ═══ RENDER ═══════════════════════════════════════════════════════
+function mostrarResumen(id,pts,ref){
   const el=document.getElementById(id);
   const zs=pts.map(p=>p.z);
   const items=[
     {v:pts.length,l:'PUNTOS'},
-    {v:d3.min(zs).toFixed(3)+' m',l:'MÍN'},
-    {v:d3.max(zs).toFixed(3)+' m',l:'MÁX'},
-    {v:d3.mean(zs).toFixed(3)+' m',l:'MEDIA'},
+    {v:d3.min(zs).toFixed(3)+'m',l:'MÍN'},
+    {v:d3.max(zs).toFixed(3)+'m',l:'MÁX'},
+    {v:d3.mean(zs).toFixed(3)+'m',l:'MEDIA'},
   ];
-  if(ptsRef){
-    const diff=d3.mean(pts,p=>p.z)-d3.mean(ptsRef,p=>p.z);
-    items.push({v:(diff>=0?'+':'')+diff.toFixed(3)+' m',l:'Δ MEDIA',cls:diff>=0?'diff-pos':'diff-neg'});
+  if(ref){
+    const diff=d3.mean(zs)-d3.mean(ref.map(p=>p.z));
+    items.push({v:(diff>=0?'+':'')+diff.toFixed(3)+'m',l:'Δ MEDIA',cls:diff>=0?'dp':'dn'});
   }
   el.innerHTML=items.map(s=>`<div class="sum-box">
-    <div class="sum-val ${s.cls||''}">${s.v}</div>
-    <div class="sum-lbl">${s.l}</div></div>`).join('');
+    <div class="sum-v ${s.cls||''}">${s.v}</div>
+    <div class="sum-l">${s.l}</div></div>`).join('');
 }
 
-function renderSummaryKrig(nNew,nOrig){
-  const el=document.getElementById('krig-summary');
-  el.innerHTML=[
-    {v:nOrig,l:'PUNTOS ORIG.'},
-    {v:nNew,l:'INTERPOLADOS'},
+function mostrarResumenTIN(nOrig,nNew,zMn,zMx){
+  document.getElementById('tin-sum').innerHTML=[
+    {v:nOrig,l:'ORIG.'},
+    {v:nNew,l:'INTERP.'},
     {v:nOrig+nNew,l:'TOTAL'},
-    {v:((nNew/(nOrig+nNew))*100).toFixed(0)+'%',l:'% INTERPOLADO'},
-  ].map(s=>`<div class="sum-box"><div class="sum-val">${s.v}</div><div class="sum-lbl">${s.l}</div></div>`).join('');
+    {v:zMn.toFixed(2)+'→'+zMx.toFixed(2)+'m',l:'RANGO'},
+  ].map(s=>`<div class="sum-box"><div class="sum-v">${s.v}</div><div class="sum-l">${s.l}</div></div>`).join('');
 }
 
-function renderTable(id,pts,ptsRef){
+function mostrarTabla(id,pts,ref){
   const MAX=300;
-  const cols=['N°','LATITUD','LONGITUD','PROF. (m)'];
-  if(ptsRef)cols.push('ORIGINAL','DIFERENCIA');
-  let html=`<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+  const haRef=!!ref;
+  let h=`<table><thead><tr>
+    <th>N°</th><th>LATITUD</th><th>LONGITUD</th><th>PROF (m)</th>
+    ${haRef?'<th>ORIGINAL</th><th>Δ</th>':''}
+  </tr></thead><tbody>`;
   pts.slice(0,MAX).forEach((p,i)=>{
-    const ref=ptsRef?ptsRef[i]:null;
-    const diff=ref?(p.z-ref.z):null;
-    html+=`<tr>
+    const o=ref?ref[i]:null;
+    const d=o?p.z-o.z:null;
+    h+=`<tr>
       <td>${p.idx}</td>
       <td>${p.lat.toFixed(7)}</td>
       <td>${p.lon.toFixed(7)}</td>
-      <td class="${ptsRef?'td-changed':''}">${p.z.toFixed(3)}</td>
-      ${ref?`<td>${ref.z.toFixed(3)}</td><td class="${diff>=0?'diff-pos':'diff-neg'}">${diff>=0?'+':''}${diff.toFixed(3)}</td>`:''}
+      <td class="${haRef?'td-chg':''}">${p.z.toFixed(4)}</td>
+      ${o?`<td>${o.z.toFixed(4)}</td><td class="${d>=0?'dp':'dn'}">${d>=0?'+':''}${d.toFixed(4)}</td>`:''}
     </tr>`;
   });
-  if(pts.length>MAX)html+=`<tr><td colspan="${cols.length}" style="text-align:center;color:#4a6a8a;padding:8px">… y ${pts.length-MAX} puntos más</td></tr>`;
-  html+='</tbody></table>';
-  document.getElementById(id).innerHTML=html;
+  if(pts.length>MAX)h+=`<tr><td colspan="${haRef?6:4}" style="text-align:center;color:#4a6a8a;padding:8px">… y ${pts.length-MAX} más</td></tr>`;
+  h+='</tbody></table>';
+  document.getElementById(id).innerHTML=h;
 }
 
-function renderTableKrig(pts){
-  const MAX=200;
-  let html=`<table><thead><tr>
-    <th>TIPO</th><th>LATITUD</th><th>LONGITUD</th><th>PROF. (m)</th>
+function mostrarTablaTIN(pts){
+  const MAX=300;
+  let h=`<table><thead><tr>
+    <th>TIPO</th><th>LATITUD</th><th>LONGITUD</th><th>PROF (m)</th>
   </tr></thead><tbody>`;
   pts.slice(0,MAX).forEach(p=>{
-    html+=`<tr>
-      <td class="${p.orig?'':'td-new'}">${p.orig?'Medido':'Kriging'}</td>
+    h+=`<tr>
+      <td class="${p.orig?'':'td-new'}">${p.orig?'Medido':'TIN'}</td>
       <td>${p.lat.toFixed(7)}</td>
       <td>${p.lon.toFixed(7)}</td>
-      <td class="${p.orig?'':'td-new'}">${p.z.toFixed(3)}</td>
+      <td class="${p.orig?'':'td-new'}">${p.z.toFixed(4)}</td>
     </tr>`;
   });
-  if(pts.length>MAX)html+=`<tr><td colspan="4" style="text-align:center;color:#4a6a8a;padding:8px">… y ${pts.length-MAX} puntos más en el CSV exportado</td></tr>`;
-  html+='</tbody></table>';
-  document.getElementById('krig-table').innerHTML=html;
+  if(pts.length>MAX)h+=`<tr><td colspan="4" style="text-align:center;color:#4a6a8a;padding:8px">… y ${pts.length-MAX} más en el CSV exportado</td></tr>`;
+  h+='</tbody></table>';
+  document.getElementById('tin-tbl').innerHTML=h;
 }
 
-// ═══ EXPORTAR CSV ═════════════════════════════════════════════════
+// ═══ EXPORTAR ═════════════════════════════════════════════════════
 function exportarCSV(){
-  // Decidir qué datos exportar: kriging > offset > orig
-  let pts, tipo;
-  if(ptsKriging.length){pts=ptsKriging;tipo='Kriging';}
-  else if(ptsOffset.length){pts=ptsOffset;tipo='Offset';}
-  else{pts=ptsOrig;tipo='Original';}
-
-  const hasOrig=pts[0]&&pts[0].orig!==undefined;
-
-  // Construir CSV
-  let rows=['N,TIPO,LATITUD,LONGITUD,FINAL_M'];
-  if(offsetApplied!==0&&tipo!=='Kriging'){
-    rows=['N,TIPO,LATITUD,LONGITUD,FINAL_M,FINAL_M_ORIGINAL,OFFSET_APLICADO'];
+  // Prioridad: TIN > Offset > Original
+  let pts,tipo;
+  if(ptsTIN.length){
+    pts=ptsTIN.map((p,i)=>({
+      n:i+1,
+      tipo:p.orig?'MEDIDO':'TIN',
+      lat:p.lat,lon:p.lon,
+      z:p.z
+    }));
+    tipo='TIN';
+  } else if(ptsOffset.length){
+    pts=ptsOffset.map((p,i)=>({
+      n:i+1,tipo:'MEDIDO',
+      lat:p.lat,lon:p.lon,z:p.z,
+      z_orig:ptsOrig[i]?.z,
+      offset:offsetVal
+    }));
+    tipo='Offset';
+  } else {
+    pts=ptsOrig.map((p,i)=>({n:i+1,tipo:'MEDIDO',lat:p.lat,lon:p.lon,z:p.z}));
+    tipo='Original';
   }
 
-  pts.forEach((p,i)=>{
-    const tipo2=hasOrig?(p.orig?'MEDIDO':'KRIGING'):'MEDIDO';
-    if(offsetApplied!==0&&!hasOrig){
-      rows.push(`${i+1},${tipo2},${p.lat.toFixed(7)},${p.lon.toFixed(7)},${p.z.toFixed(3)},${ptsOrig[i]?.z.toFixed(3)||''},${offsetApplied.toFixed(3)}`);
-    } else {
-      rows.push(`${i+1},${tipo2},${p.lat.toFixed(7)},${p.lon.toFixed(7)},${p.z.toFixed(3)}`);
-    }
-  });
+  // Construir CSV
+  const haOffset=tipo==='Offset';
+  const cols=haOffset
+    ?'N,TIPO,LATITUD,LONGITUD,FINAL_M,FINAL_M_ORIGINAL,OFFSET_APLICADO'
+    :'N,TIPO,LATITUD,LONGITUD,FINAL_M';
+  const rows=[cols,...pts.map(p=>haOffset
+    ?`${p.n},${p.tipo},${p.lat.toFixed(7)},${p.lon.toFixed(7)},${p.z.toFixed(4)},${(p.z_orig||0).toFixed(4)},${(p.offset||0).toFixed(4)}`
+    :`${p.n},${p.tipo},${p.lat.toFixed(7)},${p.lon.toFixed(7)},${p.z.toFixed(4)}`)];
 
   const now=new Date();
   const pad=n=>String(n).padStart(2,'0');
   const ts=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+'_'+pad(now.getHours())+pad(now.getMinutes());
-  const fname='BatiProcesado_'+tipo+'_'+ts+'.csv';
+  const fname=`BatiProcesado_${tipo}_${ts}.csv`;
 
-  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=fname;a.click();
-  showToast('✓ '+fname+' — '+pts.length+' puntos');
+  a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));
+  a.download=fname;a.click();
+  toast('✓ '+fname+' ('+pts.length+' puntos)');
 }
 
-// ═══ NAVEGACIÓN DE PASOS ══════════════════════════════════════════
-function setStep(step){
-  ['orig','offset','kriging'].forEach(s=>{
-    document.getElementById('panel-'+s).className='view-panel'+(s===step?' active':'');
+// ═══ TABS ═════════════════════════════════════════════════════════
+function irTab(id){
+  const tab=document.getElementById('tab-'+id);
+  if(tab.classList.contains('off'))return;
+  ['orig','offset','tin'].forEach(t=>{
+    document.getElementById('panel-'+t).className='panel'+(t===id?' active':'');
+    const tb=document.getElementById('tab-'+t);
+    if(!tb.classList.contains('off'))
+      tb.classList.toggle('active',t===id);
   });
-  document.getElementById('tab-'+step).className=
-    document.getElementById('tab-'+step).className.replace('active','').trim()+' active';
-  // remover active de los otros
-  ['orig','offset','kriging'].filter(s=>s!==step).forEach(s=>{
-    const el=document.getElementById('tab-'+s);
-    el.className=el.className.replace(' active','').trim();
-  });
-  currentStep=step;
+}
+function setTab(id,cls){
+  const el=document.getElementById('tab-'+id);
+  el.className='tab '+cls;
 }
 
 // ═══ UTILS ════════════════════════════════════════════════════════
-function setKrigProg(p,lbl){
-  document.getElementById('krig-pf').style.width=(p*100)+'%';
-  document.getElementById('krig-pl').textContent=lbl;
+function setProg(p,lbl){
+  document.getElementById('tin-pf').style.width=(p*100)+'%';
+  document.getElementById('tin-pl').textContent=lbl;
 }
 function sl(ms){return new Promise(r=>setTimeout(r,ms));}
 let _tt;
-function showToast(msg,err=false){
+function toast(msg,err=false){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className=err?'show err':'show';
   clearTimeout(_tt);_tt=setTimeout(()=>t.className='',3200);
