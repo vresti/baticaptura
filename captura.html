@@ -441,6 +441,21 @@
              onkeydown="handleKey(event)" oninput="updateCalcFromInput()" inputmode="decimal" />
       <div class="depth-unit">m</div>
     </div>
+    <!-- Modos automáticos -->
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button id="btn-auto-depth" onclick="toggleAutoDepth()"
+        style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--green);
+        background:rgba(0,229,160,.15);color:var(--green);font-family:'Exo 2',sans-serif;
+        font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer">
+        📡 AUTO PROF: ON
+      </button>
+      <button id="btn-auto-grab" onclick="toggleAutoGrab()"
+        style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--dim);
+        background:rgba(42,74,106,.2);color:var(--textdim);font-family:'Exo 2',sans-serif;
+        font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer">
+        ⚡ AUTO GRAB: OFF
+      </button>
+    </div>
     <button class="btn-grabar no-gps" id="btn-grabar" onclick="grabarPunto()">
       <span id="lock-icon">🔒</span>
       <span id="btn-grabar-txt"> ESPERANDO GPS</span>
@@ -503,6 +518,10 @@
 <script>
 // ─── Estado ───────────────────────────────────────────────────────────────────
 let port = null, reader = null, buffer = '';
+let currentDepth = 0;   // profundidad actual de la ecosonda
+let autoDepth = true;   // leer profundidad automática del NMEA
+let autoGrab = false;   // grabar automático cuando supera umbral
+let depthTimer = null;  // timer para feedback visual
 let currentLat = null, currentLon = null, currentHdop = '--', currentSats = '--';
 let lastGrabbedLat = null, lastGrabbedLon = null;
 let hasGPS = false, firstPoint = true, canGrab = false;
@@ -778,19 +797,64 @@ function processNMEA(line) {
   line=line.trim(); if(!line.startsWith('$')) return;
   document.getElementById('nmea-raw').textContent=line;
   const p=line.split(','), type=p[0].substring(1);
+
+  // GPS — posición
   if((type==='GPGGA'||type==='GNGGA')&&p[6]&&p[6]!=='0') updateCoords(nmeaCoord(p[2],p[3]),nmeaCoord(p[4],p[5]),p[8],p[7]);
   if((type==='GPRMC'||type==='GNRMC')&&p[2]==='A') updateCoords(nmeaCoord(p[3],p[4]),nmeaCoord(p[5],p[6]),currentHdop,currentSats);
+
+  // PROFUNDIDAD — SDDBT (depth below transducer) o SDDPT (depth)
+  // $SDDBT,x.x,f,x.x,M,x.x,F*hh  → p[3]=metros
+  // $SDDPT,x.x,x.x*hh             → p[1]=metros
+  if(type==='SDDBT'||type==='IIDBT'){
+    const d=parseFloat(p[3]); // metros (campo M)
+    if(!isNaN(d)&&d>0) updateDepth(d);
+  }
+  if(type==='SDDPT'||type==='IIDPT'){
+    const d=parseFloat(p[1]);
+    if(!isNaN(d)&&d>0) updateDepth(d);
+  }
+}
+
+function updateDepth(metros) {
+  currentDepth = metros;
+  const inp = document.getElementById('depth-input');
+  // Solo actualizar si el modo auto está activo
+  if(autoDepth) {
+    inp.value = metros.toFixed(2);
+    updateCalc();
+    // Resaltar brevemente
+    inp.style.borderColor='var(--green)';
+    inp.style.boxShadow='0 0 16px rgba(0,229,160,0.3)';
+    clearTimeout(depthTimer);
+    depthTimer=setTimeout(()=>{
+      inp.style.borderColor='';inp.style.boxShadow='';
+    },600);
+    // Auto-grabar si umbral superado y hay profundidad
+    if(autoGrab && (canGrab||firstPoint)) {
+      grabarPunto();
+    }
+  }
 }
 function nmeaCoord(raw,dir) {
   if(!raw||raw.length<4) return null;
   const d=raw.indexOf('.'), deg=parseFloat(raw.substring(0,d-2)), min=parseFloat(raw.substring(d-2));
   let dec=deg+min/60; if(dir==='S'||dir==='W') dec=-dec; return dec;
 }
+// ─── Formato sexagesimal 3 decimales ─────────────────────────────────────────
+function toSex(dec, tipo) {
+  const neg = dec < 0;
+  const abs = Math.abs(dec);
+  const deg = Math.floor(abs);
+  const min = (abs - deg) * 60;
+  const dir = tipo === 'lat' ? (neg ? 'S' : 'N') : (neg ? 'O' : 'E');
+  return `${String(deg).padStart(tipo==='lon'?3:2,'0')}°${min.toFixed(3)}'${dir}`;
+}
+
 function updateCoords(lat,lon,hdop,sats) {
   if(lat===null||lon===null) return;
   currentLat=lat; currentLon=lon; currentHdop=hdop||'--'; currentSats=sats||'--'; hasGPS=true;
-  document.getElementById('disp-lat').textContent=lat.toFixed(6);
-  document.getElementById('disp-lon').textContent=Math.abs(lon).toFixed(6)+' O';
+  document.getElementById('disp-lat').textContent=toSex(lat,'lat');
+  document.getElementById('disp-lon').textContent=toSex(lon,'lon');
   document.getElementById('disp-hdop').textContent=currentSats+' / '+currentHdop;
   ['disp-lat','disp-lon','disp-hdop'].forEach(id=>{
     const el=document.getElementById(id); el.classList.add('fresh');
@@ -954,6 +1018,35 @@ function grabarPoste() {
   if(el){el.textContent='✓ POSTE MARCADO';el.style.borderColor='#00e5a0';el.style.color='#00e5a0';}
   setTimeout(()=>{if(el){el.innerHTML='📍 MARCAR POSTE';el.style.borderColor='rgba(255,208,96,.4)';el.style.color='#ffd060';}},1800);
   showToast('📍 Poste #'+punto.n+' marcado — '+currentLat.toFixed(5)+', '+currentLon.toFixed(5));
+}
+
+// ─── Modos automáticos ────────────────────────────────────────────────────────
+function toggleAutoDepth() {
+  autoDepth = !autoDepth;
+  const btn = document.getElementById('btn-auto-depth');
+  if(autoDepth) {
+    btn.textContent = '📡 AUTO PROF: ON';
+    btn.style.borderColor='var(--green)';btn.style.background='rgba(0,229,160,.15)';btn.style.color='var(--green)';
+    showToast('📡 Profundidad automática activada');
+  } else {
+    btn.textContent = '📡 AUTO PROF: OFF';
+    btn.style.borderColor='var(--dim)';btn.style.background='rgba(42,74,106,.2)';btn.style.color='var(--textdim)';
+    showToast('Profundidad manual — tipear en el campo');
+  }
+}
+
+function toggleAutoGrab() {
+  autoGrab = !autoGrab;
+  const btn = document.getElementById('btn-auto-grab');
+  if(autoGrab) {
+    btn.textContent = '⚡ AUTO GRAB: ON';
+    btn.style.borderColor='var(--amber)';btn.style.background='rgba(232,160,32,.15)';btn.style.color='var(--amber)';
+    showToast('⚡ Grabado automático activado — mantené la ecosonda apuntando');
+  } else {
+    btn.textContent = '⚡ AUTO GRAB: OFF';
+    btn.style.borderColor='var(--dim)';btn.style.background='rgba(42,74,106,.2)';btn.style.color='var(--textdim)';
+    showToast('Grabado manual — usá el botón GRABAR');
+  }
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
