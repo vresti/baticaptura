@@ -131,7 +131,7 @@
     background: linear-gradient(90deg, transparent, var(--blue), transparent);
   }
   .instr-label { font-size: 9px; letter-spacing: 3px; color: var(--textdim); text-transform: uppercase; margin-bottom: 3px; }
-  .instr-value { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--amber2); min-height: 18px; transition: color 0.3s; }
+  .instr-value { font-family: 'Share Tech Mono', monospace; font-size: 19px; color: var(--amber2); min-height: 24px; transition: color 0.3s; }
   .instr-value.fresh { color: var(--green); }
   .instr-unit { font-size: 9px; color: var(--textdim); letter-spacing: 1px; margin-top: 2px; }
 
@@ -350,39 +350,17 @@
     <div class="instr">
       <div class="instr-label">LATITUD</div>
       <div class="instr-value" id="disp-lat">—</div>
-      <div class="instr-unit">sexagesimal</div>
+      <div class="instr-unit">S decimal</div>
     </div>
     <div class="instr">
       <div class="instr-label">LONGITUD</div>
       <div class="instr-value" id="disp-lon">—</div>
-      <div class="instr-unit">sexagesimal</div>
+      <div class="instr-unit">O decimal</div>
     </div>
     <div class="instr">
       <div class="instr-label">SATS / HDOP</div>
       <div class="instr-value" id="disp-hdop">—</div>
       <div class="instr-unit">precisión</div>
-    </div>
-  </div>
-
-  <!-- PROFUNDIDAD ECOSONDA EN TIEMPO REAL -->
-  <div style="background:var(--panel);border:2px solid rgba(0,229,160,.3);border-radius:8px;
-    padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;
-    position:relative;">
-    <div style="position:absolute;top:-8px;left:14px;background:var(--panel);
-      font-size:9px;letter-spacing:3px;color:var(--green);padding:0 6px">
-      ECOSONDA EN TIEMPO REAL
-    </div>
-    <div style="text-align:center;flex:1">
-      <div style="font-size:9px;letter-spacing:2px;color:var(--textdim);margin-bottom:3px">PROFUNDIDAD</div>
-      <div id="disp-depth" style="font-family:'Orbitron',monospace;font-size:42px;font-weight:700;
-        color:var(--green);line-height:1;transition:color .3s">—</div>
-      <div style="font-size:10px;color:var(--textdim);letter-spacing:2px;margin-top:2px">metros</div>
-    </div>
-    <div style="text-align:center;flex:1;border-left:1px solid var(--border);padding-left:12px">
-      <div style="font-size:9px;letter-spacing:2px;color:var(--textdim);margin-bottom:3px">PROF. FINAL</div>
-      <div id="disp-final-live" style="font-family:'Orbitron',monospace;font-size:28px;font-weight:700;
-        color:var(--amber2);line-height:1">—</div>
-      <div style="font-size:9px;color:var(--textdim);letter-spacing:1px;margin-top:2px">con correcciones</div>
     </div>
   </div>
 
@@ -463,21 +441,6 @@
              onkeydown="handleKey(event)" oninput="updateCalcFromInput()" inputmode="decimal" />
       <div class="depth-unit">m</div>
     </div>
-    <!-- Modos automáticos -->
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <button id="btn-auto-depth" onclick="toggleAutoDepth()"
-        style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--green);
-        background:rgba(0,229,160,.15);color:var(--green);font-family:'Exo 2',sans-serif;
-        font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer">
-        📡 AUTO PROF: ON
-      </button>
-      <button id="btn-auto-grab" onclick="toggleAutoGrab()"
-        style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--dim);
-        background:rgba(42,74,106,.2);color:var(--textdim);font-family:'Exo 2',sans-serif;
-        font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer">
-        ⚡ AUTO GRAB: OFF
-      </button>
-    </div>
     <button class="btn-grabar no-gps" id="btn-grabar" onclick="grabarPunto()">
       <span id="lock-icon">🔒</span>
       <span id="btn-grabar-txt"> ESPERANDO GPS</span>
@@ -540,10 +503,6 @@
 <script>
 // ─── Estado ───────────────────────────────────────────────────────────────────
 let port = null, reader = null, buffer = '';
-let currentDepth = 0;   // profundidad actual de la ecosonda
-let autoDepth = true;   // leer profundidad automática del NMEA
-let autoGrab = false;   // grabar automático cuando supera umbral
-let depthTimer = null;  // timer para feedback visual
 let currentLat = null, currentLon = null, currentHdop = '--', currentSats = '--';
 let lastGrabbedLat = null, lastGrabbedLon = null;
 let hasGPS = false, firstPoint = true, canGrab = false;
@@ -819,73 +778,19 @@ function processNMEA(line) {
   line=line.trim(); if(!line.startsWith('$')) return;
   document.getElementById('nmea-raw').textContent=line;
   const p=line.split(','), type=p[0].substring(1);
-
-  // GPS — posición
   if((type==='GPGGA'||type==='GNGGA')&&p[6]&&p[6]!=='0') updateCoords(nmeaCoord(p[2],p[3]),nmeaCoord(p[4],p[5]),p[8],p[7]);
   if((type==='GPRMC'||type==='GNRMC')&&p[2]==='A') updateCoords(nmeaCoord(p[3],p[4]),nmeaCoord(p[5],p[6]),currentHdop,currentSats);
-
-  // PROFUNDIDAD — SDDBT (depth below transducer) o SDDPT (depth)
-  // $SDDBT,x.x,f,x.x,M,x.x,F*hh  → p[3]=metros
-  // $SDDPT,x.x,x.x*hh             → p[1]=metros
-  if(type==='SDDBT'||type==='IIDBT'){
-    const d=parseFloat(p[3]); // metros (campo M)
-    if(!isNaN(d)&&d>0) updateDepth(d);
-  }
-  if(type==='SDDPT'||type==='IIDPT'){
-    const d=parseFloat(p[1]);
-    if(!isNaN(d)&&d>0) updateDepth(d);
-  }
-}
-
-function updateDepth(metros) {
-  currentDepth = metros;
-
-  // Siempre mostrar en el display grande
-  const dd = document.getElementById('disp-depth');
-  if(dd){
-    dd.textContent = metros.toFixed(2);
-    dd.style.color='var(--green)';
-    clearTimeout(depthTimer);
-    depthTimer=setTimeout(()=>{ dd.style.color='var(--green)'; },800);
-  }
-
-  // Calcular y mostrar prof final con correcciones
-  const off=getEcoOffset(), mar=getMareaCorr();
-  const fin=metros+off+mar;
-  const df=document.getElementById('disp-final-live');
-  if(df) df.textContent=fin.toFixed(2);
-
-  // Si auto-profundidad activo → actualizar campo manual también
-  if(autoDepth) {
-    const inp = document.getElementById('depth-input');
-    inp.value = metros.toFixed(2);
-    updateCalc();
-    // Auto-grabar si umbral superado
-    if(autoGrab && (canGrab||firstPoint)) {
-      grabarPunto();
-    }
-  }
 }
 function nmeaCoord(raw,dir) {
   if(!raw||raw.length<4) return null;
   const d=raw.indexOf('.'), deg=parseFloat(raw.substring(0,d-2)), min=parseFloat(raw.substring(d-2));
   let dec=deg+min/60; if(dir==='S'||dir==='W') dec=-dec; return dec;
 }
-// ─── Formato sexagesimal 3 decimales ─────────────────────────────────────────
-function toSex(dec, tipo) {
-  const neg = dec < 0;
-  const abs = Math.abs(dec);
-  const deg = Math.floor(abs);
-  const min = (abs - deg) * 60;
-  const dir = tipo === 'lat' ? (neg ? 'S' : 'N') : (neg ? 'O' : 'E');
-  return `${String(deg).padStart(tipo==='lon'?3:2,'0')}°${min.toFixed(3)}'${dir}`;
-}
-
 function updateCoords(lat,lon,hdop,sats) {
   if(lat===null||lon===null) return;
   currentLat=lat; currentLon=lon; currentHdop=hdop||'--'; currentSats=sats||'--'; hasGPS=true;
-  document.getElementById('disp-lat').textContent=toSex(lat,'lat');
-  document.getElementById('disp-lon').textContent=toSex(lon,'lon');
+  document.getElementById('disp-lat').textContent=lat.toFixed(6);
+  document.getElementById('disp-lon').textContent=Math.abs(lon).toFixed(6)+' O';
   document.getElementById('disp-hdop').textContent=currentSats+' / '+currentHdop;
   ['disp-lat','disp-lon','disp-hdop'].forEach(id=>{
     const el=document.getElementById(id); el.classList.add('fresh');
@@ -1051,43 +956,10 @@ function grabarPoste() {
   showToast('📍 Poste #'+punto.n+' marcado — '+currentLat.toFixed(5)+', '+currentLon.toFixed(5));
 }
 
-// ─── Modos automáticos ────────────────────────────────────────────────────────
-function toggleAutoDepth() {
-  autoDepth = !autoDepth;
-  const btn = document.getElementById('btn-auto-depth');
-  if(autoDepth) {
-    btn.textContent = '📡 AUTO PROF: ON';
-    btn.style.borderColor='var(--green)';btn.style.background='rgba(0,229,160,.15)';btn.style.color='var(--green)';
-    showToast('📡 Profundidad automática activada');
-  } else {
-    btn.textContent = '📡 AUTO PROF: OFF';
-    btn.style.borderColor='var(--dim)';btn.style.background='rgba(42,74,106,.2)';btn.style.color='var(--textdim)';
-    showToast('Profundidad manual — tipear en el campo');
-  }
-}
-
-function toggleAutoGrab() {
-  autoGrab = !autoGrab;
-  const btn = document.getElementById('btn-auto-grab');
-  if(autoGrab) {
-    btn.textContent = '⚡ AUTO GRAB: ON';
-    btn.style.borderColor='var(--amber)';btn.style.background='rgba(232,160,32,.15)';btn.style.color='var(--amber)';
-    showToast('⚡ Grabado automático activado — mantené la ecosonda apuntando');
-  } else {
-    btn.textContent = '⚡ AUTO GRAB: OFF';
-    btn.style.borderColor='var(--dim)';btn.style.background='rgba(42,74,106,.2)';btn.style.color='var(--textdim)';
-    showToast('Grabado manual — usá el botón GRABAR');
-  }
-}
-
 // ─── Init ─────────────────────────────────────────────────────────────────────
 updateCalc();
 document.getElementById('depth-input').focus();
-window.addEventListener('load', ()=>{
-  autoLoad();
-  // Scroll al tope para ver el área de conexión GPS
-  setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),300);
-});
+window.addEventListener('load', autoLoad);
 window.addEventListener('beforeunload', autoSave);
 </script>
 </body>
