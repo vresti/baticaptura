@@ -131,7 +131,7 @@
     background: linear-gradient(90deg, transparent, var(--blue), transparent);
   }
   .instr-label { font-size: 9px; letter-spacing: 3px; color: var(--textdim); text-transform: uppercase; margin-bottom: 3px; }
-  .instr-value { font-family: 'Share Tech Mono', monospace; font-size: 19px; color: var(--amber2); min-height: 24px; transition: color 0.3s; }
+  .instr-value { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--amber2); min-height: 18px; transition: color 0.3s; }
   .instr-value.fresh { color: var(--green); }
   .instr-unit { font-size: 9px; color: var(--textdim); letter-spacing: 1px; margin-top: 2px; }
 
@@ -350,17 +350,39 @@
     <div class="instr">
       <div class="instr-label">LATITUD</div>
       <div class="instr-value" id="disp-lat">—</div>
-      <div class="instr-unit">S decimal</div>
+      <div class="instr-unit">sexagesimal</div>
     </div>
     <div class="instr">
       <div class="instr-label">LONGITUD</div>
       <div class="instr-value" id="disp-lon">—</div>
-      <div class="instr-unit">O decimal</div>
+      <div class="instr-unit">sexagesimal</div>
     </div>
     <div class="instr">
       <div class="instr-label">SATS / HDOP</div>
       <div class="instr-value" id="disp-hdop">—</div>
       <div class="instr-unit">precisión</div>
+    </div>
+  </div>
+
+  <!-- PROFUNDIDAD ECOSONDA EN TIEMPO REAL -->
+  <div style="background:var(--panel);border:2px solid rgba(0,229,160,.3);border-radius:8px;
+    padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;
+    position:relative;">
+    <div style="position:absolute;top:-8px;left:14px;background:var(--panel);
+      font-size:9px;letter-spacing:3px;color:var(--green);padding:0 6px">
+      ECOSONDA EN TIEMPO REAL
+    </div>
+    <div style="text-align:center;flex:1">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--textdim);margin-bottom:3px">PROFUNDIDAD</div>
+      <div id="disp-depth" style="font-family:'Orbitron',monospace;font-size:42px;font-weight:700;
+        color:var(--green);line-height:1;transition:color .3s">—</div>
+      <div style="font-size:10px;color:var(--textdim);letter-spacing:2px;margin-top:2px">metros</div>
+    </div>
+    <div style="text-align:center;flex:1;border-left:1px solid var(--border);padding-left:12px">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--textdim);margin-bottom:3px">PROF. FINAL</div>
+      <div id="disp-final-live" style="font-family:'Orbitron',monospace;font-size:28px;font-weight:700;
+        color:var(--amber2);line-height:1">—</div>
+      <div style="font-size:9px;color:var(--textdim);letter-spacing:1px;margin-top:2px">con correcciones</div>
     </div>
   </div>
 
@@ -817,19 +839,28 @@ function processNMEA(line) {
 
 function updateDepth(metros) {
   currentDepth = metros;
-  const inp = document.getElementById('depth-input');
-  // Solo actualizar si el modo auto está activo
+
+  // Siempre mostrar en el display grande
+  const dd = document.getElementById('disp-depth');
+  if(dd){
+    dd.textContent = metros.toFixed(2);
+    dd.style.color='var(--green)';
+    clearTimeout(depthTimer);
+    depthTimer=setTimeout(()=>{ dd.style.color='var(--green)'; },800);
+  }
+
+  // Calcular y mostrar prof final con correcciones
+  const off=getEcoOffset(), mar=getMareaCorr();
+  const fin=metros+off+mar;
+  const df=document.getElementById('disp-final-live');
+  if(df) df.textContent=fin.toFixed(2);
+
+  // Si auto-profundidad activo → actualizar campo manual también
   if(autoDepth) {
+    const inp = document.getElementById('depth-input');
     inp.value = metros.toFixed(2);
     updateCalc();
-    // Resaltar brevemente
-    inp.style.borderColor='var(--green)';
-    inp.style.boxShadow='0 0 16px rgba(0,229,160,0.3)';
-    clearTimeout(depthTimer);
-    depthTimer=setTimeout(()=>{
-      inp.style.borderColor='';inp.style.boxShadow='';
-    },600);
-    // Auto-grabar si umbral superado y hay profundidad
+    // Auto-grabar si umbral superado
     if(autoGrab && (canGrab||firstPoint)) {
       grabarPunto();
     }
@@ -1052,7 +1083,11 @@ function toggleAutoGrab() {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 updateCalc();
 document.getElementById('depth-input').focus();
-window.addEventListener('load', autoLoad);
+window.addEventListener('load', ()=>{
+  autoLoad();
+  // Scroll al tope para ver el área de conexión GPS
+  setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),300);
+});
 window.addEventListener('beforeunload', autoSave);
 </script>
 </body>
