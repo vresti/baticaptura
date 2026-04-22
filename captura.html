@@ -3,309 +3,283 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>BatiCaptura v3</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>BatiCaptura v4</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+:root {
+  --bg:#050d14;--panel:#0a1a28;--border:#0e3a5c;
+  --amber:#e8a020;--amber2:#ffd060;--green:#00e5a0;
+  --red:#ff4455;--blue:#1a8fe8;--dim:#2a4a6a;
+  --text:#c8dcea;--textdim:#4a7a9a;--marea:#c084fc;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(14,58,92,.07)1px,transparent 1px),linear-gradient(90deg,rgba(14,58,92,.07)1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:14px}
 
-  :root {
-    --bg:      #050d14;
-    --panel:   #0a1a28;
-    --border:  #0e3a5c;
-    --amber:   #e8a020;
-    --amber2:  #ffd060;
-    --green:   #00e5a0;
-    --red:     #ff4455;
-    --blue:    #1a8fe8;
-    --dim:     #2a4a6a;
-    --text:    #c8dcea;
-    --textdim: #4a7a9a;
-    --marea:   #c084fc;
-  }
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:12px}
+.logo-title{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;letter-spacing:4px;color:var(--amber)}
+.logo-sub{font-size:9px;color:var(--textdim);letter-spacing:2px;margin-top:2px}
+.status-pill{display:flex;align-items:center;gap:8px;background:var(--panel);
+  border:1px solid var(--border);border-radius:20px;padding:5px 12px;
+  font-family:'Share Tech Mono',monospace;font-size:11px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim);transition:all .3s}
+.dot.on{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/* SECTOR BAR */
+.sector-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;position:relative}
+.sector-bar::before{content:'SECTOR ACTIVO';position:absolute;top:-8px;left:14px;
+  background:var(--panel);font-size:9px;letter-spacing:3px;color:var(--amber);padding:0 6px}
+.sector-input{flex:1;background:#020a12;border:1px solid var(--border);color:var(--amber2);
+  border-radius:6px;padding:7px 12px;font-family:'Orbitron',monospace;font-size:16px;
+  font-weight:700;letter-spacing:2px;outline:none;transition:border-color .3s}
+.sector-input:focus{border-color:var(--amber)}
+.autosave-ind{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--textdim);letter-spacing:1px;white-space:nowrap}
+.autosave-dot{width:6px;height:6px;border-radius:50%;background:var(--dim);transition:all .3s}
+.autosave-dot.saved{background:var(--green);box-shadow:0 0 6px var(--green)}
 
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: 'Exo 2', sans-serif; min-height: 100vh; overflow-x: hidden;
-  }
-  body::before {
-    content: ''; position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(14,58,92,0.07) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(14,58,92,0.07) 1px, transparent 1px);
-    background-size: 40px 40px; pointer-events: none; z-index: 0;
-  }
+/* BOTONES */
+.btn-row{display:flex;gap:8px;margin-bottom:10px}
+.btn{flex:1;padding:9px;border-radius:6px;font-family:'Exo 2',sans-serif;font-size:11px;
+  font-weight:600;letter-spacing:1px;cursor:pointer;border:1px solid;transition:all .2s}
+.btn-connect{background:rgba(0,229,160,.08);border-color:var(--green);color:var(--green)}
+.btn-disconnect{background:rgba(255,68,85,.08);border-color:var(--red);color:var(--red)}
+.btn:hover{filter:brightness(1.3)}
+.btn:disabled{opacity:.3;cursor:not-allowed;filter:none}
 
-  .app { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 14px; }
+/* SERIAL CONFIG */
+.serial-config{display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.serial-config select{background:var(--panel);border:1px solid var(--border);
+  color:var(--text);border-radius:4px;padding:5px 8px;font-size:11px;font-family:'Share Tech Mono',monospace}
+.serial-config label{font-size:9px;color:var(--textdim);letter-spacing:1px}
+.nmea-debug{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--textdim);
+  background:#020a12;border:1px solid var(--border);border-radius:4px;
+  padding:5px 10px;margin-bottom:10px;overflow:hidden;white-space:nowrap;
+  text-overflow:ellipsis;min-height:22px}
 
-  /* HEADER */
-  header {
-    display: flex; align-items: center; justify-content: space-between;
-    border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 14px;
-  }
-  .logo-title {
-    font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 900;
-    letter-spacing: 4px; color: var(--amber);
-  }
-  .logo-sub { font-size: 9px; color: var(--textdim); letter-spacing: 2px; margin-top: 2px; }
-  .status-pill {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 20px; padding: 5px 12px;
-    font-family: 'Share Tech Mono', monospace; font-size: 11px;
-  }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); transition: all 0.3s; }
-  .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+/* GPS INSTRUMENTOS */
+.instruments{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.instr{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px 12px;position:relative;overflow:hidden}
+.instr::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--blue),transparent)}
+.instr-label{font-size:9px;letter-spacing:3px;color:var(--textdim);text-transform:uppercase;margin-bottom:3px}
+.instr-value{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--amber2);min-height:18px;transition:color .3s}
+.instr-value.fresh{color:var(--green)}
+.instr-unit{font-size:9px;color:var(--textdim);letter-spacing:1px;margin-top:2px}
 
-  /* ══ SECTOR BAR ══ */
-  .sector-bar {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 14px; position: relative;
-  }
-  .sector-bar::before {
-    content: 'SECTOR ACTIVO';
-    position: absolute; top: -8px; left: 14px;
-    background: var(--panel); font-size: 9px;
-    letter-spacing: 3px; color: var(--amber); padding: 0 6px;
-  }
-  .sector-input {
-    flex: 1; background: #020a12; border: 1px solid var(--border);
-    color: var(--amber2); border-radius: 6px; padding: 7px 12px;
-    font-family: 'Orbitron', monospace; font-size: 16px; font-weight: 700;
-    letter-spacing: 2px; outline: none; transition: border-color 0.3s;
-  }
-  .sector-input:focus { border-color: var(--amber); }
-  .autosave-ind {
-    display: flex; align-items: center; gap: 5px;
-    font-size: 9px; color: var(--textdim); letter-spacing: 1px;
-    white-space: nowrap;
-  }
-  .autosave-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--dim); transition: all 0.3s;
-  }
-  .autosave-dot.saved { background: var(--green); box-shadow: 0 0 6px var(--green); }
+/* DISPLAY PROFUNDIDAD GRANDE */
+.depth-display{background:var(--panel);border:2px solid rgba(0,229,160,.3);border-radius:8px;
+  padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;position:relative}
+.depth-display::before{content:'ECOSONDA EN TIEMPO REAL';position:absolute;top:-8px;left:14px;
+  background:var(--panel);font-size:9px;letter-spacing:3px;color:var(--green);padding:0 6px}
+.depth-main{flex:1;text-align:center}
+.depth-big{font-family:'Orbitron',monospace;font-size:48px;font-weight:700;color:var(--green);
+  line-height:1;transition:all .3s}
+.depth-big.fresh{text-shadow:0 0 20px var(--green)}
+.depth-unit-lbl{font-size:10px;color:var(--textdim);letter-spacing:2px;margin-top:3px}
+.depth-final{flex:1;text-align:center;border-left:1px solid var(--border);padding-left:14px}
+.depth-final-val{font-family:'Orbitron',monospace;font-size:30px;font-weight:700;color:var(--amber2);line-height:1}
+.depth-final-lbl{font-size:9px;color:var(--textdim);letter-spacing:1px;margin-top:3px}
 
-  /* GPS CONTROLES */
-  .btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
-  .btn {
-    flex: 1; padding: 9px; border-radius: 6px;
-    font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 600;
-    letter-spacing: 1px; cursor: pointer; border: 1px solid; transition: all 0.2s;
-  }
-  .btn-connect    { background: rgba(0,229,160,0.08); border-color: var(--green); color: var(--green); }
-  .btn-disconnect { background: rgba(255,68,85,0.08); border-color: var(--red); color: var(--red); }
-  .btn-export     { background: rgba(232,160,32,0.08); border-color: var(--amber); color: var(--amber); }
-  .btn-clear      { background: rgba(42,74,106,0.3); border-color: var(--dim); color: var(--textdim); }
-  .btn:hover { filter: brightness(1.3); }
-  .btn:disabled { opacity: 0.3; cursor: not-allowed; filter: none; }
+/* CORRECCIONES */
+.correcciones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.corr-box{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 14px;position:relative}
+.corr-box::before{content:attr(data-label);position:absolute;top:-8px;left:12px;
+  background:var(--panel);font-size:9px;letter-spacing:3px;padding:0 6px}
+.corr-box.ecosonda::before{color:var(--blue)}
+.corr-box.marea::before{color:var(--marea)}
+.corr-input-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sign-btn{width:36px;height:36px;border-radius:6px;border:1px solid var(--border);
+  background:#020a12;color:var(--amber2);font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;
+  transition:all .2s;flex-shrink:0}
+.sign-btn:hover{border-color:var(--amber);background:rgba(232,160,32,.1)}
+.corr-num{flex:1;background:#020a12;border:1px solid var(--border);border-radius:6px;
+  color:var(--amber2);font-family:'Orbitron',monospace;font-size:22px;font-weight:700;
+  text-align:center;padding:5px 8px;outline:none;-moz-appearance:textfield}
+.corr-num::-webkit-inner-spin-button{display:none}
+.corr-num:focus{border-color:var(--amber)}
+.corr-unit{font-size:12px;color:var(--textdim);letter-spacing:1px;flex-shrink:0}
+.corr-display{font-size:10px;color:var(--textdim);letter-spacing:1px;padding:4px 8px;
+  background:#020a12;border-radius:4px;font-family:'Share Tech Mono',monospace}
+.corr-display.positive{color:var(--green)}
+.corr-display.negative{color:var(--red)}
+.btn-update-marea{width:100%;margin-top:8px;background:rgba(192,132,252,.1);
+  border:1px solid var(--marea);border-radius:6px;color:var(--marea);
+  font-family:'Exo 2',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;
+  padding:7px;cursor:pointer;transition:all .2s}
+.btn-update-marea:hover{background:rgba(192,132,252,.2)}
+.marea-log-last{font-size:9px;color:var(--marea);letter-spacing:1px;margin-top:6px;text-align:center;opacity:.7;font-family:'Share Tech Mono',monospace}
 
-  .serial-config {
-    display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;
-  }
-  .serial-config select {
-    background: var(--panel); border: 1px solid var(--border);
-    color: var(--text); border-radius: 4px; padding: 5px 8px;
-    font-size: 11px; font-family: 'Share Tech Mono', monospace;
-  }
-  .serial-config label { font-size: 9px; color: var(--textdim); letter-spacing: 1px; }
-  .nmea-debug {
-    font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--textdim);
-    background: #020a12; border: 1px solid var(--border); border-radius: 4px;
-    padding: 5px 10px; margin-bottom: 10px; overflow: hidden;
-    white-space: nowrap; text-overflow: ellipsis; min-height: 22px;
-  }
+/* CALCULADORA */
+.calculadora{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;margin-bottom:10px;display:flex;align-items:center}
+.calc-term{flex:1;text-align:center}
+.calc-label{font-size:8px;letter-spacing:2px;color:var(--textdim);margin-bottom:3px}
+.calc-val{font-family:'Orbitron',monospace;font-size:20px;font-weight:700}
+.calc-val.eco{color:var(--amber2)}
+.calc-val.off{color:var(--blue);font-size:16px}
+.calc-val.mar{color:var(--marea);font-size:16px}
+.calc-val.final{color:var(--green);font-size:26px}
+.calc-op{font-family:'Share Tech Mono',monospace;font-size:22px;color:var(--dim);padding:0 6px;flex-shrink:0}
+.calc-eq{color:var(--amber)}
 
-  /* INSTRUMENTOS GPS */
-  .instruments {
-    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;
-  }
-  .instr {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 6px; padding: 8px 12px; position: relative; overflow: hidden;
-  }
-  .instr::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, var(--blue), transparent);
-  }
-  .instr-label { font-size: 9px; letter-spacing: 3px; color: var(--textdim); text-transform: uppercase; margin-bottom: 3px; }
-  .instr-value { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--amber2); min-height: 18px; transition: color 0.3s; }
-  .instr-value.fresh { color: var(--green); }
-  .instr-unit { font-size: 9px; color: var(--textdim); letter-spacing: 1px; margin-top: 2px; }
+/* ODÓMETRO */
+.odometro{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px}
+.odometro-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.odometro-label{font-size:9px;letter-spacing:3px;color:var(--textdim)}
+.threshold-ctrl{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--textdim)}
+.threshold-ctrl input{width:50px;background:#020a12;border:1px solid var(--border);
+  color:var(--amber2);border-radius:4px;padding:3px 6px;font-family:'Share Tech Mono',monospace;
+  font-size:13px;text-align:center;outline:none}
+.dist-bar-wrap{height:8px;background:#020a12;border-radius:4px;overflow:hidden;
+  margin-bottom:8px;border:1px solid var(--border)}
+.dist-bar{height:100%;width:0%;border-radius:4px;
+  background:linear-gradient(90deg,var(--blue),var(--green));transition:width .4s ease}
+.dist-bar.ready{background:var(--green)}
+.dist-display{display:flex;justify-content:space-between;align-items:baseline}
+.dist-value{font-family:'Orbitron',monospace;font-size:26px;font-weight:700;color:var(--dim);transition:color .3s}
+.dist-value.moving{color:var(--blue)}
+.dist-value.ready{color:var(--green);animation:glow 1s ease infinite alternate}
+@keyframes glow{from{text-shadow:0 0 8px var(--green)}to{text-shadow:0 0 20px var(--green),0 0 40px var(--green)}}
+.dist-unit{font-size:11px;color:var(--textdim);letter-spacing:2px}
+.dist-estado{font-size:11px;letter-spacing:2px;padding:3px 10px;border-radius:10px;
+  background:rgba(42,74,106,.4);color:var(--textdim);border:1px solid var(--dim);transition:all .3s}
+.dist-estado.ready{background:rgba(0,229,160,.1);color:var(--green);border-color:var(--green)}
 
-  /* CORRECCIONES */
-  .correcciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-  .corr-box {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px 14px; position: relative;
-  }
-  .corr-box::before {
-    content: attr(data-label); position: absolute; top: -8px; left: 12px;
-    background: var(--panel); font-size: 9px; letter-spacing: 3px; padding: 0 6px;
-  }
-  .corr-box.ecosonda::before { color: var(--blue); }
-  .corr-box.marea::before    { color: var(--marea); }
-  .corr-input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .sign-btn {
-    width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--border);
-    background: #020a12; color: var(--amber2); font-size: 20px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-family: 'Share Tech Mono', monospace; transition: all 0.2s; flex-shrink: 0;
-  }
-  .sign-btn:hover { border-color: var(--amber); background: rgba(232,160,32,0.1); }
-  .corr-num {
-    flex: 1; background: #020a12; border: 1px solid var(--border);
-    border-radius: 6px; color: var(--amber2);
-    font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 700;
-    text-align: center; padding: 5px 8px; outline: none; -moz-appearance: textfield;
-  }
-  .corr-num::-webkit-inner-spin-button { display: none; }
-  .corr-num:focus { border-color: var(--amber); }
-  .corr-unit { font-size: 12px; color: var(--textdim); letter-spacing: 1px; flex-shrink: 0; }
-  .corr-display { font-size: 10px; color: var(--textdim); letter-spacing: 1px; padding: 4px 8px; background: #020a12; border-radius: 4px; font-family: 'Share Tech Mono', monospace; }
-  .corr-display.positive { color: var(--green); }
-  .corr-display.negative { color: var(--red); }
-  .btn-update-marea { width: 100%; margin-top: 8px; background: rgba(192,132,252,0.1); border: 1px solid var(--marea); border-radius: 6px; color: var(--marea); font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 2px; padding: 7px; cursor: pointer; transition: all 0.2s; }
-  .btn-update-marea:hover { background: rgba(192,132,252,0.2); }
-  .marea-log-last { font-size: 9px; color: var(--marea); letter-spacing: 1px; margin-top: 6px; text-align: center; opacity: 0.7; font-family: 'Share Tech Mono', monospace; }
+/* CAPTURA */
+.capture-box{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:12px 14px;margin-bottom:8px;position:relative}
+.capture-box::before{content:'LECTURA ECOSONDA';position:absolute;top:-8px;left:14px;
+  background:var(--panel);font-size:9px;letter-spacing:3px;color:var(--blue);padding:0 6px}
+.depth-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.depth-label{font-size:10px;letter-spacing:2px;color:var(--textdim);white-space:nowrap}
+.depth-input{flex:1;background:#020a12;border:2px solid var(--dim);border-radius:6px;
+  color:var(--amber2);font-family:'Orbitron',monospace;font-size:38px;font-weight:700;
+  text-align:center;padding:8px 12px;outline:none;width:100%;
+  transition:border-color .3s,box-shadow .3s;-moz-appearance:textfield}
+.depth-input::-webkit-inner-spin-button{display:none}
+.depth-input:focus{border-color:var(--amber);box-shadow:0 0 16px rgba(232,160,32,.15)}
+.depth-unit{font-family:'Share Tech Mono',monospace;font-size:16px;color:var(--textdim);white-space:nowrap}
 
-  /* CALCULADORA */
-  .calculadora { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; display: flex; align-items: center; }
-  .calc-term { flex: 1; text-align: center; }
-  .calc-label { font-size: 8px; letter-spacing: 2px; color: var(--textdim); margin-bottom: 3px; }
-  .calc-val { font-family: 'Orbitron', monospace; font-size: 20px; font-weight: 700; }
-  .calc-val.eco   { color: var(--amber2); }
-  .calc-val.off   { color: var(--blue); font-size: 16px; }
-  .calc-val.mar   { color: var(--marea); font-size: 16px; }
-  .calc-val.final { color: var(--green); font-size: 26px; }
-  .calc-op { font-family: 'Share Tech Mono', monospace; font-size: 22px; color: var(--dim); padding: 0 6px; flex-shrink: 0; }
-  .calc-eq { color: var(--amber); }
+/* BOTÓN GRABAR */
+.btn-grabar{width:100%;border-radius:8px;font-family:'Orbitron',monospace;font-size:15px;
+  font-weight:700;letter-spacing:4px;padding:16px;cursor:pointer;
+  transition:all .25s;text-transform:uppercase;border:2px solid}
+.btn-grabar.locked{background:rgba(42,74,106,.2);border-color:var(--dim);color:var(--dim);cursor:not-allowed}
+.btn-grabar.unlocked{background:linear-gradient(135deg,rgba(0,229,160,.15),rgba(26,143,232,.15));
+  border-color:var(--green);color:var(--green);box-shadow:0 0 20px rgba(0,229,160,.2);
+  animation:btnPulse 1.5s ease infinite}
+@keyframes btnPulse{0%,100%{box-shadow:0 0 20px rgba(0,229,160,.2)}50%{box-shadow:0 0 35px rgba(0,229,160,.45)}}
+.btn-grabar.unlocked:active{transform:scale(.98)}
+.btn-grabar.grabbed{background:rgba(42,74,106,.15);border-color:var(--dim);color:var(--textdim);cursor:not-allowed}
+.btn-grabar.no-gps{background:rgba(42,74,106,.1);border-color:var(--dim);color:var(--dim);cursor:not-allowed}
 
-  /* ODÓMETRO */
-  .odometro { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
-  .odometro-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .odometro-label { font-size: 9px; letter-spacing: 3px; color: var(--textdim); }
-  .threshold-ctrl { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--textdim); }
-  .threshold-ctrl input { width: 50px; background: #020a12; border: 1px solid var(--border); color: var(--amber2); border-radius: 4px; padding: 3px 6px; font-family: 'Share Tech Mono', monospace; font-size: 13px; text-align: center; outline: none; }
-  .dist-bar-wrap { height: 8px; background: #020a12; border-radius: 4px; overflow: hidden; margin-bottom: 8px; border: 1px solid var(--border); }
-  .dist-bar { height: 100%; width: 0%; border-radius: 4px; background: linear-gradient(90deg, var(--blue), var(--green)); transition: width 0.4s ease; }
-  .dist-bar.ready { background: var(--green); }
-  .dist-display { display: flex; justify-content: space-between; align-items: baseline; }
-  .dist-value { font-family: 'Orbitron', monospace; font-size: 26px; font-weight: 700; color: var(--dim); transition: color 0.3s; }
-  .dist-value.moving { color: var(--blue); }
-  .dist-value.ready { color: var(--green); animation: glow 1s ease infinite alternate; }
-  @keyframes glow { from{text-shadow:0 0 8px var(--green)} to{text-shadow:0 0 20px var(--green),0 0 40px var(--green)} }
-  .dist-unit { font-size: 11px; color: var(--textdim); letter-spacing: 2px; }
-  .dist-estado { font-size: 11px; letter-spacing: 2px; padding: 3px 10px; border-radius: 10px; background: rgba(42,74,106,0.4); color: var(--textdim); border: 1px solid var(--dim); transition: all 0.3s; }
-  .dist-estado.ready { background: rgba(0,229,160,0.1); color: var(--green); border-color: var(--green); }
+/* MODOS AUTO */
+.auto-row{display:flex;gap:8px;margin-bottom:8px}
+.btn-auto{flex:1;padding:8px;border-radius:6px;border:1px solid;
+  font-family:'Exo 2',sans-serif;font-size:10px;font-weight:600;
+  letter-spacing:1px;cursor:pointer;transition:all .2s}
+.btn-auto.on-green{background:rgba(0,229,160,.15);border-color:var(--green);color:var(--green)}
+.btn-auto.off-dim{background:rgba(42,74,106,.2);border-color:var(--dim);color:var(--textdim)}
+.btn-auto.on-amber{background:rgba(232,160,32,.15);border-color:var(--amber);color:var(--amber)}
 
-  /* CAPTURA */
-  .capture-box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; position: relative; }
-  .capture-box::before { content: 'LECTURA ECOSONDA'; position: absolute; top: -8px; left: 14px; background: var(--panel); font-size: 9px; letter-spacing: 3px; color: var(--blue); padding: 0 6px; }
-  .depth-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .depth-label { font-size: 10px; letter-spacing: 2px; color: var(--textdim); white-space: nowrap; }
-  .depth-input { flex: 1; background: #020a12; border: 2px solid var(--dim); border-radius: 6px; color: var(--amber2); font-family: 'Orbitron', monospace; font-size: 38px; font-weight: 700; text-align: center; padding: 8px 12px; outline: none; width: 100%; transition: border-color 0.3s, box-shadow 0.3s; -moz-appearance: textfield; }
-  .depth-input::-webkit-inner-spin-button { display: none; }
-  .depth-input:focus { border-color: var(--amber); box-shadow: 0 0 16px rgba(232,160,32,0.15); }
-  .depth-unit { font-family: 'Share Tech Mono', monospace; font-size: 16px; color: var(--textdim); white-space: nowrap; }
+/* POSTE */
+.btn-poste{width:100%;margin-bottom:10px;padding:10px;border-radius:8px;
+  background:rgba(255,208,96,.12);border:2px solid rgba(255,208,96,.4);color:#ffd060;
+  font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:3px;
+  cursor:pointer;transition:all .2s}
+.btn-poste:disabled{opacity:.3;cursor:not-allowed}
 
-  /* BOTÓN GRABAR */
-  .btn-grabar { width: 100%; border-radius: 8px; font-family: 'Orbitron', monospace; font-size: 15px; font-weight: 700; letter-spacing: 4px; padding: 16px; cursor: pointer; transition: all 0.25s; text-transform: uppercase; border: 2px solid; }
-  .btn-grabar.locked  { background: rgba(42,74,106,0.2); border-color: var(--dim); color: var(--dim); cursor: not-allowed; }
-  .btn-grabar.unlocked { background: linear-gradient(135deg,rgba(0,229,160,0.15),rgba(26,143,232,0.15)); border-color: var(--green); color: var(--green); box-shadow: 0 0 20px rgba(0,229,160,0.2); animation: btnPulse 1.5s ease infinite; }
-  @keyframes btnPulse { 0%,100%{box-shadow:0 0 20px rgba(0,229,160,0.2)} 50%{box-shadow:0 0 35px rgba(0,229,160,0.45)} }
-  .btn-grabar.unlocked:active { transform: scale(0.98); }
-  .btn-grabar.grabbed { background: rgba(42,74,106,0.15); border-color: var(--dim); color: var(--textdim); cursor: not-allowed; }
-  .btn-grabar.no-gps { background: rgba(42,74,106,0.1); border-color: var(--dim); color: var(--dim); cursor: not-allowed; }
+/* GAS */
+.gas-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.gas-input{flex:1;background:var(--panel);border:1px solid var(--border);
+  color:var(--textdim);border-radius:4px;padding:6px 10px;font-size:11px;font-family:'Share Tech Mono',monospace}
+.gas-label{font-size:9px;color:var(--textdim);letter-spacing:2px;white-space:nowrap}
+.btn-test{padding:6px 12px;border-radius:4px;background:rgba(232,160,32,.08);
+  border:1px solid var(--amber);color:var(--amber);font-size:11px;cursor:pointer}
 
-  /* GAS */
-  .gas-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-  .gas-input { flex: 1; background: var(--panel); border: 1px solid var(--border); color: var(--textdim); border-radius: 4px; padding: 6px 10px; font-size: 11px; font-family: 'Share Tech Mono', monospace; }
-  .gas-label { font-size: 9px; color: var(--textdim); letter-spacing: 2px; white-space: nowrap; }
+/* EXPORT BAR */
+.export-bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;
+  background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;position:relative}
+.export-bar::before{content:'EXPORTAR SECTOR';position:absolute;top:-8px;left:14px;
+  background:var(--panel);font-size:9px;letter-spacing:3px;color:var(--amber);padding:0 6px}
+.export-name{flex:1;background:#020a12;border:1px solid var(--border);
+  color:var(--amber2);border-radius:6px;padding:7px 12px;
+  font-family:'Share Tech Mono',monospace;font-size:14px;outline:none}
+.btn-exp-sector{padding:8px 14px;border-radius:6px;cursor:pointer;border:1px solid;
+  font-family:'Exo 2',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;
+  transition:all .2s;white-space:nowrap;
+  background:rgba(232,160,32,.1);border-color:var(--amber);color:var(--amber)}
+.btn-nuevo{padding:8px 14px;border-radius:6px;cursor:pointer;border:1px solid;
+  font-family:'Exo 2',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;
+  transition:all .2s;white-space:nowrap;
+  background:rgba(0,229,160,.08);border-color:var(--green);color:var(--green)}
 
-  /* ══ SECTOR EXPORT BAR ══ */
-  .export-bar {
-    display: flex; gap: 8px; align-items: center; margin-bottom: 10px;
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 14px; position: relative;
-  }
-  .export-bar::before {
-    content: 'EXPORTAR SECTOR';
-    position: absolute; top: -8px; left: 14px;
-    background: var(--panel); font-size: 9px;
-    letter-spacing: 3px; color: var(--amber); padding: 0 6px;
-  }
-  .export-name {
-    flex: 1; background: #020a12; border: 1px solid var(--border);
-    color: var(--amber2); border-radius: 6px; padding: 7px 12px;
-    font-family: 'Share Tech Mono', monospace; font-size: 14px; outline: none;
-    transition: border-color 0.3s;
-  }
-  .export-name:focus { border-color: var(--amber); }
-  .btn-export-sector {
-    padding: 8px 16px; border-radius: 6px; cursor: pointer; border: 1px solid;
-    font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 600;
-    letter-spacing: 1px; transition: all 0.2s; white-space: nowrap;
-    background: rgba(232,160,32,0.1); border-color: var(--amber); color: var(--amber);
-  }
-  .btn-export-sector:hover { background: rgba(232,160,32,0.2); }
-  .btn-nuevo-sector {
-    padding: 8px 16px; border-radius: 6px; cursor: pointer; border: 1px solid;
-    font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 600;
-    letter-spacing: 1px; transition: all 0.2s; white-space: nowrap;
-    background: rgba(0,229,160,0.08); border-color: var(--green); color: var(--green);
-  }
-  .btn-nuevo-sector:hover { background: rgba(0,229,160,0.18); }
+/* LOG */
+.log-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.log-title{font-size:9px;letter-spacing:3px;color:var(--blue)}
+.counter{font-family:'Orbitron',monospace;font-size:20px;color:var(--amber);font-weight:700}
+.counter span{font-size:10px;color:var(--textdim);margin-left:4px}
+.table-wrap{background:#020a12;border:1px solid var(--border);border-radius:6px;
+  overflow:hidden;max-height:240px;overflow-y:auto}
+.table-wrap::-webkit-scrollbar{width:4px}
+.table-wrap::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
+table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace}
+th{font-size:9px;letter-spacing:2px;color:var(--textdim);padding:7px 8px;
+  text-align:left;border-bottom:1px solid var(--border);background:var(--panel);position:sticky;top:0}
+td{font-size:11px;padding:5px 8px;border-bottom:1px solid rgba(14,58,92,.4)}
+tr:last-child td{border-bottom:none}
+tr.new-row td{animation:rowIn .6s ease}
+@keyframes rowIn{from{background:rgba(0,229,160,.1)}to{background:transparent}}
+td.final{color:var(--green);font-weight:bold;font-size:14px}
+td.eco{color:var(--amber2)}
+td.lat,td.lon{color:var(--blue);font-size:10px}
+td.marea-cell{color:var(--marea)}
+td.sector-cell{color:var(--amber);font-size:10px}
+.del-btn{background:none;border:none;color:var(--dim);cursor:pointer;font-size:12px;
+  padding:2px 5px;border-radius:3px;transition:all .2s}
+.del-btn:hover{color:var(--red);background:rgba(255,68,85,.1)}
 
-  /* TABLA */
-  .log-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-  .log-title { font-size: 9px; letter-spacing: 3px; color: var(--blue); }
-  .counter { font-family: 'Orbitron', monospace; font-size: 20px; color: var(--amber); font-weight: 700; }
-  .counter span { font-size: 10px; color: var(--textdim); margin-left: 4px; }
-  .table-wrap { background: #020a12; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; max-height: 240px; overflow-y: auto; }
-  .table-wrap::-webkit-scrollbar { width: 4px; }
-  .table-wrap::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
-  table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; }
-  th { font-size: 9px; letter-spacing: 2px; color: var(--textdim); padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--border); background: var(--panel); position: sticky; top: 0; }
-  td { font-size: 11px; padding: 5px 8px; border-bottom: 1px solid rgba(14,58,92,0.4); }
-  tr:last-child td { border-bottom: none; }
-  tr.new-row td { animation: rowIn 0.6s ease; }
-  @keyframes rowIn { from{background:rgba(0,229,160,0.1)} to{background:transparent} }
-  td.final { color: var(--green); font-weight: bold; font-size: 14px; }
-  td.eco   { color: var(--amber2); }
-  td.lat, td.lon { color: var(--blue); font-size: 10px; }
-  td.marea-cell { color: var(--marea); }
-  td.sector-cell { color: var(--amber); font-size: 10px; }
-  .del-btn { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 12px; padding: 2px 5px; border-radius: 3px; transition: all 0.2s; }
-  .del-btn:hover { color: var(--red); background: rgba(255,68,85,0.1); }
+/* MAREA LOG */
+.marea-log-mini{background:rgba(192,132,252,.05);border:1px solid rgba(192,132,252,.2);
+  border-radius:4px;padding:5px 10px;margin-bottom:10px;
+  font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--marea);
+  max-height:60px;overflow-y:auto}
 
-  /* Marea log mini */
-  .marea-log-mini { background: rgba(192,132,252,0.05); border: 1px solid rgba(192,132,252,0.2); border-radius: 4px; padding: 5px 10px; margin-bottom: 10px; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--marea); max-height: 60px; overflow-y: auto; }
-
-  /* Flash + Toast */
-  .flash { position: fixed; inset: 0; background: rgba(0,229,160,0.07); pointer-events: none; opacity: 0; transition: opacity 0.08s; z-index: 999; }
-  .flash.show { opacity: 1; }
-  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--panel); border: 1px solid var(--green); border-radius: 8px; padding: 9px 14px; font-size: 12px; color: var(--green); font-family: 'Share Tech Mono', monospace; transform: translateY(60px); opacity: 0; transition: all 0.3s; z-index: 1000; max-width: 320px; }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.err  { border-color: var(--red); color: var(--red); }
-  .toast.marea-toast { border-color: var(--marea); color: var(--marea); }
-  .toast.sector-toast { border-color: var(--amber); color: var(--amber); }
+/* FLASH / TOAST */
+.flash{position:fixed;inset:0;background:rgba(0,229,160,.07);
+  pointer-events:none;opacity:0;transition:opacity .08s;z-index:999}
+.flash.show{opacity:1}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--panel);
+  border:1px solid var(--green);border-radius:8px;padding:9px 14px;font-size:12px;
+  color:var(--green);font-family:'Share Tech Mono',monospace;
+  transform:translateY(60px);opacity:0;transition:all .3s;z-index:1000;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.err{border-color:var(--red);color:var(--red)}
+.toast.marea-toast{border-color:var(--marea);color:var(--marea)}
+.toast.sector-toast{border-color:var(--amber);color:var(--amber)}
 </style>
 </head>
 <body>
-
 <div class="flash" id="flash"></div>
 <div class="toast" id="toast"></div>
-
 <div class="app">
 
   <!-- HEADER -->
   <header>
-    <div class="logo">
-      <div class="logo-title">⚓ BatiCaptura v3</div>
-      <div class="logo-sub">RELEVAMIENTO BATIMÉTRICO — DELTA DEL TIGRE</div>
+    <div>
+      <div class="logo-title">⚓ BatiCaptura v4</div>
+      <div class="logo-sub">RELEVAMIENTO BATIMÉTRICO — BATISISTEMA</div>
     </div>
     <div class="status-pill">
       <div class="dot" id="gps-dot"></div>
@@ -313,39 +287,40 @@
     </div>
   </header>
 
-  <!-- ══ SECTOR ACTIVO ══ -->
+  <!-- SECTOR -->
   <div class="sector-bar">
     <input class="sector-input" id="sector-nombre" type="text"
-           placeholder="Ej: Canal Principal" maxlength="40"
-           oninput="autoSave()" />
+           placeholder="Ej: Canal Principal" maxlength="40" oninput="autoSave()"/>
     <div class="autosave-ind">
       <div class="autosave-dot" id="autosave-dot"></div>
       <span id="autosave-txt">sin datos</span>
     </div>
   </div>
 
-  <!-- GPS CONTROLES -->
+  <!-- CONEXIÓN GPS -->
   <div class="btn-row">
-    <button class="btn btn-connect"    id="btn-connect"    onclick="connectGPS()">▶ CONECTAR GPS</button>
+    <button class="btn btn-connect" id="btn-connect" onclick="connectGPS()">▶ CONECTAR GPS</button>
     <button class="btn btn-disconnect" id="btn-disconnect" onclick="disconnectGPS()" disabled>■ DESCONECTAR</button>
   </div>
   <div class="serial-config">
     <label>BAUD</label>
     <select id="baudRate">
-      <option value="4800">4800</option>
+      <option value="4800" selected>4800</option>
       <option value="9600">9600</option>
-      <option value="38400" selected>38400</option>
+      <option value="38400">38400</option>
     </select>
     <label style="margin-left:8px">SENTENCIA</label>
     <select id="nmeaSentence">
       <option value="GPGGA">$GPGGA</option>
       <option value="GPRMC">$GPRMC</option>
     </select>
-    <button class="btn btn-clear" style="flex:none;padding:5px 12px;font-size:10px" onclick="demoGPS()">DEMO</button>
+    <button class="btn" style="flex:none;padding:5px 12px;font-size:10px;
+      background:rgba(42,74,106,.3);border-color:var(--dim);color:var(--textdim)"
+      onclick="demoGPS()">DEMO</button>
   </div>
   <div class="nmea-debug" id="nmea-raw">— sin datos NMEA —</div>
 
-  <!-- INSTRUMENTOS GPS -->
+  <!-- GPS INSTRUMENTOS -->
   <div class="instruments">
     <div class="instr">
       <div class="instr-label">LATITUD</div>
@@ -364,25 +339,15 @@
     </div>
   </div>
 
-  <!-- PROFUNDIDAD ECOSONDA EN TIEMPO REAL -->
-  <div style="background:var(--panel);border:2px solid rgba(0,229,160,.3);border-radius:8px;
-    padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;
-    position:relative;">
-    <div style="position:absolute;top:-8px;left:14px;background:var(--panel);
-      font-size:9px;letter-spacing:3px;color:var(--green);padding:0 6px">
-      ECOSONDA EN TIEMPO REAL
+  <!-- PROFUNDIDAD ECOSONDA GRANDE -->
+  <div class="depth-display">
+    <div class="depth-main">
+      <div class="depth-big" id="disp-depth">—</div>
+      <div class="depth-unit-lbl">METROS (ecosonda)</div>
     </div>
-    <div style="text-align:center;flex:1">
-      <div style="font-size:9px;letter-spacing:2px;color:var(--textdim);margin-bottom:3px">PROFUNDIDAD</div>
-      <div id="disp-depth" style="font-family:'Orbitron',monospace;font-size:42px;font-weight:700;
-        color:var(--green);line-height:1;transition:color .3s">—</div>
-      <div style="font-size:10px;color:var(--textdim);letter-spacing:2px;margin-top:2px">metros</div>
-    </div>
-    <div style="text-align:center;flex:1;border-left:1px solid var(--border);padding-left:12px">
-      <div style="font-size:9px;letter-spacing:2px;color:var(--textdim);margin-bottom:3px">PROF. FINAL</div>
-      <div id="disp-final-live" style="font-family:'Orbitron',monospace;font-size:28px;font-weight:700;
-        color:var(--amber2);line-height:1">—</div>
-      <div style="font-size:9px;color:var(--textdim);letter-spacing:1px;margin-top:2px">con correcciones</div>
+    <div class="depth-final">
+      <div class="depth-final-val" id="disp-final-live">—</div>
+      <div class="depth-final-lbl">PROF. FINAL</div>
     </div>
   </div>
 
@@ -391,16 +356,16 @@
     <div class="corr-box ecosonda" data-label="OFFSET ECOSONDA">
       <div class="corr-input-row">
         <button class="sign-btn" id="eco-sign-btn" onclick="toggleSign('eco')">+</button>
-        <input  class="corr-num" id="eco-val" type="number" value="0.00" step="0.01" min="0" max="9.99" oninput="updateCalc()" />
+        <input class="corr-num" id="eco-val" type="number" value="0.00" step="0.01" min="0" max="9.99" oninput="updateCalc()"/>
         <span class="corr-unit">m</span>
       </div>
       <div class="corr-display" id="eco-display">Sin corrección</div>
-      <div style="font-size:9px;color:var(--textdim);margin-top:6px;letter-spacing:1px">Medí con escangallo al inicio de sesión</div>
+      <div style="font-size:9px;color:var(--textdim);margin-top:6px;letter-spacing:1px">Medí con escangallo al inicio</div>
     </div>
     <div class="corr-box marea" data-label="CORRECCIÓN MAREA">
       <div class="corr-input-row">
         <button class="sign-btn" id="marea-sign-btn" onclick="toggleSign('marea')">+</button>
-        <input  class="corr-num" id="marea-val" type="number" value="0.00" step="0.01" min="0" max="9.99" oninput="updateCalc()" />
+        <input class="corr-num" id="marea-val" type="number" value="0.00" step="0.01" min="0" max="9.99" oninput="updateCalc()"/>
         <span class="corr-unit">m</span>
       </div>
       <div class="corr-display" id="marea-display">Sin corrección</div>
@@ -413,25 +378,13 @@
 
   <!-- CALCULADORA -->
   <div class="calculadora">
-    <div class="calc-term">
-      <div class="calc-label">ECOSONDA</div>
-      <div class="calc-val eco" id="calc-eco">—</div>
-    </div>
+    <div class="calc-term"><div class="calc-label">ECOSONDA</div><div class="calc-val eco" id="calc-eco">—</div></div>
     <div class="calc-op">+</div>
-    <div class="calc-term">
-      <div class="calc-label">OFFSET</div>
-      <div class="calc-val off" id="calc-off">0.00</div>
-    </div>
+    <div class="calc-term"><div class="calc-label">OFFSET</div><div class="calc-val off" id="calc-off">0.00</div></div>
     <div class="calc-op">+</div>
-    <div class="calc-term">
-      <div class="calc-label">MAREA</div>
-      <div class="calc-val mar" id="calc-mar">0.00</div>
-    </div>
+    <div class="calc-term"><div class="calc-label">MAREA</div><div class="calc-val mar" id="calc-mar">0.00</div></div>
     <div class="calc-op calc-eq">=</div>
-    <div class="calc-term">
-      <div class="calc-label">PROF. FINAL</div>
-      <div class="calc-val final" id="calc-final">—</div>
-    </div>
+    <div class="calc-term"><div class="calc-label">PROF. FINAL</div><div class="calc-val final" id="calc-final">—</div></div>
   </div>
 
   <!-- ODÓMETRO -->
@@ -440,7 +393,7 @@
       <div class="odometro-label">▸ DISTANCIA DESDE ÚLTIMO PUNTO</div>
       <div class="threshold-ctrl">
         <span>UMBRAL</span>
-        <input type="number" id="threshold" value="10" min="1" max="200" step="1" onchange="updateThreshold()" />
+        <input type="number" id="threshold" value="10" min="1" max="200" step="1" onchange="updateThreshold()"/>
         <span>m</span>
       </div>
     </div>
@@ -454,84 +407,61 @@
     </div>
   </div>
 
-  <!-- CAPTURA -->
+  <!-- CAPTURA MANUAL -->
   <div class="capture-box">
     <div class="depth-row">
       <div class="depth-label">ECOSONDA</div>
       <input type="number" class="depth-input" id="depth-input"
              placeholder="0.0" step="0.1" min="0" max="99"
-             onkeydown="handleKey(event)" oninput="updateCalcFromInput()" inputmode="decimal" />
+             onkeydown="handleKey(event)" oninput="updateCalcFromInput()" inputmode="decimal"/>
       <div class="depth-unit">m</div>
     </div>
     <button class="btn-grabar no-gps" id="btn-grabar" onclick="grabarPunto()">
       <span id="lock-icon">🔒</span>
       <span id="btn-grabar-txt"> ESPERANDO GPS</span>
     </button>
-    <button id="btn-poste" onclick="grabarPoste()" disabled
-      style="width:100%;margin-top:8px;padding:10px;border-radius:8px;
-      background:rgba(255,208,96,.12);border:2px solid rgba(255,208,96,.4);
-      color:#ffd060;font-family:'Orbitron',monospace;font-size:12px;
-      font-weight:700;letter-spacing:3px;cursor:pointer;transition:all .2s">
-      📍 MARCAR POSTE
-    </button>
   </div>
 
-  <!-- Modos automáticos -->
-  <div style="display:flex;gap:8px;margin:0 0 10px 0">
-    <button id="btn-auto-depth" onclick="toggleAutoDepth()"
-      style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--green);
-      background:rgba(0,229,160,.15);color:var(--green);font-family:'Exo 2',sans-serif;
-      font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer">
+  <!-- MODOS AUTOMÁTICOS -->
+  <div class="auto-row">
+    <button class="btn-auto on-green" id="btn-auto-depth" onclick="toggleAutoDepth()">
       📡 AUTO PROF: ON
     </button>
-    <button id="btn-auto-grab" onclick="toggleAutoGrab()"
-      style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--dim);
-      background:rgba(42,74,106,.2);color:var(--textdim);font-family:'Exo 2',sans-serif;
-      font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer">
+    <button class="btn-auto off-dim" id="btn-auto-grab" onclick="toggleAutoGrab()">
       ⚡ AUTO GRAB: OFF
     </button>
   </div>
 
+  <!-- POSTE -->
+  <button class="btn-poste" id="btn-poste" onclick="grabarPoste()" disabled>
+    📍 MARCAR POSTE
+  </button>
+
   <!-- GAS -->
   <div class="gas-row">
     <span class="gas-label">GAS URL</span>
-    <input class="gas-input" id="gas-url" type="text"
-           placeholder="https://script.google.com/macros/s/xxxx/exec" />
-    <button class="btn btn-export" style="flex:none;padding:6px 12px;font-size:11px" onclick="testGAS()">TEST</button>
+    <input class="gas-input" id="gas-url" type="text" placeholder="https://script.google.com/macros/s/xxxx/exec"/>
+    <button class="btn-test" onclick="testGAS()">TEST</button>
   </div>
 
-  <!-- ══ EXPORTAR SECTOR ══ -->
+  <!-- EXPORTAR -->
   <div class="export-bar">
-    <input class="export-name" id="export-name" type="text"
-           placeholder="Nombre del archivo CSV..." maxlength="50" />
-    <button class="btn-export-sector" onclick="exportarSector()">↓ GUARDAR CSV</button>
-    <button class="btn-nuevo-sector"  onclick="nuevoSector()">▶ NUEVO SECTOR</button>
+    <input class="export-name" id="export-name" type="text" placeholder="Nombre del archivo CSV..." maxlength="50"/>
+    <button class="btn-exp-sector" onclick="exportarSector()">↓ CSV</button>
+    <button class="btn-nuevo" onclick="nuevoSector()">▶ NUEVO</button>
   </div>
 
-  <!-- LOG PUNTOS -->
+  <!-- LOG -->
   <div class="log-header">
     <div class="log-title">▸ PUNTOS RELEVADOS</div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <div class="counter"><span id="punto-count">0</span><span>pts</span></div>
-    </div>
+    <div class="counter"><span id="punto-count">0</span><span>pts</span></div>
   </div>
-
   <div class="table-wrap">
     <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>SECTOR</th>
-          <th>LAT</th>
-          <th>LON</th>
-          <th>ECO</th>
-          <th>OFF</th>
-          <th>MAR</th>
-          <th>FINAL</th>
-          <th>HORA</th>
-          <th></th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th>#</th><th>SECTOR</th><th>LAT</th><th>LON</th>
+        <th>ECO</th><th>OFF</th><th>MAR</th><th>FINAL</th><th>HORA</th><th></th>
+      </tr></thead>
       <tbody id="puntos-tbody"></tbody>
     </table>
   </div>
@@ -539,440 +469,382 @@
 </div><!-- /app -->
 
 <script>
-// ─── Estado ───────────────────────────────────────────────────────────────────
-let port = null, reader = null, buffer = '';
-let currentDepth = 0;   // profundidad actual de la ecosonda
-let autoDepth = true;   // leer profundidad automática del NMEA
-let autoGrab = false;   // grabar automático cuando supera umbral
-let depthTimer = null;  // timer para feedback visual
-let currentLat = null, currentLon = null, currentHdop = '--', currentSats = '--';
-let lastGrabbedLat = null, lastGrabbedLon = null;
-let hasGPS = false, firstPoint = true, canGrab = false;
-let puntos = [], mareaLog = [];
-let threshold = 10;
-let ecoSign = +1, mareaSign = +1;
-let freshTimer = null, demoInterval = null;
-const LS_KEY = 'baticaptura_v3';
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+let port=null, reader=null, buffer='';
+let currentLat=null, currentLon=null, currentHdop='--', currentSats='--';
+let lastGrabbedLat=null, lastGrabbedLon=null;
+let hasGPS=false, firstPoint=true, canGrab=false;
+let puntos=[], mareaLog=[];
+let threshold=10;
+let ecoSign=+1, mareaSign=+1;
+let freshTimer=null, demoInterval=null;
+let autoDepth=true, autoGrab=false;
+let depthFlashTimer=null;
+const LS_KEY='baticaptura_v4';
 
-// ─── localStorage ─────────────────────────────────────────────────────────────
+// ─── FORMATO SEXAGESIMAL ──────────────────────────────────────────────────────
+function toSex(dec, tipo) {
+  const neg=dec<0, abs=Math.abs(dec);
+  const deg=Math.floor(abs);
+  const min=(abs-deg)*60;
+  const dir=tipo==='lat'?(neg?'S':'N'):(neg?'O':'E');
+  return `${String(deg).padStart(tipo==='lon'?3:2,'0')}°${min.toFixed(3)}'${dir}`;
+}
+
+// ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
 function autoSave() {
   try {
-    const state = {
+    const state={
       puntos,
-      sector  : document.getElementById('sector-nombre').value,
-      gasUrl  : document.getElementById('gas-url').value,
-      threshold,
-      ecoSign, mareaSign,
-      ecoVal  : document.getElementById('eco-val').value,
-      mareaVal: document.getElementById('marea-val').value,
-      mareaLog,
-      lastGrabbedLat, lastGrabbedLon,
-      savedAt : new Date().toTimeString().substring(0,8)
+      sector:document.getElementById('sector-nombre').value,
+      gasUrl:document.getElementById('gas-url').value,
+      threshold, ecoSign, mareaSign,
+      ecoVal:document.getElementById('eco-val').value,
+      mareaVal:document.getElementById('marea-val').value,
+      mareaLog, lastGrabbedLat, lastGrabbedLon,
+      savedAt:new Date().toTimeString().substring(0,8)
     };
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
-    const dot = document.getElementById('autosave-dot');
-    const txt = document.getElementById('autosave-txt');
-    dot.className = 'autosave-dot saved';
-    txt.textContent = 'guardado ' + state.savedAt;
-    setTimeout(() => dot.className = 'autosave-dot', 2000);
-  } catch(e) {}
+    localStorage.setItem(LS_KEY,JSON.stringify(state));
+    const dot=document.getElementById('autosave-dot');
+    dot.className='autosave-dot saved';
+    document.getElementById('autosave-txt').textContent='guardado '+state.savedAt;
+    setTimeout(()=>dot.className='autosave-dot',2000);
+  }catch(e){}
 }
 
 function autoLoad() {
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return;
-    const state = JSON.parse(raw);
-
-    if (state.puntos && state.puntos.length > 0) {
-      const ok = confirm(
-        `Hay ${state.puntos.length} punto(s) del sector "${state.sector || 'sin nombre'}" guardados.\n\n` +
-        `¿Querés continuar desde donde lo dejaste?`
-      );
-      if (ok) {
-        puntos = state.puntos;
-        document.getElementById('sector-nombre').value = state.sector || '';
-        document.getElementById('gas-url').value       = state.gasUrl || '';
-        document.getElementById('eco-val').value       = state.ecoVal || '0.00';
-        document.getElementById('marea-val').value     = state.mareaVal || '0.00';
-        threshold = state.threshold || 10;
-        document.getElementById('threshold').value = threshold;
-        ecoSign   = state.ecoSign   || 1;
-        mareaSign = state.mareaSign || 1;
-        document.getElementById('eco-sign-btn').textContent   = ecoSign   > 0 ? '+' : '−';
-        document.getElementById('marea-sign-btn').textContent = mareaSign > 0 ? '+' : '−';
-        mareaLog  = state.mareaLog || [];
-        firstPoint = puntos.length === 0;
-        // Restaurar referencia del odómetro
-        if (state.lastGrabbedLat) {
-          lastGrabbedLat = state.lastGrabbedLat;
-          lastGrabbedLon = state.lastGrabbedLon;
-        } else if (state.puntos && state.puntos.length > 0) {
-          // Fallback: tomar último punto guardado
-          const ult = state.puntos[state.puntos.length-1];
-          lastGrabbedLat = parseFloat(ult.lat);
-          lastGrabbedLon = parseFloat(ult.lon);
+    const raw=localStorage.getItem(LS_KEY);
+    if(!raw)return;
+    const state=JSON.parse(raw);
+    if(state.puntos&&state.puntos.length>0){
+      const ok=confirm(`Hay ${state.puntos.length} punto(s) del sector "${state.sector||'sin nombre'}" guardados.\n\n¿Querés continuar?`);
+      if(ok){
+        puntos=state.puntos;
+        document.getElementById('sector-nombre').value=state.sector||'';
+        document.getElementById('gas-url').value=state.gasUrl||'';
+        document.getElementById('eco-val').value=state.ecoVal||'0.00';
+        document.getElementById('marea-val').value=state.mareaVal||'0.00';
+        threshold=state.threshold||10;
+        document.getElementById('threshold').value=threshold;
+        ecoSign=state.ecoSign||1;
+        mareaSign=state.mareaSign||1;
+        document.getElementById('eco-sign-btn').textContent=ecoSign>0?'+':'−';
+        document.getElementById('marea-sign-btn').textContent=mareaSign>0?'+':'−';
+        mareaLog=state.mareaLog||[];
+        firstPoint=puntos.length===0;
+        if(state.lastGrabbedLat){lastGrabbedLat=state.lastGrabbedLat;lastGrabbedLon=state.lastGrabbedLon;}
+        else if(state.puntos&&state.puntos.length>0){
+          const ult=state.puntos[state.puntos.length-1];
+          lastGrabbedLat=parseFloat(ult.lat);lastGrabbedLon=parseFloat(ult.lon);
         }
-
-        // Reconstruir tabla
-        puntos.forEach(p => addRow(p, false));
+        puntos.forEach(p=>addRow(p,false));
         updateCalc();
-        document.getElementById('autosave-txt').textContent = `${puntos.length} pts recuperados`;
-        showToast(`✓ Sesión recuperada — ${puntos.length} puntos`, false);
-      } else {
-        localStorage.removeItem(LS_KEY);
-      }
+        document.getElementById('autosave-txt').textContent=`${puntos.length} pts recuperados`;
+        showToast(`✓ Sesión recuperada — ${puntos.length} puntos`);
+      }else{localStorage.removeItem(LS_KEY);}
     }
-  } catch(e) {}
+  }catch(e){}
 }
 
-// ─── Correcciones ─────────────────────────────────────────────────────────────
+// ─── CORRECCIONES ─────────────────────────────────────────────────────────────
 function toggleSign(tipo) {
-  if (tipo === 'eco') {
-    ecoSign *= -1;
-    document.getElementById('eco-sign-btn').textContent = ecoSign > 0 ? '+' : '−';
-  } else {
-    mareaSign *= -1;
-    document.getElementById('marea-sign-btn').textContent = mareaSign > 0 ? '+' : '−';
-  }
-  updateCalc(); autoSave();
+  if(tipo==='eco'){ecoSign*=-1;document.getElementById('eco-sign-btn').textContent=ecoSign>0?'+':'−';}
+  else{mareaSign*=-1;document.getElementById('marea-sign-btn').textContent=mareaSign>0?'+':'−';}
+  updateCalc();autoSave();
 }
-
-function getEcoOffset() { return ecoSign * (parseFloat(document.getElementById('eco-val').value) || 0); }
-function getMareaCorr()  { return mareaSign * (parseFloat(document.getElementById('marea-val').value) || 0); }
+function getEcoOffset(){return ecoSign*(parseFloat(document.getElementById('eco-val').value)||0);}
+function getMareaCorr(){return mareaSign*(parseFloat(document.getElementById('marea-val').value)||0);}
 
 function updateCalc() {
-  const off = getEcoOffset(), mar = getMareaCorr();
-  const eco = parseFloat(document.getElementById('depth-input').value);
-  const fin = isNaN(eco) ? null : eco + off + mar;
-
-  const eD = document.getElementById('eco-display');
-  eD.textContent = off === 0 ? 'Sin corrección' : (off>0?'+':'') + off.toFixed(2) + ' m';
-  eD.className = 'corr-display' + (off>0?' positive':off<0?' negative':'');
-
-  const mD = document.getElementById('marea-display');
-  mD.textContent = mar === 0 ? 'Sin corrección' : (mar>0?'+':'') + mar.toFixed(2) + ' m';
-  mD.className = 'corr-display' + (mar>0?' positive':mar<0?' negative':'');
-
-  document.getElementById('calc-off').textContent  = (off>=0?'+':'') + off.toFixed(2);
-  document.getElementById('calc-mar').textContent  = (mar>=0?'+':'') + mar.toFixed(2);
-  document.getElementById('calc-eco').textContent  = isNaN(eco) ? '—' : eco.toFixed(2);
-  document.getElementById('calc-final').textContent = fin === null ? '—' : fin.toFixed(2);
+  const off=getEcoOffset(), mar=getMareaCorr();
+  const eco=parseFloat(document.getElementById('depth-input').value);
+  const fin=isNaN(eco)?null:eco+off+mar;
+  const eD=document.getElementById('eco-display');
+  eD.textContent=off===0?'Sin corrección':(off>0?'+':'')+off.toFixed(2)+' m';
+  eD.className='corr-display'+(off>0?' positive':off<0?' negative':'');
+  const mD=document.getElementById('marea-display');
+  mD.textContent=mar===0?'Sin corrección':(mar>0?'+':'')+mar.toFixed(2)+' m';
+  mD.className='corr-display'+(mar>0?' positive':mar<0?' negative':'');
+  document.getElementById('calc-off').textContent=(off>=0?'+':'')+off.toFixed(2);
+  document.getElementById('calc-mar').textContent=(mar>=0?'+':'')+mar.toFixed(2);
+  document.getElementById('calc-eco').textContent=isNaN(eco)?'—':eco.toFixed(2);
+  document.getElementById('calc-final').textContent=fin===null?'—':fin.toFixed(2);
+  // Actualizar display final live
+  const df=document.getElementById('disp-final-live');
+  if(df&&fin!==null)df.textContent=fin.toFixed(2);
 }
-function updateCalcFromInput() { updateCalc(); }
+function updateCalcFromInput(){updateCalc();}
 
 function registrarMarea() {
-  const mar = getMareaCorr();
-  const hora = new Date().toTimeString().substring(0,8);
-  const signo = mar >= 0 ? '+' : '';
-  mareaLog.push({ hora, mar });
-  const log = document.getElementById('marea-log-mini');
-  if (log.textContent.includes('Sin actualizaciones')) log.textContent = '';
-  log.textContent = `${hora}  MAREA ${signo}${mar.toFixed(2)}m\n` + log.textContent;
-  document.getElementById('marea-log-last').textContent = 'Últ. actualización: ' + hora;
+  const mar=getMareaCorr(), hora=new Date().toTimeString().substring(0,8);
+  const signo=mar>=0?'+':'';
+  mareaLog.push({hora,mar});
+  const log=document.getElementById('marea-log-mini');
+  if(log.textContent.includes('Sin actualizaciones'))log.textContent='';
+  log.textContent=`${hora}  MAREA ${signo}${mar.toFixed(2)}m\n`+log.textContent;
+  document.getElementById('marea-log-last').textContent='Últ. actualización: '+hora;
   autoSave();
-  showToast('↺ Marea actualizada: ' + signo + mar.toFixed(2) + 'm', false, 'marea');
+  showToast('↺ Marea actualizada: '+signo+mar.toFixed(2)+'m',false,'marea');
 }
 
-// ─── Sector — exportar y nuevo ────────────────────────────────────────────────
-function exportarSector() {
-  if (!puntos.length) { showToast('Sin puntos para exportar', true); return; }
-
-  let nombre = document.getElementById('export-name').value.trim();
-  if (!nombre) nombre = document.getElementById('sector-nombre').value.trim() || 'sector';
-  // Limpiar nombre para filename
-  nombre = nombre.replace(/[^a-zA-Z0-9_\-áéíóúÁÉÍÓÚñÑ ]/g, '').replace(/ /g, '_');
-
-  const fecha = new Date().toISOString().substring(0,10);
-  const filename = `${nombre}_${fecha}.csv`;
-
-  const hdr  = 'N,SECTOR,LATITUD,LONGITUD,ECO_M,OFFSET_M,MAREA_M,FINAL_M,DIST_M,HORA,HDOP\n';
-  const rows = puntos.map(p =>
-    `${p.n},${p.sector||''},${p.lat},${p.lon},${p.eco},${p.off},${p.mar},${p.final},${p.dist},${p.hora},${p.hdop}`
-  ).join('\n');
-
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([hdr+rows], {type:'text/csv;charset=utf-8'}));
-  a.download = filename;
-  a.click();
-  showToast(`✓ CSV guardado: ${filename}`, false, 'sector');
+// ─── MODOS AUTO ───────────────────────────────────────────────────────────────
+function toggleAutoDepth() {
+  autoDepth=!autoDepth;
+  const btn=document.getElementById('btn-auto-depth');
+  if(autoDepth){btn.className='btn-auto on-green';btn.textContent='📡 AUTO PROF: ON';}
+  else{btn.className='btn-auto off-dim';btn.textContent='📡 AUTO PROF: OFF';}
+  showToast(autoDepth?'📡 Profundidad automática activada':'Profundidad manual');
+}
+function toggleAutoGrab() {
+  autoGrab=!autoGrab;
+  const btn=document.getElementById('btn-auto-grab');
+  if(autoGrab){btn.className='btn-auto on-amber';btn.textContent='⚡ AUTO GRAB: ON';}
+  else{btn.className='btn-auto off-dim';btn.textContent='⚡ AUTO GRAB: OFF';}
+  showToast(autoGrab?'⚡ Grabado automático activado':'Grabado manual');
 }
 
-function nuevoSector() {
-  if (puntos.length > 0) {
-    const nombre = document.getElementById('sector-nombre').value.trim() || 'sector';
-    const ok = confirm(
-      `¿Exportar "${nombre}" (${puntos.length} puntos) y comenzar un nuevo sector?\n\n` +
-      `Se descargará el CSV automáticamente.`
-    );
-    if (!ok) return;
-    exportarSector();
-  }
-
-  // Limpiar para nuevo sector
-  puntos = []; mareaLog = [];
-  firstPoint = true; lastGrabbedLat = null; lastGrabbedLon = null; canGrab = false;
-  document.getElementById('puntos-tbody').innerHTML = '';
-  document.getElementById('punto-count').textContent = '0';
-  document.getElementById('sector-nombre').value = '';
-  document.getElementById('export-name').value = '';
-  document.getElementById('marea-log-mini').textContent = 'Sin actualizaciones de marea en esta sesión';
-  document.getElementById('marea-log-last').textContent = '—';
-  document.getElementById('autosave-txt').textContent = 'nuevo sector';
-  document.getElementById('depth-input').value = '';
-  localStorage.removeItem(LS_KEY);
-  if (hasGPS) updateOdometro();
-  document.getElementById('sector-nombre').focus();
-  showToast('▶ Nuevo sector iniciado', false, 'sector');
-}
-
-// ─── Haversine ────────────────────────────────────────────────────────────────
-function haversine(la1,lo1,la2,lo2) {
-  const R=6371000, r=d=>d*Math.PI/180;
-  const a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(lo2-lo1)/2)**2;
-  return R*2*Math.asin(Math.sqrt(a));
-}
-function getCurrentDist() {
-  if (!lastGrabbedLat||!currentLat) return 0;
-  return haversine(lastGrabbedLat,lastGrabbedLon,currentLat,currentLon);
-}
-function updateThreshold() {
-  threshold = parseInt(document.getElementById('threshold').value)||10;
-  autoSave(); updateOdometro();
-}
-
-// ─── Odómetro ─────────────────────────────────────────────────────────────────
-function updateOdometro() {
-  if (!hasGPS) return;
-  if (firstPoint) {
-    setGrabarState('unlocked');
-    document.getElementById('dist-value').textContent = '—';
-    document.getElementById('dist-estado').textContent = 'PRIMER PUNTO';
-    document.getElementById('dist-estado').className = 'dist-estado ready';
-    document.getElementById('dist-bar').style.width = '100%';
-    document.getElementById('dist-bar').className = 'dist-bar ready';
-    return;
-  }
-  if (!lastGrabbedLat) return;
-  const dist = haversine(lastGrabbedLat,lastGrabbedLon,currentLat,currentLon);
-  const pct  = Math.min(dist/threshold,1)*100;
-  const bar  = document.getElementById('dist-bar');
-  document.getElementById('dist-value').textContent = dist.toFixed(1);
-  bar.style.width = pct+'%';
-  if (dist >= threshold) {
-    bar.className = 'dist-bar ready';
-    document.getElementById('dist-value').className = 'dist-value ready';
-    document.getElementById('dist-estado').textContent = '✓ LISTO';
-    document.getElementById('dist-estado').className = 'dist-estado ready';
-    if (!canGrab) beep(880);
-    canGrab = true; setGrabarState('unlocked');
-  } else {
-    bar.className = 'dist-bar';
-    document.getElementById('dist-value').className = 'dist-value'+(dist>0.5?' moving':'');
-    document.getElementById('dist-estado').textContent = 'FALTAN '+(threshold-dist).toFixed(1)+'m';
-    document.getElementById('dist-estado').className = 'dist-estado';
-    canGrab = false; setGrabarState('locked');
-  }
-}
-
-// ─── Estado botón ─────────────────────────────────────────────────────────────
-function setGrabarState(state) {
-  // Habilitar btn-poste cuando hay GPS
-  const bp=document.getElementById('btn-poste');
-  if(bp) bp.disabled = !hasGPS;
-  const btn=document.getElementById('btn-grabar');
-  const icon=document.getElementById('lock-icon');
-  const txt=document.getElementById('btn-grabar-txt');
-  btn.className='btn-grabar '+state;
-  switch(state) {
-    case 'unlocked': icon.textContent=' ↵'; txt.textContent=' GRABAR SONDAJE';  btn.disabled=false; break;
-    case 'locked':   icon.textContent=' 🔒'; txt.textContent=' DESPLAZATE '+(threshold-getCurrentDist()).toFixed(0)+'m MÁS'; btn.disabled=true; break;
-    case 'grabbed':  icon.textContent=' ✓'; txt.textContent=' GRABADO — DESPLAZATE'; btn.disabled=true; break;
-    case 'no-gps':   icon.textContent=' 🔒'; txt.textContent=' ESPERANDO GPS'; btn.disabled=true; break;
-  }
-}
-
-// ─── Web Serial ───────────────────────────────────────────────────────────────
-async function connectGPS() {
-  if (!('serial' in navigator)) { showToast('Usá Chrome o Edge', true); return; }
-  try {
-    port = await navigator.serial.requestPort();
-    await port.open({ baudRate: parseInt(document.getElementById('baudRate').value) });
-    setGPSStatus('Conectado', true);
-    document.getElementById('btn-connect').disabled = true;
-    document.getElementById('btn-disconnect').disabled = false;
-    readSerial();
-  } catch(e) { showToast('Error: '+e.message, true); }
-}
-async function disconnectGPS() {
-  try { if(reader){await reader.cancel();reader=null;} } catch(e){}
-  try { if(port){await port.close();port=null;} } catch(e){}
-  hasGPS=false; setGPSStatus('Desconectado',false); setGrabarState('no-gps');
-  document.getElementById('btn-connect').disabled=false;
-  document.getElementById('btn-disconnect').disabled=true;
-}
-async function readSerial() {
-  const dec=new TextDecoderStream(); port.readable.pipeTo(dec.writable); reader=dec.readable.getReader();
-  try { while(true){const{value,done}=await reader.read(); if(done)break; buffer+=value; let l=buffer.split('\n'); buffer=l.pop(); l.forEach(processNMEA); } }
-  catch(e){ if(port) showToast('GPS desconectado',true); }
-}
+// ─── PROCESAMIENTO NMEA ───────────────────────────────────────────────────────
 function processNMEA(line) {
   line=line.trim();
-  if(!line.startsWith('$')) return;
-  // Limpiar checksum del último campo (*XX)
-  const starIdx=line.lastIndexOf('*');
-  if(starIdx>0) line=line.substring(0,starIdx);
+  if(!line.startsWith('$'))return;
+  // Quitar checksum (*XX)
+  const si=line.lastIndexOf('*');
+  if(si>0)line=line.substring(0,si);
   document.getElementById('nmea-raw').textContent=line;
   const p=line.split(','), type=p[0].substring(1);
 
-  // GPS — posición
-  if((type==='GPGGA'||type==='GNGGA')&&p[6]&&p[6]!=='0') updateCoords(nmeaCoord(p[2],p[3]),nmeaCoord(p[4],p[5]),p[8],p[7]);
-  if((type==='GPRMC'||type==='GNRMC')&&p[2]==='A') updateCoords(nmeaCoord(p[3],p[4]),nmeaCoord(p[5],p[6]),currentHdop,currentSats);
+  // GPS posición
+  if((type==='GPGGA'||type==='GNGGA')&&p[6]&&p[6]!=='0')
+    updateCoords(nmeaCoord(p[2],p[3]),nmeaCoord(p[4],p[5]),p[8],p[7]);
+  if((type==='GPRMC'||type==='GNRMC')&&p[2]==='A')
+    updateCoords(nmeaCoord(p[3],p[4]),nmeaCoord(p[5],p[6]),currentHdop,currentSats);
 
-  // PROFUNDIDAD — SDDBT (depth below transducer) o SDDPT (depth)
-  // $SDDBT,x.x,f,x.x,M,x.x,F*hh  → p[3]=metros
-  // $SDDPT,x.x,x.x*hh             → p[1]=metros
-  // DBT: $GPDBT,pies,f,metros,M,brazas,F
-  // p[0]=$GPDBT p[1]=pies p[2]=f p[3]=metros p[4]=M p[5]=brazas p[6]=F
-  if(type==='SDDBT'||type==='IIDBT'||type==='GPDBT'||type==='HCDBT'){
-    const d=parseFloat(p[3]); // metros
-    console.log('DBT recibido tipo:'+type+' p[3]='+p[3]+' d='+d);
-    if(!isNaN(d)&&d>0) updateDepth(d);
+  // Profundidad — $GPDBT,pies,f,METROS,M,brazas,F
+  if(type==='GPDBT'||type==='SDDBT'||type==='IIDBT'||type==='HCDBT'){
+    const d=parseFloat(p[3]); // metros = índice 3
+    if(!isNaN(d)&&d>0)updateDepth(d);
   }
-  if(type==='SDDPT'||type==='IIDPT'||type==='GPDPT'){
+  if(type==='GPDPT'||type==='SDDPT'||type==='IIDPT'){
     const d=parseFloat(p[1]);
-    if(!isNaN(d)&&d>0) updateDepth(d);
+    if(!isNaN(d)&&d>0)updateDepth(d);
   }
 }
 
-function updateDepth(metros) {
-  currentDepth = metros;
-
-  // Siempre mostrar en el display grande
-  const dd = document.getElementById('disp-depth');
-  if(dd){
-    dd.textContent = metros.toFixed(2);
-    dd.style.color='var(--green)';
-    clearTimeout(depthTimer);
-    depthTimer=setTimeout(()=>{ dd.style.color='var(--green)'; },800);
-  }
-
-  // Calcular y mostrar prof final con correcciones
-  const off=getEcoOffset(), mar=getMareaCorr();
-  const fin=metros+off+mar;
-  const df=document.getElementById('disp-final-live');
-  if(df) df.textContent=fin.toFixed(2);
-
-  // Si auto-profundidad activo → actualizar campo manual también
-  if(autoDepth) {
-    const inp = document.getElementById('depth-input');
-    inp.value = metros.toFixed(2);
-    updateCalc();
-    // Auto-grabar si umbral superado
-    if(autoGrab && (canGrab||firstPoint)) {
-      grabarPunto();
-    }
-  }
-}
 function nmeaCoord(raw,dir) {
-  if(!raw||raw.length<4) return null;
+  if(!raw||raw.length<4)return null;
   const d=raw.indexOf('.'), deg=parseFloat(raw.substring(0,d-2)), min=parseFloat(raw.substring(d-2));
-  let dec=deg+min/60; if(dir==='S'||dir==='W') dec=-dec; return dec;
-}
-// ─── Formato sexagesimal 3 decimales ─────────────────────────────────────────
-function toSex(dec, tipo) {
-  const neg = dec < 0;
-  const abs = Math.abs(dec);
-  const deg = Math.floor(abs);
-  const min = (abs - deg) * 60;
-  const dir = tipo === 'lat' ? (neg ? 'S' : 'N') : (neg ? 'O' : 'E');
-  return `${String(deg).padStart(tipo==='lon'?3:2,'0')}°${min.toFixed(3)}'${dir}`;
+  let dec=deg+min/60; if(dir==='S'||dir==='W')dec=-dec; return dec;
 }
 
 function updateCoords(lat,lon,hdop,sats) {
-  if(lat===null||lon===null) return;
-  currentLat=lat; currentLon=lon; currentHdop=hdop||'--'; currentSats=sats||'--'; hasGPS=true;
+  if(lat===null||lon===null)return;
+  currentLat=lat;currentLon=lon;currentHdop=hdop||'--';currentSats=sats||'--';hasGPS=true;
   document.getElementById('disp-lat').textContent=toSex(lat,'lat');
   document.getElementById('disp-lon').textContent=toSex(lon,'lon');
   document.getElementById('disp-hdop').textContent=currentSats+' / '+currentHdop;
   ['disp-lat','disp-lon','disp-hdop'].forEach(id=>{
-    const el=document.getElementById(id); el.classList.add('fresh');
-    clearTimeout(freshTimer); freshTimer=setTimeout(()=>el.classList.remove('fresh'),800);
+    const el=document.getElementById(id);el.classList.add('fresh');
+    clearTimeout(freshTimer);freshTimer=setTimeout(()=>el.classList.remove('fresh'),800);
   });
+  const bp=document.getElementById('btn-poste');if(bp)bp.disabled=false;
   updateOdometro();
-  const bp2=document.getElementById('btn-poste');
-  if(bp2) bp2.disabled=false;
+}
+
+function updateDepth(metros) {
+  // Mostrar siempre en el display grande
+  const dd=document.getElementById('disp-depth');
+  dd.textContent=metros.toFixed(2);
+  dd.classList.add('fresh');
+  clearTimeout(depthFlashTimer);
+  depthFlashTimer=setTimeout(()=>dd.classList.remove('fresh'),600);
+
+  // Calcular y mostrar prof final
+  const off=getEcoOffset(), mar=getMareaCorr();
+  const fin=metros+off+mar;
+  document.getElementById('disp-final-live').textContent=fin.toFixed(2);
+
+  // Si AUTO PROF activo → actualizar campo manual
+  if(autoDepth){
+    document.getElementById('depth-input').value=metros.toFixed(2);
+    updateCalc();
+    // Si AUTO GRAB activo → grabar cuando supera umbral
+    if(autoGrab&&(canGrab||firstPoint))grabarPunto();
+  }
+}
+
+// ─── ODÓMETRO ─────────────────────────────────────────────────────────────────
+function haversine(la1,lo1,la2,lo2) {
+  const R=6371000,r=d=>d*Math.PI/180;
+  const a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(lo2-lo1)/2)**2;
+  return R*2*Math.asin(Math.sqrt(a));
+}
+function getCurrentDist() {
+  if(!lastGrabbedLat||!currentLat)return 0;
+  return haversine(lastGrabbedLat,lastGrabbedLon,currentLat,currentLon);
+}
+function updateThreshold(){threshold=parseInt(document.getElementById('threshold').value)||10;autoSave();updateOdometro();}
+
+function updateOdometro() {
+  if(!hasGPS)return;
+  if(firstPoint){
+    setGrabarState('unlocked');
+    document.getElementById('dist-value').textContent='—';
+    document.getElementById('dist-estado').textContent='PRIMER PUNTO';
+    document.getElementById('dist-estado').className='dist-estado ready';
+    document.getElementById('dist-bar').style.width='100%';
+    document.getElementById('dist-bar').className='dist-bar ready';
+    return;
+  }
+  if(!lastGrabbedLat)return;
+  const dist=haversine(lastGrabbedLat,lastGrabbedLon,currentLat,currentLon);
+  const pct=Math.min(dist/threshold,1)*100;
+  const bar=document.getElementById('dist-bar');
+  document.getElementById('dist-value').textContent=dist.toFixed(1);
+  bar.style.width=pct+'%';
+  if(dist>=threshold){
+    bar.className='dist-bar ready';
+    document.getElementById('dist-value').className='dist-value ready';
+    document.getElementById('dist-estado').textContent='✓ LISTO';
+    document.getElementById('dist-estado').className='dist-estado ready';
+    if(!canGrab)beep(880);
+    canGrab=true;setGrabarState('unlocked');
+  }else{
+    bar.className='dist-bar';
+    document.getElementById('dist-value').className='dist-value'+(dist>0.5?' moving':'');
+    document.getElementById('dist-estado').textContent='FALTAN '+(threshold-dist).toFixed(1)+'m';
+    document.getElementById('dist-estado').className='dist-estado';
+    canGrab=false;setGrabarState('locked');
+  }
+}
+
+function setGrabarState(state) {
+  const bp=document.getElementById('btn-poste');if(bp)bp.disabled=!hasGPS;
+  const btn=document.getElementById('btn-grabar');
+  const icon=document.getElementById('lock-icon');
+  const txt=document.getElementById('btn-grabar-txt');
+  btn.className='btn-grabar '+state;
+  switch(state){
+    case 'unlocked':icon.textContent=' ↵';txt.textContent=' GRABAR SONDAJE';btn.disabled=false;break;
+    case 'locked':icon.textContent=' 🔒';txt.textContent=' DESPLAZATE '+(threshold-getCurrentDist()).toFixed(0)+'m MÁS';btn.disabled=true;break;
+    case 'grabbed':icon.textContent=' ✓';txt.textContent=' GRABADO — DESPLAZATE';btn.disabled=true;break;
+    case 'no-gps':icon.textContent=' 🔒';txt.textContent=' ESPERANDO GPS';btn.disabled=true;break;
+  }
+}
+
+// ─── WEB SERIAL ───────────────────────────────────────────────────────────────
+async function connectGPS() {
+  if(!('serial' in navigator)){showToast('Usá Chrome o Edge',true);return;}
+  try{
+    port=await navigator.serial.requestPort();
+    await port.open({baudRate:parseInt(document.getElementById('baudRate').value)});
+    setGPSStatus('Conectado',true);
+    document.getElementById('btn-connect').disabled=true;
+    document.getElementById('btn-disconnect').disabled=false;
+    readSerial();
+  }catch(e){showToast('Error: '+e.message,true);}
+}
+async function disconnectGPS() {
+  try{if(reader){await reader.cancel();reader=null;}}catch(e){}
+  try{if(port){await port.close();port=null;}}catch(e){}
+  hasGPS=false;setGPSStatus('Desconectado',false);setGrabarState('no-gps');
+  document.getElementById('btn-connect').disabled=false;
+  document.getElementById('btn-disconnect').disabled=true;
+}
+async function readSerial() {
+  const dec=new TextDecoderStream();port.readable.pipeTo(dec.writable);
+  reader=dec.readable.getReader();
+  try{
+    while(true){
+      const{value,done}=await reader.read();
+      if(done)break;
+      buffer+=value;
+      let l=buffer.split('\n');
+      buffer=l.pop();
+      l.forEach(processNMEA);
+    }
+  }catch(e){if(port)showToast('GPS desconectado',true);}
 }
 function setGPSStatus(txt,on) {
   document.getElementById('gps-status-txt').textContent=txt;
   document.getElementById('gps-dot').className='dot'+(on?' on':'');
 }
 
-// ─── Captura ──────────────────────────────────────────────────────────────────
-function handleKey(e) { if(e.key==='Enter') grabarPunto(); }
+// ─── CAPTURA ──────────────────────────────────────────────────────────────────
+function handleKey(e){if(e.key==='Enter')grabarPunto();}
 
 function grabarPunto() {
-  if(!canGrab&&!firstPoint) return;
-  if(!hasGPS) { showToast('Sin GPS',true); return; }
+  if(!canGrab&&!firstPoint)return;
+  if(!hasGPS){showToast('Sin GPS',true);return;}
   const ecoRaw=parseFloat(document.getElementById('depth-input').value);
-  if(isNaN(ecoRaw)||ecoRaw<0) { showToast('Ingresá un valor válido (0 o mayor)',true); document.getElementById('depth-input').focus(); return; }
-
+  if(isNaN(ecoRaw)||ecoRaw<0){showToast('Ingresá un valor válido',true);document.getElementById('depth-input').focus();return;}
   const off=getEcoOffset(), mar=getMareaCorr(), fin=ecoRaw+off+mar;
-  const distAnt=lastGrabbedLat!==null ? haversine(lastGrabbedLat,lastGrabbedLon,currentLat,currentLon).toFixed(1) : '—';
+  const distAnt=lastGrabbedLat!==null?haversine(lastGrabbedLat,lastGrabbedLon,currentLat,currentLon).toFixed(1):'—';
   const hora=new Date().toTimeString().substring(0,8);
-  const sector=document.getElementById('sector-nombre').value.trim() || '—';
-
-  const punto = {
-    n:puntos.length+1, sector,
-    lat:currentLat.toFixed(7), lon:currentLon.toFixed(7),
-    eco:ecoRaw.toFixed(2), off:off.toFixed(2), mar:mar.toFixed(2),
-    final:fin.toFixed(2), dist:distAnt, hora, hdop:currentHdop
-  };
+  const sector=document.getElementById('sector-nombre').value.trim()||'—';
+  const punto={n:puntos.length+1,sector,
+    lat:currentLat.toFixed(7),lon:currentLon.toFixed(7),
+    eco:ecoRaw.toFixed(2),off:off.toFixed(2),mar:mar.toFixed(2),
+    final:fin.toFixed(2),dist:distAnt,hora,hdop:currentHdop};
   puntos.push(punto);
-  lastGrabbedLat=currentLat; lastGrabbedLon=currentLon;
-  firstPoint=false; canGrab=false;
-
-  addRow(punto, true);
+  lastGrabbedLat=currentLat;lastGrabbedLon=currentLon;
+  firstPoint=false;canGrab=false;
+  addRow(punto,true);
   sendToGAS(punto);
   autoSave();
-
   document.getElementById('flash').classList.add('show');
   setTimeout(()=>document.getElementById('flash').classList.remove('show'),120);
-
-  document.getElementById('depth-input').value='';
-  document.getElementById('calc-eco').textContent='—';
-  document.getElementById('calc-final').textContent='—';
-  document.getElementById('depth-input').focus();
+  if(!autoDepth){
+    document.getElementById('depth-input').value='';
+    document.getElementById('calc-eco').textContent='—';
+    document.getElementById('calc-final').textContent='—';
+    document.getElementById('depth-input').focus();
+  }
   setGrabarState('grabbed');
-
-  // Reset odómetro
   document.getElementById('dist-value').textContent='0.0';
   document.getElementById('dist-value').className='dist-value';
   document.getElementById('dist-bar').style.width='0%';
   document.getElementById('dist-bar').className='dist-bar';
   document.getElementById('dist-estado').textContent='DESPLAZATE '+threshold+'m';
   document.getElementById('dist-estado').className='dist-estado';
-
   showToast(`✓ #${punto.n}  ECO ${ecoRaw.toFixed(1)}m → FINAL ${fin.toFixed(2)}m`);
 }
 
-function addRow(p, animate=true) {
+function grabarPoste() {
+  if(!hasGPS){showToast('Sin GPS',true);return;}
+  const hora=new Date().toTimeString().substring(0,8);
+  const punto={n:puntos.length+1,sector:'POSTE',
+    lat:currentLat.toFixed(7),lon:currentLon.toFixed(7),
+    eco:'0.00',off:'0.00',mar:'0.00',final:'0.00',dist:'—',hora,hdop:currentHdop};
+  puntos.push(punto);
+  lastGrabbedLat=currentLat;lastGrabbedLon=currentLon;
+  firstPoint=false;
+  addRow(punto,true);
+  sendToGAS(punto);
+  autoSave();
+  document.getElementById('flash').classList.add('show');
+  setTimeout(()=>document.getElementById('flash').classList.remove('show'),120);
+  const el=document.getElementById('btn-poste');
+  el.textContent='✓ POSTE MARCADO';el.style.borderColor='var(--green)';el.style.color='var(--green)';
+  setTimeout(()=>{el.textContent='📍 MARCAR POSTE';el.style.borderColor='rgba(255,208,96,.4)';el.style.color='#ffd060';},1800);
+  document.getElementById('punto-count').textContent=puntos.length;
+  showToast('📍 Poste #'+punto.n+' marcado');
+}
+
+function addRow(p,animate=true) {
   const tbody=document.getElementById('puntos-tbody');
   const tr=document.createElement('tr');
-  if(animate) tr.className='new-row';
+  if(animate)tr.className='new-row';
   tr.id='row-'+p.n;
-  tr.innerHTML=`
-    <td>${p.n}</td>
+  tr.innerHTML=`<td>${p.n}</td>
     <td class="sector-cell">${p.sector||'—'}</td>
-    <td class="lat">${p.lat}</td>
-    <td class="lon">${p.lon}</td>
+    <td class="lat">${p.lat}</td><td class="lon">${p.lon}</td>
     <td class="eco">${p.eco}</td>
     <td style="color:var(--blue)">${p.off}</td>
     <td class="marea-cell">${p.mar}</td>
     <td class="final">${p.final}</td>
     <td>${p.hora}</td>
-    <td><button class="del-btn" onclick="deletePunto(${p.n})">✕</button></td>
-  `;
+    <td><button class="del-btn" onclick="deletePunto(${p.n})">✕</button></td>`;
   tbody.insertBefore(tr,tbody.firstChild);
   document.getElementById('punto-count').textContent=puntos.length;
   document.querySelector('.table-wrap').scrollTop=0;
@@ -981,122 +853,107 @@ function addRow(p, animate=true) {
 function deletePunto(n) {
   puntos=puntos.filter(p=>p.n!==n);
   const row=document.getElementById('row-'+n);
-  if(row) row.remove();
+  if(row)row.remove();
   document.getElementById('punto-count').textContent=puntos.length;
   autoSave();
 }
 
-// ─── Beep ─────────────────────────────────────────────────────────────────────
-function beep(freq) {
-  try {
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [0,0.18].forEach(d=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value=freq||880; o.type='sine';
-      g.gain.setValueAtTime(0.35,ctx.currentTime+d);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d+0.12);
-      o.start(ctx.currentTime+d); o.stop(ctx.currentTime+d+0.15);
-    });
-  } catch(e){}
+// ─── EXPORTAR ─────────────────────────────────────────────────────────────────
+function exportarSector() {
+  if(!puntos.length){showToast('Sin puntos para exportar',true);return;}
+  let nombre=document.getElementById('export-name').value.trim();
+  if(!nombre)nombre=document.getElementById('sector-nombre').value.trim()||'sector';
+  nombre=nombre.replace(/[^a-zA-Z0-9_\-áéíóúÁÉÍÓÚñÑ ]/g,'').replace(/ /g,'_');
+  const fecha=new Date().toISOString().substring(0,10);
+  const filename=`${nombre}_${fecha}.csv`;
+  const hdr='N,SECTOR,LATITUD,LONGITUD,ECO_M,OFFSET_M,MAREA_M,FINAL_M,DIST_M,HORA,HDOP\n';
+  const rows=puntos.map(p=>`${p.n},${p.sector||''},${p.lat},${p.lon},${p.eco},${p.off},${p.mar},${p.final},${p.dist},${p.hora},${p.hdop}`).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([hdr+rows],{type:'text/csv;charset=utf-8'}));
+  a.download=filename;a.click();
+  showToast(`✓ CSV: ${filename}`,false,'sector');
+}
+
+function nuevoSector() {
+  if(puntos.length>0){
+    const nombre=document.getElementById('sector-nombre').value.trim()||'sector';
+    const ok=confirm(`¿Exportar "${nombre}" (${puntos.length} puntos) y comenzar nuevo sector?`);
+    if(!ok)return;
+    exportarSector();
+  }
+  puntos=[];mareaLog=[];
+  firstPoint=true;lastGrabbedLat=null;lastGrabbedLon=null;canGrab=false;
+  document.getElementById('puntos-tbody').innerHTML='';
+  document.getElementById('punto-count').textContent='0';
+  document.getElementById('sector-nombre').value='';
+  document.getElementById('export-name').value='';
+  document.getElementById('marea-log-mini').textContent='Sin actualizaciones de marea en esta sesión';
+  document.getElementById('marea-log-last').textContent='—';
+  document.getElementById('autosave-txt').textContent='nuevo sector';
+  document.getElementById('depth-input').value='';
+  localStorage.removeItem(LS_KEY);
+  if(hasGPS)updateOdometro();
+  document.getElementById('sector-nombre').focus();
+  showToast('▶ Nuevo sector iniciado',false,'sector');
 }
 
 // ─── GAS ──────────────────────────────────────────────────────────────────────
 async function sendToGAS(punto) {
-  const url=document.getElementById('gas-url').value.trim(); if(!url) return;
-  try { await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sondaje',...punto})}); } catch(e){}
+  const url=document.getElementById('gas-url').value.trim();if(!url)return;
+  try{await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sondaje',...punto})});}catch(e){}
 }
 async function testGAS() {
-  const url=document.getElementById('gas-url').value.trim(); if(!url){showToast('Ingresá URL',true);return;}
-  try { await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'ping'})}); showToast('✓ GAS alcanzado'); }
+  const url=document.getElementById('gas-url').value.trim();if(!url){showToast('Ingresá URL',true);return;}
+  try{await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'ping'})});showToast('✓ GAS alcanzado');}
   catch(e){showToast('Error: '+e.message,true);}
 }
 
-// ─── Demo GPS ────────────────────────────────────────────────────────────────
-let demoLat=-34.41720, demoLon=-58.50830;
+// ─── DEMO GPS ─────────────────────────────────────────────────────────────────
+let demoLat=-34.41720,demoLon=-58.50830,demoPrf=1.5;
 function demoGPS() {
   if(demoInterval){clearInterval(demoInterval);demoInterval=null;showToast('Demo detenido');return;}
-  showToast('▶ Demo activo'); setGPSStatus('DEMO',true);
+  showToast('▶ Demo activo');setGPSStatus('DEMO',true);
   demoInterval=setInterval(()=>{
-    demoLat+=(Math.random()-0.4)*0.00003; demoLon+=(Math.random()-0.4)*0.00003;
-    updateCoords(demoLat,demoLon,(0.8+Math.random()*0.5).toFixed(1),Math.floor(7+Math.random()*4));
-    document.getElementById('nmea-raw').textContent='[DEMO] lat='+demoLat.toFixed(6)+' lon='+demoLon.toFixed(6);
+    demoLat+=(Math.random()-.4)*.00003;demoLon+=(Math.random()-.4)*.00003;
+    demoPrf=Math.max(.5,Math.min(8,demoPrf+(Math.random()-.5)*.3));
+    updateCoords(demoLat,demoLon,(0.8+Math.random()*.5).toFixed(1),Math.floor(7+Math.random()*4));
+    updateDepth(parseFloat(demoPrf.toFixed(2)));
+    document.getElementById('nmea-raw').textContent='[DEMO] GPGGA+GPDBT prof='+demoPrf.toFixed(2)+'m';
   },800);
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
+// ─── BEEP ─────────────────────────────────────────────────────────────────────
+function beep(freq) {
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [0,.18].forEach(d=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=freq||880;o.type='sine';
+      g.gain.setValueAtTime(.35,ctx.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d+.12);
+      o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+.15);
+    });
+  }catch(e){}
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
 let toastTimer;
 function showToast(msg,err=false,tipo='') {
   const t=document.getElementById('toast');
   t.textContent=msg;
   t.className='toast show'+(err?' err':tipo==='marea'?' marea-toast':tipo==='sector'?' sector-toast':'');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.className='toast',3200);
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.className='toast',3200);
 }
 
-// ─── Grabar Poste ─────────────────────────────────────────────────────────────
-function grabarPoste() {
-  if(!hasGPS){showToast('Sin GPS — no se puede marcar poste',true);return;}
-  const hora=new Date().toTimeString().substring(0,8);
-  const sector=document.getElementById('sector-nombre').value.trim()||'—';
-  const punto={
-    n:puntos.length+1,
-    sector:'POSTE',
-    lat:currentLat.toFixed(7),
-    lon:currentLon.toFixed(7),
-    eco:'0.00', off:'0.00', mar:'0.00',
-    final:'0.00',
-    dist:'—', hora, hdop:currentHdop
-  };
-  puntos.push(punto);
-  lastGrabbedLat=currentLat; lastGrabbedLon=currentLon;
-  firstPoint=false;
-  addRow(punto,true);
-  autoSave();
-  const el=document.getElementById('btn-poste');
-  if(el){el.textContent='✓ POSTE MARCADO';el.style.borderColor='#00e5a0';el.style.color='#00e5a0';}
-  setTimeout(()=>{if(el){el.innerHTML='📍 MARCAR POSTE';el.style.borderColor='rgba(255,208,96,.4)';el.style.color='#ffd060';}},1800);
-  showToast('📍 Poste #'+punto.n+' marcado — '+currentLat.toFixed(5)+', '+currentLon.toFixed(5));
-}
-
-// ─── Modos automáticos ────────────────────────────────────────────────────────
-function toggleAutoDepth() {
-  autoDepth = !autoDepth;
-  const btn = document.getElementById('btn-auto-depth');
-  if(autoDepth) {
-    btn.textContent = '📡 AUTO PROF: ON';
-    btn.style.borderColor='var(--green)';btn.style.background='rgba(0,229,160,.15)';btn.style.color='var(--green)';
-    showToast('📡 Profundidad automática activada');
-  } else {
-    btn.textContent = '📡 AUTO PROF: OFF';
-    btn.style.borderColor='var(--dim)';btn.style.background='rgba(42,74,106,.2)';btn.style.color='var(--textdim)';
-    showToast('Profundidad manual — tipear en el campo');
-  }
-}
-
-function toggleAutoGrab() {
-  autoGrab = !autoGrab;
-  const btn = document.getElementById('btn-auto-grab');
-  if(autoGrab) {
-    btn.textContent = '⚡ AUTO GRAB: ON';
-    btn.style.borderColor='var(--amber)';btn.style.background='rgba(232,160,32,.15)';btn.style.color='var(--amber)';
-    showToast('⚡ Grabado automático activado — mantené la ecosonda apuntando');
-  } else {
-    btn.textContent = '⚡ AUTO GRAB: OFF';
-    btn.style.borderColor='var(--dim)';btn.style.background='rgba(42,74,106,.2)';btn.style.color='var(--textdim)';
-    showToast('Grabado manual — usá el botón GRABAR');
-  }
-}
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
+// ─── INIT ─────────────────────────────────────────────────────────────────────
 updateCalc();
 document.getElementById('depth-input').focus();
-window.addEventListener('load', ()=>{
+window.addEventListener('load',()=>{
   autoLoad();
-  // Scroll al tope para ver el área de conexión GPS
-  setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),300);
+  window.scrollTo({top:0,behavior:'instant'});
 });
-window.addEventListener('beforeunload', autoSave);
+window.addEventListener('beforeunload',autoSave);
 </script>
 </body>
 </html>
