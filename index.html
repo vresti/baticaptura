@@ -7,11 +7,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&family=Cabinet+Grotesk:wght@300;400;700;900&display=swap" rel="stylesheet">
 <style>
 :root {
-  --navy:#040e1c;--navy2:#071828;--navy3:#0a2035;
-  --gold:#c9a227;--gold2:#ffd060;--gold3:#ffe8a0;
-  --cyan:#00e5c8;--blue:#1a6fe8;
-  --text:#e8f0f8;--dim:#5a8aaa;--border:rgba(26,111,232,.15);
-  --card:rgba(7,24,40,.8);
+  --navy:#0a0a0c;--navy2:#111114;--navy3:#18181c;
+  --gold:#8a9bb0;--gold2:#c8d8e8;--gold3:#e8eef4;
+  --cyan:#6a9fc8;--blue:#4a7a9a;
+  --text:#d0dce8;--dim:#5a6a7a;--border:rgba(120,150,180,.12);
+  --card:rgba(16,18,22,.85);
+  --metal1:#1a1e24;--metal2:#222830;--metal3:#2a3340;
+  --silver:#8090a0;--silver2:#a0b0c0;--chrome:#c8d4e0;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -21,9 +23,9 @@ body{background:var(--navy);color:var(--text);font-family:'Cabinet Grotesk',sans
 body::before{
   content:'';position:fixed;inset:0;z-index:0;
   background:
-    radial-gradient(ellipse 80% 50% at 20% 20%,rgba(26,111,232,.08) 0%,transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(0,229,200,.05) 0%,transparent 60%),
-    radial-gradient(ellipse 100% 80% at 50% 50%,rgba(201,162,39,.03) 0%,transparent 70%);
+    radial-gradient(ellipse 80% 50% at 20% 20%,rgba(74,122,154,.06) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(106,159,200,.04) 0%,transparent 60%),
+    radial-gradient(ellipse 100% 80% at 50% 50%,rgba(138,155,176,.03) 0%,transparent 70%);
   pointer-events:none;
 }
 
@@ -31,8 +33,8 @@ body::before{
 body::after{
   content:'';position:fixed;inset:0;z-index:0;
   background-image:
-    linear-gradient(rgba(26,111,232,.04) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(26,111,232,.04) 1px,transparent 1px);
+    linear-gradient(rgba(120,150,180,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(120,150,180,.03) 1px,transparent 1px);
   background-size:60px 60px;
   pointer-events:none;
 }
@@ -51,10 +53,10 @@ nav{
 .nav-links a{font-size:13px;color:var(--dim);text-decoration:none;letter-spacing:1px;
   transition:color .2s;font-weight:500}
 .nav-links a:hover{color:var(--text)}
-.nav-cta{background:var(--gold);color:var(--navy);padding:8px 20px;border-radius:6px;
+.nav-cta{background:linear-gradient(135deg,#2a3a4a,#3a4a5a);color:var(--chrome);padding:8px 20px;border-radius:6px;border:1px solid rgba(160,180,200,.2);
   font-size:13px;font-weight:700;text-decoration:none;letter-spacing:1px;
   transition:all .2s;font-family:'Syne',sans-serif}
-.nav-cta:hover{background:var(--gold2);transform:translateY(-1px)}
+.nav-cta:hover{background:linear-gradient(135deg,#3a4a5a,#4a5a6a);transform:translateY(-1px)}
 
 /* ── SECCIONES ── */
 section{position:relative;z-index:1}
@@ -85,7 +87,7 @@ section{position:relative;z-index:1}
 }
 .hero h1 em{
   font-style:normal;
-  background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 50%,var(--cyan) 100%);
+  background:linear-gradient(135deg,#8090a0 0%,#c8d8e8 40%,#6a9fc8 70%,#a0b4c8 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
 .hero-sub{
@@ -95,13 +97,14 @@ section{position:relative;z-index:1}
 .hero-ctas{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;
   animation:fadeUp .8s .6s ease both}
 .btn-primary{
-  background:linear-gradient(135deg,var(--gold),var(--gold2));
-  color:var(--navy);padding:16px 36px;border-radius:8px;
+  background:linear-gradient(135deg,#2a3a4a,#3a4a5a);
+  color:var(--chrome);padding:16px 36px;border-radius:8px;
   font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
   text-decoration:none;letter-spacing:1px;transition:all .25s;
-  box-shadow:0 8px 32px rgba(201,162,39,.3);
+  border:1px solid rgba(160,180,200,.2);
+  box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(200,220,240,.1);
 }
-.btn-primary:hover{transform:translateY(-3px);box-shadow:0 16px 48px rgba(201,162,39,.4)}
+.btn-primary:hover{transform:translateY(-3px);background:linear-gradient(135deg,#3a4a5a,#4a5a6a);box-shadow:0 16px 48px rgba(0,0,0,.5)}
 .btn-secondary{
   background:transparent;color:var(--text);padding:16px 36px;border-radius:8px;
   font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
@@ -249,7 +252,7 @@ section{position:relative;z-index:1}
 }
 .kit-box::before{
   content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(201,162,39,.08),transparent);
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(100,140,180,.06),transparent);
 }
 .kit-icon{font-size:80px;display:block;margin-bottom:24px}
 .kit-name{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;
@@ -306,8 +309,8 @@ section{position:relative;z-index:1}
   text-align:center;text-decoration:none;transition:all .2s;border:1px solid}
 .btn-plan.outlined{border-color:var(--gold);color:var(--gold);background:transparent}
 .btn-plan.outlined:hover{background:rgba(201,162,39,.1)}
-.btn-plan.filled{background:var(--gold);color:var(--navy);border-color:var(--gold)}
-.btn-plan.filled:hover{background:var(--gold2)}
+.btn-plan.filled{background:linear-gradient(135deg,#2a3a4a,#3a4a5a);color:var(--chrome);border-color:rgba(160,180,200,.3)}
+.btn-plan.filled:hover{background:linear-gradient(135deg,#3a4a5a,#4a5a6a)}
 
 .free-banner{
   background:rgba(0,229,200,.05);border:1px solid rgba(0,229,200,.2);
@@ -359,19 +362,20 @@ footer{
 
 <!-- NAV -->
 <nav>
-  <div class="nav-logo"><span>⚓</span> BATISISTEMA</div>
+  <div class="nav-logo"><span style="font-size:18px">◈</span> BATISISTEMA</div>
   <ul class="nav-links">
     <li><a href="#apps">Software</a></li>
     <li><a href="#como">Cómo funciona</a></li>
     <li><a href="#kit">Hardware</a></li>
     <li><a href="#pricing">Precios</a></li>
+    <li><a href="hub.html" style="color:var(--cyan)">◈ ABRIR SISTEMA</a></li>
   </ul>
   <a href="#pricing" class="nav-cta">EMPEZAR GRATIS</a>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-badge">⬤ PROTOCOLO NMEA 0183 · SIN INSTALACIÓN · OPEN WEB</div>
+  <div class="hero-badge">◈ PROTOCOLO NMEA 0183 · SIN INSTALACIÓN · WEB SERIAL API</div>
   <h1>Batimetría<br><em>profesional</em><br>al alcance<br>de todos</h1>
   <p class="hero-sub">
     El primer sistema de relevamiento batimétrico que funciona en el browser.
@@ -380,16 +384,24 @@ footer{
   <div class="hero-ctas">
     <a href="#pricing" class="btn-primary">Empezar gratis →</a>
     <a href="#apps" class="btn-secondary">Ver el sistema</a>
+    <a href="hub.html" style="
+      background:rgba(106,159,200,.12);color:var(--cyan);
+      padding:16px 36px;border-radius:8px;
+      font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
+      text-decoration:none;letter-spacing:1px;transition:all .25s;
+      border:1px solid rgba(106,159,200,.3)">
+      ◈ Abrir BatiSistema
+    </a>
   </div>
 
   <div class="hero-visual">
     <div class="hero-screen">
       <div class="screen-bar">
-        <div class="screen-dot" style="background:#ff5f57"></div>
-        <div class="screen-dot" style="background:#febc2e"></div>
-        <div class="screen-dot" style="background:#28c840"></div>
+        <div class="screen-dot" style="background:#3a4a5a"></div>
+        <div class="screen-dot" style="background:#4a5a6a"></div>
+        <div class="screen-dot" style="background:#5a6a7a"></div>
         <span style="font-family:'DM Mono',monospace;font-size:11px;color:#2a4a6a;margin-left:12px">
-          ⚓ BatiCaptura v4 · Conectado · 15 satélites
+          ◈ BatiSistema · NMEA 0183 · 15 SAT · HDOP 0.9
         </span>
       </div>
       <div class="screen-map">
@@ -407,8 +419,8 @@ footer{
           <!-- Gradiente de profundidad -->
           <defs>
             <radialGradient id="depthGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="#1a237e" stop-opacity=".6"/>
-              <stop offset="40%" stop-color="#1a4a8a" stop-opacity=".3"/>
+              <stop offset="0%" stop-color="#1a2a3a" stop-opacity=".6"/>
+              <stop offset="40%" stop-color="#1a3a4a" stop-opacity=".3"/>
               <stop offset="100%" stop-color="#040e1c" stop-opacity="0"/>
             </radialGradient>
           </defs>
@@ -496,7 +508,7 @@ footer{
       <div class="strip-txt">Grabado automático por umbral de distancia. GPS + ecosonda integrados. Sin tocar nada durante el relevamiento.</div>
     </div>
     <div class="strip-item">
-      <span class="strip-icon">📡</span>
+      <span class="strip-icon">◉</span>
       <div class="strip-ttl">Protocolo NMEA 0183</div>
       <div class="strip-txt">Compatible con cualquier ecosonda y GPS que use el estándar NMEA 0183. El protocolo universal de la náutica.</div>
     </div>
@@ -512,7 +524,7 @@ footer{
   </div>
   <div class="apps-grid reveal">
     <div class="app-card" style="--accent:var(--cyan)">
-      <span class="app-icon">⚓</span>
+      <span class="app-icon">◈</span>
       <div class="app-name">BatiCaptura</div>
       <div class="app-desc">Captura profesional con GPS y ecosonda. Correcciones de offset y marea en tiempo real. Grabado automático por distancia.</div>
       <div class="app-tags"><span class="tag">GPS</span><span class="tag">NMEA</span><span class="tag">AUTO</span></div>
@@ -596,7 +608,7 @@ footer{
       <h2 class="section-title">Protocolo<br><em>NMEA 0183.</em></h2>
       <p class="section-sub" style="margin-bottom:30px">El estándar universal de la industria náutica. Compatible con cualquier ecosonda y GPS del mercado que use NMEA 0183.</p>
       <div style="display:flex;flex-direction:column;gap:12px">
-        <div class="kit-spec">Compatible con Garmin, Onwa, Lowrance, Humminbird y más</div>
+        <div class="kit-spec">Compatible con cualquier ecosonda o GPS del mercado</div>
         <div class="kit-spec">Lee $GPGGA, $GNGGA, $GPRMC, $GPDBT, $SDDBT automáticamente</div>
         <div class="kit-spec">Conexión USB → RS-232 DB9 · Baud rate configurable</div>
         <div class="kit-spec">Web Serial API en Chrome y Edge — sin drivers adicionales</div>
@@ -640,11 +652,11 @@ footer{
       <div class="kit-visual">
         <div class="kit-box">
           <span class="kit-icon">🎛</span>
-          <div class="kit-name">Onwa KP-27F</div>
-          <div class="kit-model">+ Cable USB → RS-232 DB9 preparado</div>
+          <div class="kit-name">Ecosonda NMEA</div>
+          <div class="kit-model">+ Adaptador USB → RS-232 · Cable preparado y testeado</div>
           <div class="kit-specs">
-            <div class="kit-spec">Dual frequency 50/200 kHz</div>
-            <div class="kit-spec">GPS integrado con antena externa</div>
+            <div class="kit-spec">Doble frecuencia 50/200 kHz</div>
+            <div class="kit-spec">GPS integrado con antena externa opcional</div>
             <div class="kit-spec">Salida NMEA 0183 · $GPGGA + $GPDBT</div>
             <div class="kit-spec">Cable soldado y testeado pin 2/5</div>
             <div class="kit-spec">Configurado y probado con BatiSistema</div>
@@ -671,7 +683,7 @@ footer{
           <div class="kf-icon">🗺</div>
           <div>
             <div class="kf-ttl">GPS integrado</div>
-            <div class="kf-txt">La Onwa KP-27F incluye GPS propio. Un solo cable transmite posición Y profundidad simultáneamente.</div>
+            <div class="kf-txt">La Ecosonda NMEA incluye GPS propio. Un solo cable transmite posición Y profundidad simultáneamente.</div>
           </div>
         </div>
         <div class="kit-feature">
@@ -693,7 +705,7 @@ footer{
     <h2 class="section-title">Simple.<br><em>Transparente.</em></h2>
   </div>
   <div class="pricing-note reveal">
-    🎁 Gratuito hasta el 31 de diciembre de 2026 · Precios vigentes desde 2027
+    ◈ Gratuito hasta el 31 de diciembre de 2026 · Precios vigentes desde 2027
   </div>
   <div class="pricing-grid reveal">
     <div class="pricing-card">
@@ -712,7 +724,7 @@ footer{
     </div>
     <div class="pricing-card featured">
       <span class="plan-name">PLAN ANUAL</span>
-      <div class="plan-price" style="color:var(--gold)"><span>USD </span>999</div>
+      <div class="plan-price" style="color:var(--chrome)"><span>USD </span>999</div>
       <div class="plan-period">por año · ahorrás USD 789</div>
       <ul class="plan-features">
         <li>Todo lo del plan mensual</li>
@@ -727,7 +739,7 @@ footer{
   </div>
 
   <div class="free-banner reveal">
-    <div class="free-banner-icon">🎁</div>
+    <div class="free-banner-icon">◈</div>
     <div>
       <div class="free-banner-ttl">Gratis hasta fin de 2026</div>
       <div class="free-banner-txt">
@@ -740,13 +752,14 @@ footer{
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-logo">⚓ BATISISTEMA</div>
+  <div class="footer-logo">◈ BATISISTEMA</div>
   <div class="footer-sub">Sistema de Relevamiento Batimétrico · Protocolo NMEA 0183</div>
   <div class="footer-links">
     <a href="#apps">Software</a>
     <a href="#como">Cómo funciona</a>
     <a href="#kit">Hardware</a>
     <a href="#pricing">Precios</a>
+    <a href="hub.html" style="color:var(--cyan)">◈ Abrir Sistema</a>
   </div>
   <div class="footer-copy">© 2025 BatiSistema · Hecho en Argentina 🇦🇷</div>
 </footer>
