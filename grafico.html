@@ -2,103 +2,106 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BatiGráfico — Relevamiento Batimétrico</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BatiGráfico — BatiSistema</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
-  :root {
-    --bg:#f0ece4;--paper:#faf7f0;--navy:#1a237e;--navy2:#283593;
-    --gold:#c9a227;--border:#b8b0a0;--text:#1a1a2e;--dim:#6a6a7a;--panel:#eee8dc;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;}
-  body::before{content:'';position:fixed;inset:0;
-    background-image:linear-gradient(rgba(26,35,126,0.03) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(26,35,126,0.03) 1px,transparent 1px);
-    background-size:30px 30px;pointer-events:none;z-index:0;}
-  .layout{position:relative;z-index:1;display:grid;grid-template-columns:280px 1fr;
-    grid-template-rows:auto 1fr;min-height:100vh;}
-  header{grid-column:1/-1;background:var(--navy);color:white;padding:12px 20px;
-    display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);}
-  .logo-title{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;letter-spacing:4px;color:var(--gold);}
-  .logo-sub{font-size:9px;color:rgba(255,255,255,0.5);letter-spacing:2px;margin-top:2px;}
-  .header-info{font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:1px;text-align:right;}
-  .sidebar{background:var(--paper);border-right:1px solid var(--border);padding:16px;
-    display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
-  .panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px;position:relative;}
-  .panel-title{font-size:8px;letter-spacing:3px;color:var(--navy);text-transform:uppercase;
-    margin-bottom:10px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:6px;}
-  .upload-area{border:2px dashed var(--border);border-radius:6px;padding:20px;text-align:center;
-    cursor:pointer;transition:all 0.2s;background:white;}
-  .upload-area:hover,.upload-area.drag{border-color:var(--navy);background:rgba(26,35,126,0.03);}
-  .upload-icon{font-size:28px;margin-bottom:8px;}
-  .upload-text{font-size:11px;color:var(--dim);letter-spacing:1px;}
-  .upload-sub{font-size:10px;color:var(--border);margin-top:4px;}
-  #file-input{display:none;}
-  .file-list{display:flex;flex-direction:column;gap:4px;}
-  .file-item{display:flex;align-items:center;justify-content:space-between;background:white;
-    border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:11px;
-    font-family:'Share Tech Mono',monospace;}
-  .fname{color:var(--navy);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .fcount{color:var(--dim);font-size:10px;margin:0 8px;}
-  .file-del{background:none;border:none;color:var(--border);cursor:pointer;font-size:14px;}
-  .file-del:hover{color:#e53935;}
-  .ctrl-row{display:flex;flex-direction:column;gap:5px;margin-bottom:8px;}
-  .ctrl-label{font-size:9px;letter-spacing:2px;color:var(--dim);}
-  .ctrl-row select,.ctrl-row input[type=text]{width:100%;background:white;border:1px solid var(--border);
-    border-radius:4px;padding:5px 8px;font-size:12px;font-family:'Share Tech Mono',monospace;
-    color:var(--text);outline:none;}
-  input[type=range]{width:100%;accent-color:var(--navy);cursor:pointer;margin-top:2px;}
-  .btn-primary{width:100%;padding:10px;background:var(--navy);color:white;border:none;
-    border-radius:6px;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;
-    cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
-  .btn-primary:hover{background:var(--navy2);}
-  .btn-primary:disabled{opacity:0.4;cursor:not-allowed;}
-
-  .btn-fmt{padding:7px 4px;background:rgba(26,35,126,0.08);border:1px solid var(--border);
-    border-radius:5px;color:var(--navy);font-size:10px;font-weight:600;cursor:pointer;
-    font-family:'Exo 2',sans-serif;letter-spacing:0.5px;transition:all 0.2s;text-align:center;}
-  .btn-fmt:hover{background:rgba(26,35,126,0.15);border-color:var(--navy);}
-  .btn-sec{width:100%;padding:8px;margin-bottom:5px;background:white;color:var(--navy);
-    border:1px solid var(--navy);border-radius:6px;font-size:11px;letter-spacing:1px;
-    cursor:pointer;transition:all 0.2s;font-family:'Exo 2',sans-serif;font-weight:600;}
-  .btn-sec:hover{background:rgba(26,35,126,0.05);}
-  .legend{display:flex;flex-direction:column;gap:3px;}
-  .legend-item{display:flex;align-items:center;gap:8px;}
-  .legend-swatch{width:24px;height:14px;border-radius:2px;border:1px solid rgba(0,0,0,0.1);flex-shrink:0;}
-  .legend-label{color:var(--text);font-family:'Share Tech Mono',monospace;font-size:10px;}
-  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-  .stat-box{background:white;border:1px solid var(--border);border-radius:4px;padding:8px;text-align:center;}
-  .stat-val{font-family:'Orbitron',monospace;font-size:16px;color:var(--navy);font-weight:700;}
-  .stat-lbl{font-size:8px;letter-spacing:2px;color:var(--dim);margin-top:2px;}
-  .map-area{background:var(--paper);display:flex;flex-direction:column;position:relative;overflow:hidden;min-height:0;flex:1;}
-  .map-toolbar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:white;
-    border-bottom:1px solid var(--border);flex-wrap:wrap;}
-  .toolbar-label{font-size:9px;letter-spacing:2px;color:var(--dim);}
-  .tbtn{padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;
-    letter-spacing:1px;transition:all 0.2s;border:1px solid;font-family:'Exo 2',sans-serif;}
-  .tbtn.on{background:var(--navy);color:white;border-color:var(--navy);}
-  .tbtn.off{background:white;color:var(--dim);border-color:var(--border);}
-  #map-svg-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;min-height:0;}
-  #map-svg{filter:drop-shadow(0 4px 20px rgba(26,35,126,0.15));}
-  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
-    flex:1;gap:12px;color:var(--dim);text-align:center;padding:40px;}
-  .empty-icon{font-size:60px;opacity:0.3;}
-  .empty-title{font-family:'Orbitron',monospace;font-size:14px;color:var(--navy);opacity:0.4;letter-spacing:3px;}
-  .empty-sub{font-size:12px;max-width:280px;line-height:1.6;}
-  .progress-bar{position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold);
-    transform-origin:left;transform:scaleX(0);transition:transform 0.3s;z-index:10;}
-  .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:white;
-    border:1px solid var(--gold);border-radius:6px;padding:9px 14px;font-size:12px;
-    font-family:'Share Tech Mono',monospace;transform:translateY(60px);opacity:0;
-    transition:all 0.3s;z-index:1000;}
-  .toast.show{transform:translateY(0);opacity:1;}
-  .toast.err{border-color:#ef5350;}
-  .tooltip{position:fixed;background:var(--navy);color:white;padding:6px 12px;border-radius:5px;
-    font-size:11px;font-family:'Share Tech Mono',monospace;pointer-events:none;opacity:0;
-    transition:opacity 0.15s;z-index:100;border:1px solid var(--gold);white-space:nowrap;}
-  .tooltip.show{opacity:1;}
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+:root{--bg:#f0ece4;--paper:#faf7f0;--navy:#1a237e;--navy2:#283593;--gold:#c9a227;
+  --border:#b8b0a0;--text:#1a1a2e;--dim:#6a6a7a;--panel:#eee8dc;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Exo 2",sans-serif;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;
+  background-image:linear-gradient(rgba(26,35,126,.03) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(26,35,126,.03) 1px,transparent 1px);
+  background-size:30px 30px;pointer-events:none;z-index:0}
+.layout{position:relative;z-index:1;display:grid;grid-template-columns:280px 1fr;
+  grid-template-rows:auto 1fr;min-height:100vh}
+header{grid-column:1/-1;background:var(--navy);color:white;padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold)}
+.logo-title{font-family:"Orbitron",monospace;font-size:14px;font-weight:900;letter-spacing:4px;color:var(--gold)}
+.logo-sub{font-size:9px;color:rgba(255,255,255,.5);letter-spacing:2px;margin-top:2px}
+.header-info{font-family:"Share Tech Mono",monospace;font-size:10px;color:rgba(255,255,255,.4);text-align:right}
+.sidebar{background:var(--paper);border-right:1px solid var(--border);padding:16px;
+  display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px}
+.panel-title{font-size:8px;letter-spacing:3px;color:var(--navy);text-transform:uppercase;
+  margin-bottom:10px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:6px}
+.upload-area{border:2px dashed var(--border);border-radius:6px;padding:20px;text-align:center;
+  cursor:pointer;transition:all .2s;background:white}
+.upload-area:hover,.upload-area.drag{border-color:var(--navy);background:rgba(26,35,126,.03)}
+.ctrl-row{display:flex;flex-direction:column;gap:5px;margin-bottom:8px}
+.ctrl-label{font-size:9px;letter-spacing:2px;color:var(--dim)}
+.ctrl-row select,.ctrl-row input[type=text]{width:100%;background:white;border:1px solid var(--border);
+  border-radius:4px;padding:5px 8px;font-size:12px;font-family:"Share Tech Mono",monospace;
+  color:var(--text);outline:none}
+input[type=range]{width:100%;accent-color:var(--navy);cursor:pointer;margin-top:2px}
+/* FILTRO */
+.filter-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px}
+.filter-half{flex:1}
+.filter-lbl{font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:3px}
+.filter-num{width:100%;background:white;border:1px solid var(--border);border-radius:4px;
+  padding:5px 8px;font-size:13px;font-family:"Share Tech Mono",monospace;
+  color:var(--navy);font-weight:600;text-align:center;outline:none}
+.filter-num:focus{border-color:var(--navy)}
+.filter-bar-wrap{height:5px;background:var(--border);border-radius:3px;margin:6px 0;position:relative}
+.filter-bar-fill{position:absolute;height:100%;background:var(--navy);border-radius:3px;transition:all .2s}
+.filter-info{display:flex;justify-content:space-between;
+  font-family:"Share Tech Mono",monospace;font-size:9px;color:var(--dim);margin-bottom:6px}
+/* BOTONES */
+.btn-primary{width:100%;padding:10px;background:var(--navy);color:white;border:none;
+  border-radius:6px;font-family:"Orbitron",monospace;font-size:11px;letter-spacing:3px;
+  cursor:pointer;transition:all .2s}
+.btn-primary:hover{background:var(--navy2)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-fmt{padding:7px 4px;background:rgba(26,35,126,.08);border:1px solid var(--border);
+  border-radius:5px;color:var(--navy);font-size:10px;font-weight:600;cursor:pointer;
+  transition:all .2s;text-align:center}
+.btn-fmt:hover{background:rgba(26,35,126,.15)}
+.btn-sec{width:100%;padding:8px;margin-bottom:5px;background:white;color:var(--navy);
+  border:1px solid var(--navy);border-radius:6px;font-size:11px;letter-spacing:1px;
+  cursor:pointer;font-weight:600}
+.btn-sec:hover{background:rgba(26,35,126,.05)}
+.btn-reset{width:100%;padding:5px;background:white;border:1px solid var(--border);
+  border-radius:4px;font-size:10px;color:var(--dim);cursor:pointer;letter-spacing:1px}
+.btn-reset:hover{border-color:var(--navy);color:var(--navy)}
+/* MAPA */
+.map-area{display:flex;flex-direction:column;position:relative;overflow:hidden;min-height:0}
+.map-toolbar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:white;
+  border-bottom:1px solid var(--border);flex-wrap:wrap}
+.toolbar-label{font-size:9px;letter-spacing:2px;color:var(--dim)}
+.tbtn{padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;
+  letter-spacing:1px;transition:all .2s;border:1px solid}
+.tbtn.on{background:var(--navy);color:white;border-color:var(--navy)}
+.tbtn.off{background:white;color:var(--dim);border-color:var(--border)}
+#map-svg-wrap{flex:1;display:flex;align-items:center;justify-content:center;
+  padding:16px;overflow:auto;min-height:0}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;gap:12px;color:var(--dim);text-align:center;padding:40px}
+.empty-icon{font-size:60px;opacity:.3}
+.empty-title{font-family:"Orbitron",monospace;font-size:14px;color:var(--navy);
+  opacity:.4;letter-spacing:3px}
+.progress-bar{position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold);
+  transform-origin:left;transform:scaleX(0);transition:transform .3s;z-index:10}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:white;
+  border:1px solid var(--gold);border-radius:6px;padding:9px 14px;font-size:12px;
+  font-family:"Share Tech Mono",monospace;transform:translateY(60px);opacity:0;
+  transition:all .3s;z-index:1000}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.err{border-color:#ef5350}
+.tooltip{position:fixed;background:var(--navy);color:white;padding:6px 12px;border-radius:5px;
+  font-size:11px;font-family:"Share Tech Mono",monospace;pointer-events:none;opacity:0;
+  transition:opacity .15s;z-index:100;border:1px solid var(--gold);white-space:nowrap}
+.tooltip.show{opacity:1}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat-box{background:white;border:1px solid var(--border);border-radius:4px;padding:8px;text-align:center}
+.stat-val{font-family:"Orbitron",monospace;font-size:16px;color:var(--navy);font-weight:700}
+.stat-lbl{font-size:8px;letter-spacing:2px;color:var(--dim);margin-top:2px}
+.file-item{display:flex;align-items:center;justify-content:space-between;background:white;
+  border:1px solid var(--border);border-radius:4px;padding:6px 10px;
+  font-size:11px;font-family:"Share Tech Mono",monospace;margin-bottom:4px}
+.legend-item{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.legend-swatch{width:24px;height:14px;border-radius:2px;border:1px solid rgba(0,0,0,.1)}
 </style>
 </head>
 <body>
@@ -108,38 +111,48 @@
   <header>
     <div>
       <div class="logo-title">⚓ BatiGráfico v2</div>
-      <div class="logo-sub">VISUALIZACIÓN BATIMÉTRICA — DELTA DEL TIGRE</div>
+      <div class="logo-sub">VISUALIZACIÓN BATIMÉTRICA — BATISISTEMA</div>
     </div>
     <div class="header-info" id="hinfo">Sin datos cargados</div>
   </header>
 
   <aside class="sidebar">
+
     <div class="panel">
       <div class="panel-title">▸ Datos de entrada</div>
       <div class="upload-area" id="upload-area"
            onclick="document.getElementById('file-input').click()"
            ondragover="dov(event)" ondragleave="dlv(event)" ondrop="ddp(event)">
-        <div class="upload-icon">🗂</div>
-        <div class="upload-text">CARGAR CSV(s)</div>
-        <div class="upload-sub">BatiCaptura o CSV con<br>LAT, LON, FINAL_M</div>
+        <div class="upload-icon" style="font-size:28px;margin-bottom:8px">🗂</div>
+        <div style="font-size:11px;color:var(--dim);letter-spacing:1px">CARGAR CSV(s)</div>
       </div>
-      <input type="file" id="file-input" multiple accept=".csv" onchange="loadFiles(this.files)"/>
-      <div class="file-list" id="file-list" style="margin-top:8px"></div>
+      <input type="file" id="file-input" multiple accept=".csv" onchange="loadFiles(this.files)" style="display:none"/>
+      <div id="file-list" style="margin-top:8px"></div>
     </div>
 
     <div class="panel">
       <div class="panel-title">▸ Configuración</div>
       <div class="ctrl-row">
         <div class="ctrl-label">Intervalo de curvas</div>
-        <select id="ci"><option value="0.25">0.25 m</option><option value="0.5" selected>0.50 m</option><option value="1.0">1.00 m</option><option value="2.0">2.00 m</option></select>
+        <select id="ci">
+          <option value="0.25">0.25 m</option>
+          <option value="0.5" selected>0.50 m</option>
+          <option value="1.0">1.00 m</option>
+          <option value="2.0">2.00 m</option>
+        </select>
       </div>
       <div class="ctrl-row">
         <div class="ctrl-label">Resolución de grilla</div>
-        <select id="gr"><option value="80">Rápida (80×80)</option><option value="150" selected>Normal (150×150)</option><option value="250">Alta (250×250)</option></select>
+        <select id="gr">
+          <option value="80">Rápida (80×80)</option>
+          <option value="150" selected>Normal (150×150)</option>
+          <option value="250">Alta (250×250)</option>
+        </select>
       </div>
       <div class="ctrl-row">
         <div class="ctrl-label">Potencia IDW: <span id="ipv">2</span></div>
-        <input type="range" id="ip" min="1" max="4" step="0.5" value="2" oninput="document.getElementById('ipv').textContent=this.value"/>
+        <input type="range" id="ip" min="1" max="4" step="0.5" value="2"
+               oninput="document.getElementById('ipv').textContent=this.value"/>
       </div>
       <div class="ctrl-row">
         <div class="ctrl-label">Título</div>
@@ -147,44 +160,31 @@
       </div>
     </div>
 
-
-    <!-- FILTRO DE PROFUNDIDAD -->
+    <!-- FILTRO DE PROFUNDIDAD — solo visible cuando hay datos -->
     <div class="panel" id="filter-panel" style="display:none">
       <div class="panel-title">▸ Filtro de Profundidad</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <div style="flex:1">
-          <div class="ctrl-label">DESDE (m)</div>
-          <input type="number" id="f-min" step="0.1" min="0"
-            style="width:100%;background:white;border:1px solid var(--border);
-            border-radius:4px;padding:5px 8px;font-size:13px;font-family:'Share Tech Mono',monospace;
-            color:var(--navy);font-weight:600;text-align:center"
-            oninput="actualizarFiltro()">
+      <div class="filter-row">
+        <div class="filter-half">
+          <div class="filter-lbl">DESDE (m)</div>
+          <input class="filter-num" type="number" id="f-min" step="0.1" min="0" placeholder="mín"
+                 oninput="actualizarInfoFiltro()">
         </div>
-        <div style="font-size:16px;color:var(--border);margin-top:14px">→</div>
-        <div style="flex:1">
-          <div class="ctrl-label">HASTA (m)</div>
-          <input type="number" id="f-max" step="0.1" min="0"
-            style="width:100%;background:white;border:1px solid var(--border);
-            border-radius:4px;padding:5px 8px;font-size:13px;font-family:'Share Tech Mono',monospace;
-            color:var(--navy);font-weight:600;text-align:center"
-            oninput="actualizarFiltro()">
+        <div style="color:var(--border);font-size:16px;padding-bottom:4px">→</div>
+        <div class="filter-half">
+          <div class="filter-lbl">HASTA (m)</div>
+          <input class="filter-num" type="number" id="f-max" step="0.1" min="0" placeholder="máx"
+                 oninput="actualizarInfoFiltro()">
         </div>
       </div>
-      <!-- Slider doble visual -->
-      <div style="position:relative;height:6px;background:var(--border);border-radius:3px;margin:8px 4px 4px">
-        <div id="filter-bar" style="position:absolute;height:100%;background:var(--navy);border-radius:3px;left:0;right:0;transition:all .2s"></div>
+      <div class="filter-bar-wrap">
+        <div class="filter-bar-fill" id="filter-bar" style="left:0;width:100%"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:4px">
-        <span id="filter-info-min" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim)">—</span>
-        <span id="filter-pts" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--navy);font-weight:600">todos los puntos</span>
-        <span id="filter-info-max" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim)">—</span>
+      <div class="filter-info">
+        <span id="f-info-min">—</span>
+        <span style="color:var(--navy);font-weight:600" id="f-info-pts">todos los puntos</span>
+        <span id="f-info-max">—</span>
       </div>
-      <button onclick="resetFiltro()" 
-        style="width:100%;margin-top:8px;padding:5px;background:white;
-        border:1px solid var(--border);border-radius:4px;font-size:10px;
-        color:var(--dim);cursor:pointer;letter-spacing:1px">
-        ✕ QUITAR FILTRO
-      </button>
+      <button class="btn-reset" onclick="resetFiltro()">✕ QUITAR FILTRO</button>
     </div>
 
     <div class="panel" id="edp" style="display:none">
@@ -199,11 +199,13 @@
       </div>
     </div>
 
-    <button class="btn-primary" id="btn-gen" onclick="generarMapa()" disabled>▶ GENERAR MAPA</button>
+    <button class="btn-primary" id="btn-gen" onclick="generarMapa()" disabled>
+      ▶ GENERAR MAPA
+    </button>
 
     <div class="panel" id="lp" style="display:none">
       <div class="panel-title">▸ Profundidad (m)</div>
-      <div class="legend" id="li"></div>
+      <div id="li"></div>
     </div>
 
     <div class="panel" id="sp" style="display:none">
@@ -212,10 +214,11 @@
     </div>
 
     <div class="panel" id="ep" style="display:none">
-      <div class="panel-title">▸ Exportar</div>
+      <div class="panel-title">▸ Exportar mapa</div>
       <button class="btn-sec" onclick="expPNG()">↓ PNG alta resolución</button>
       <button class="btn-sec" onclick="expSVG()">↓ SVG vectorial</button>
     </div>
+
   </aside>
 
   <main class="map-area">
@@ -232,37 +235,34 @@
       <div class="empty-state" id="es">
         <div class="empty-icon">🌊</div>
         <div class="empty-title">SIN DATOS</div>
-        <div class="empty-sub">Cargá uno o más archivos CSV y presioná GENERAR MAPA</div>
+        <div>Cargá CSV y presioná GENERAR MAPA</div>
       </div>
     </div>
   </main>
 </div>
 
 <script>
-// ─── Estado ───────────────────────────────────────────────────────────────────
+// ═══ ESTADO ═══════════════════════════════════════════════════════════════════
 let datasets=[], allPoints=[];
 let layers={fill:true,contour:true,points:true,labels:true,grid:true};
 let svgEl=null;
 
-// ─── Paleta náutica: verde agua → azul marino ─────────────────────────────────
-const PAL=[
-  [210,240,215],[150,220,210],[90,190,225],[50,150,210],
-  [25,110,190],[10,70,160],[4,40,120],[1,18,70]
-];
+// ═══ PALETA ═══════════════════════════════════════════════════════════════════
+const PAL=[[210,240,215],[150,220,210],[90,190,225],[50,150,210],[25,110,190],[10,70,160],[4,40,120],[1,18,70]];
 function palRGB(t){
   t=Math.max(0,Math.min(1,t));
-  const n=PAL.length-1, i=Math.floor(t*n), f=t*n-i;
-  const a=PAL[Math.min(i,n)], b=PAL[Math.min(i+1,n)];
-  return [Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)];
+  const n=PAL.length-1,i=Math.floor(t*n),f=t*n-i;
+  const a=PAL[Math.min(i,n)],b=PAL[Math.min(i+1,n)];
+  return[Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)];
 }
-function palCSS(t){const[r,g,b]=palRGB(t);return `rgb(${r},${g},${b})`;}
+function palCSS(t){const[r,g,b]=palRGB(t);return "rgb("+r+","+g+","+b+")";}
 
-// ─── Drag & drop ──────────────────────────────────────────────────────────────
+// ═══ DRAG & DROP ══════════════════════════════════════════════════════════════
 function dov(e){e.preventDefault();document.getElementById('upload-area').classList.add('drag');}
 function dlv(e){document.getElementById('upload-area').classList.remove('drag');}
 function ddp(e){e.preventDefault();dlv(e);loadFiles(e.dataTransfer.files);}
 
-// ─── Carga ────────────────────────────────────────────────────────────────────
+// ═══ CARGA CSV ════════════════════════════════════════════════════════════════
 function loadFiles(files){
   Array.from(files).forEach(file=>{
     const r=new FileReader();
@@ -280,73 +280,54 @@ function parseCSV(filename,text){
     const lonC=fc('LONGITUD','LON','LONGITUDE');
     const prC =fc('FINAL_M','FINAL','PROF_M','PROF','PROFUNDIDAD','DEPTH','Z');
     const seC =fc('SECTOR','ZONA','NOMBRE','NAME');
-    if(!latC||!lonC||!prC){showToast(`${filename}: no encuentro LAT/LON/PROF`,true);return;}
+    if(!latC||!lonC||!prC){showToast(filename+": sin LAT/LON/PROF",true);return;}
     const pts=[];
     rows.forEach(row=>{
       const lat=parseFloat(row[latC]),lon=parseFloat(row[lonC]),z=parseFloat(row[prC]);
-      const sec=(row[seC]||filename).trim().toUpperCase();
-      if(isNaN(lat)||isNaN(lon))return;
-      // Postes: z=0, sector=POSTE
-      if(sec==='POSTE'){pts.push({lat,lon,z:0,sector:'POSTE',esPoste:true});return;}
-      if(isNaN(z))return;
-      pts.push({lat,lon,z,sector:row[seC]||filename,esPoste:false});
+      if(isNaN(lat)||isNaN(lon)||isNaN(z))return;
+      const sec=(seC&&row[seC]?row[seC]:filename).trim().toUpperCase();
+      if(sec==='POSTE')return;
+      pts.push({lat,lon,z,sector:seC?row[seC]:filename,esPoste:false});
     });
-    if(!pts.length){showToast(`${filename}: sin puntos válidos`,true);return;}
+    if(!pts.length){showToast(filename+": sin puntos válidos",true);return;}
     const ix=datasets.findIndex(d=>d.name===filename);
     if(ix>=0)datasets.splice(ix,1);
     datasets.push({name:filename,points:pts});
     rebuild();
-    showToast(`✓ ${filename} — ${pts.length} puntos`);
-  }catch(e){showToast(`Error: ${e.message}`,true);}
+    showToast("✓ "+filename+" — "+pts.length+" puntos");
+  }catch(e){showToast("Error: "+e.message,true);}
 }
 
-// ─── FILTRO DE PROFUNDIDAD ───────────────────────────────────────────────────
-let filtroMin=null, filtroMax=null;
-
-function actualizarFiltro() {
-  filtroMin=parseFloat(document.getElementById('f-min').value);
-  filtroMax=parseFloat(document.getElementById('f-max').value);
-  if(isNaN(filtroMin))filtroMin=null;
-  if(isNaN(filtroMax))filtroMax=null;
-  actualizarInfoFiltro();
-  // Re-generar si ya hay mapa
-  if(document.getElementById('btn-gen')&&!document.getElementById('btn-gen').disabled){
-    generarMapa();
+function rebuild(){
+  allPoints=datasets.flatMap(d=>d.points);
+  // Lista de archivos
+  const fl=document.getElementById('file-list');fl.innerHTML='';
+  datasets.forEach(ds=>{
+    const s=ds.name.length>24?ds.name.substring(0,22)+"…":ds.name;
+    const div=document.createElement('div');
+    div.className='file-item';
+    div.innerHTML='<span style="color:var(--navy);flex:1;overflow:hidden;text-overflow:ellipsis">'+s+'</span>'+
+      '<span style="color:var(--dim);font-size:10px;margin:0 8px">'+ds.points.length+'pt</span>'+
+      '<button style="background:none;border:none;color:var(--border);cursor:pointer;font-size:14px" onclick="rmDS(this.dataset.n)" data-n="'+ds.name+'">✕</button>';
+    fl.appendChild(div);
+  });
+  document.getElementById('btn-gen').disabled=allPoints.length<4;
+  if(allPoints.length){
+    document.getElementById('filter-panel').style.display='';
+    document.getElementById('edp').style.display='';
+    actualizarInfoFiltro();
+    const mn=d3.min(allPoints,p=>p.z).toFixed(2);
+    const mx=d3.max(allPoints,p=>p.z).toFixed(2);
+    document.getElementById('hinfo').textContent=
+      allPoints.length+" SONDAJES  |  "+mn+"m — "+mx+"m  |  "+datasets.length+" SECTOR(ES)";
   }
 }
 
-function resetFiltro() {
-  document.getElementById('f-min').value='';
-  document.getElementById('f-max').value='';
-  filtroMin=null;filtroMax=null;
-  actualizarInfoFiltro();
-  if(allPoints.length)generarMapa();
-}
+function rmDS(n){datasets=datasets.filter(d=>d.name!==n);rebuild();}
 
-function actualizarInfoFiltro() {
-  const zs=allPoints.map(p=>p.z);
-  const mn=d3.min(zs), mx=d3.max(zs);
-  const fMinEl=document.getElementById('f-min').value.trim();
-  const fMaxEl=document.getElementById('f-max').value.trim();
-  const fMin=fMinEl!==''?parseFloat(fMinEl):mn;
-  const fMax=fMaxEl!==''?parseFloat(fMaxEl):mx;
-  const pctL=mn===mx?0:((fMin-mn)/(mx-mn))*100;
-  const pctR=mn===mx?100:((fMax-mn)/(mx-mn))*100;
-  const bar=document.getElementById('filter-bar');
-  if(bar){bar.style.left=pctL+'%';bar.style.right=(100-pctR)+'%';}
-  document.getElementById('filter-info-min').textContent=mn?mn.toFixed(2)+'m':'—';
-  document.getElementById('filter-info-max').textContent=mx?mx.toFixed(2)+'m':'—';
-  // Contar puntos filtrados
-  const filtrados=getPuntsFiltrados();
-  const fMinV=document.getElementById('f-min').value.trim();
-  const fMaxV=document.getElementById('f-max').value.trim();
-  document.getElementById('filter-pts').textContent=
-    (fMinV!==''||fMaxV!=='')
-    ?filtrados.length+' / '+allPoints.length+' puntos'
-    :'todos los puntos';
-}
-
-function getPuntsFiltrados() {
+// ═══ FILTRO DE PROFUNDIDAD ════════════════════════════════════════════════════
+// Lee los inputs directamente — vacío = sin filtro
+function getPuntsFiltrados(){
   const fMinEl=document.getElementById('f-min').value.trim();
   const fMaxEl=document.getElementById('f-max').value.trim();
   const fMin=fMinEl!==''?parseFloat(fMinEl):null;
@@ -359,42 +340,41 @@ function getPuntsFiltrados() {
   });
 }
 
-function rebuild(){
-  allPoints=datasets.flatMap(d=>d.points);
-  // File list
-  const fl=document.getElementById('file-list');fl.innerHTML='';
-  datasets.forEach(ds=>{
-    const div=document.createElement('div');div.className='file-item';
-    const s=ds.name.length>24?ds.name.substring(0,22)+'…':ds.name;
-    div.innerHTML=`<span class="fname" title="${ds.name}">${s}</span>
-      <span class="fcount">${ds.points.length}pt</span>
-      <button class="file-del" onclick="rmDS('${ds.name}')">✕</button>`;
-    fl.appendChild(div);
-  });
-  document.getElementById('btn-gen').disabled=allPoints.length<4;
-  if(allPoints.length){
-    document.getElementById('filter-panel').style.display='';
-    // Setear valores por defecto del filtro
-    actualizarInfoFiltro();
-  }
-  if(allPoints.length){
-    const mn=d3.min(allPoints,p=>p.z).toFixed(2);
-    const mx=d3.max(allPoints,p=>p.z).toFixed(2);
-    const nSond=allPoints.filter(p=>!p.esPoste).length;
-    const nPost=allPoints.filter(p=>p.esPoste).length;
-    document.getElementById('hinfo').textContent=
-      `${nSond} SONDAJES${nPost?' | '+nPost+' POSTES':''}  |  ${mn}m — ${mx}m  |  ${datasets.length} SECTOR(ES)`;
-  }
+function actualizarInfoFiltro(){
+  if(!allPoints.length)return;
+  const zs=allPoints.map(p=>p.z);
+  const mn=d3.min(zs),mx=d3.max(zs),rango=mx-mn||1;
+  const fMinEl=document.getElementById('f-min').value.trim();
+  const fMaxEl=document.getElementById('f-max').value.trim();
+  const fMin=fMinEl!==''?parseFloat(fMinEl):mn;
+  const fMax=fMaxEl!==''?parseFloat(fMaxEl):mx;
+  const pctL=Math.max(0,Math.min(100,((fMin-mn)/rango)*100));
+  const pctR=Math.max(0,Math.min(100,((fMax-mn)/rango)*100));
+  const bar=document.getElementById('filter-bar');
+  bar.style.left=pctL+'%';
+  bar.style.width=(pctR-pctL)+'%';
+  document.getElementById('f-info-min').textContent=mn.toFixed(2)+'m';
+  document.getElementById('f-info-max').textContent=mx.toFixed(2)+'m';
+  const filtrados=getPuntsFiltrados();
+  const activo=fMinEl!==''||fMaxEl!=='';
+  document.getElementById('f-info-pts').textContent=
+    activo?filtrados.length+' / '+allPoints.length+' pts':'todos los puntos';
 }
-function rmDS(n){datasets=datasets.filter(d=>d.name!==n);rebuild();}
 
-// ─── Proyección métrica ───────────────────────────────────────────────────────
+function resetFiltro(){
+  document.getElementById('f-min').value='';
+  document.getElementById('f-max').value='';
+  actualizarInfoFiltro();
+}
+
+// ═══ PROYECCIÓN ═══════════════════════════════════════════════════════════════
 function toM(lat,lon,lat0,lon0){
   const R=6371000;
-  return{x:(lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180,y:(lat-lat0)*R*Math.PI/180};
+  return{x:(lon-lon0)*Math.cos(lat0*Math.PI/180)*R*Math.PI/180,
+         y:(lat-lat0)*R*Math.PI/180};
 }
 
-// ─── IDW ──────────────────────────────────────────────────────────────────────
+// ═══ IDW ══════════════════════════════════════════════════════════════════════
 function idw(pts,x,y,pow){
   let sw=0,swz=0;
   for(const p of pts){
@@ -405,7 +385,16 @@ function idw(pts,x,y,pow){
   return swz/sw;
 }
 
-// ─── GENERAR MAPA ─────────────────────────────────────────────────────────────
+function prog(p){document.getElementById('pb').style.transform="scaleX("+p+")";}
+function sl(ms){return new Promise(r=>setTimeout(r,ms));}
+function fr(contour){try{for(const g of contour.coordinates)for(const r of g)if(r.length>5)return r;}catch(e){}return null;}
+function nSt(range,n){const raw=range/n,mag=Math.pow(10,Math.floor(Math.log10(raw)));const norm=raw/mag;return(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;}
+function dms(deg,type){
+  const sign=deg<0?(type==='lat'?'S':'O'):(type==='lat'?'N':'E');
+  const abs=Math.abs(deg),d=Math.floor(abs),mf=(abs-d)*60,m=Math.floor(mf),s=Math.round((mf-m)*60);
+  return d+"°"+String(m).padStart(2,'0')+"'"+String(s).padStart(2,'0')+'"'+sign;
+}
+
 async function generarMapa(){
   if(allPoints.length<4)return;
   prog(0.05);
@@ -658,6 +647,62 @@ async function generarMapa(){
 }
 
 // ─── Rosa de los vientos ──────────────────────────────────────────────────────
+function buildLegend(zMn,zMx,intv){
+  const el=document.getElementById('li');el.innerHTML='';
+  d3.range(Math.ceil(zMn/intv)*intv,zMx+intv,intv).forEach(z=>{
+    const t=(z-zMn)/((zMx-zMn)||1);
+    const div=document.createElement('div');div.className='legend-item';
+    div.innerHTML='<div class="legend-swatch" style="background:'+palCSS(t)+'"></div>'+
+      '<div style="font-family:Share Tech Mono,monospace;font-size:10px">'+z.toFixed(2)+'m</div>';
+    el.appendChild(div);
+  });
+}
+function buildStats(pts,zMn,zMx,W,H){
+  const el=document.getElementById('sg');el.innerHTML='';
+  [{v:pts.length,l:'PUNTOS'},{v:d3.mean(pts,p=>p.z).toFixed(2)+'m',l:'MEDIA'},
+   {v:zMn.toFixed(2)+'m',l:'MÍN'},{v:zMx.toFixed(2)+'m',l:'MÁX'},
+   {v:(W*H/10000).toFixed(1)+'ha',l:'ÁREA'},{v:datasets.length,l:'SECTORES'}]
+  .forEach(s=>{
+    const b=document.createElement('div');b.className='stat-box';
+    b.innerHTML='<div class="stat-val">'+s.v+'</div><div class="stat-lbl">'+s.l+'</div>';
+    el.appendChild(b);
+  });
+}
+function togL(name){
+  layers[name]=!layers[name];
+  document.getElementById('tbtn-'+name).className='tbtn '+(layers[name]?'on':'off');
+  if(name==='labels'){
+    document.querySelectorAll('.pt-lbl').forEach(e=>e.style.display=layers[name]?'':'none');
+    const lel=document.getElementById('layer-labels');if(lel)lel.style.display=layers[name]?'':'none';
+    return;
+  }
+  const el=document.getElementById('layer-'+name);if(el)el.style.display=layers[name]?'':'none';
+}
+function expPNG(){
+  if(!svgEl){showToast('Generá el mapa primero',true);return;}
+  const svgW=parseInt(svgEl.getAttribute('width')),svgH=parseInt(svgEl.getAttribute('height'));
+  const scale=3,W=svgW*scale,H=svgH*scale;
+  const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#faf7f0';ctx.fillRect(0,0,W,H);ctx.scale(scale,scale);
+  const svgStr=new XMLSerializer().serializeToString(svgEl);
+  const blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  img.onload=()=>{ctx.drawImage(img,0,0);
+    const a=document.createElement('a');
+    a.download='batimetria_'+new Date().toISOString().substring(0,10)+'.png';
+    a.href=canvas.toDataURL('image/png');a.click();URL.revokeObjectURL(url);showToast('✓ PNG exportado');};
+  img.src=url;
+}
+function expSVG(){
+  if(!svgEl){showToast('Generá el mapa primero',true);return;}
+  const str=new XMLSerializer().serializeToString(svgEl);
+  const a=document.createElement('a');
+  a.download='batimetria_'+new Date().toISOString().substring(0,10)+'.svg';
+  a.href=URL.createObjectURL(new Blob([str],{type:'image/svg+xml'}));a.click();
+  showToast('✓ SVG exportado');
+}
+
 function northArrow(svg,cx,cy){
   const g=svg.append('g').attr('transform',`translate(${cx},${cy})`);
   const R=14;
@@ -763,72 +808,6 @@ function togL(name){
 }
 
 // ─── Exportar ─────────────────────────────────────────────────────────────────
-function expPNG(){
-  if(!svgEl){showToast('Generá el mapa primero',true);return;}
-  const svgW=parseInt(svgEl.getAttribute('width')),svgH=parseInt(svgEl.getAttribute('height'));
-  const scale=3,W=svgW*scale,H=svgH*scale;
-  const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
-  const ctx=canvas.getContext('2d');
-  ctx.fillStyle='#faf7f0';ctx.fillRect(0,0,W,H);
-  ctx.scale(scale,scale);
-  const svgStr=new XMLSerializer().serializeToString(svgEl);
-  const blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const img=new Image();
-  img.onload=()=>{
-    ctx.drawImage(img,0,0);
-    const a=document.createElement('a');
-    a.download='batimetria_'+new Date().toISOString().substring(0,10)+'.png';
-    a.href=canvas.toDataURL('image/png');a.click();
-    URL.revokeObjectURL(url);showToast('✓ PNG exportado');
-  };
-  img.onerror=()=>showToast('Error PNG — usá SVG',true);
-  img.src=url;
-}
-function expSVG(){
-  if(!svgEl){showToast('Generá el mapa primero',true);return;}
-  const str='<?xml version="1.0" encoding="utf-8"?>\n'+new XMLSerializer().serializeToString(svgEl);
-  const a=document.createElement('a');
-  a.download='batimetria_'+new Date().toISOString().substring(0,10)+'.svg';
-  a.href=URL.createObjectURL(new Blob([str],{type:'image/svg+xml'}));a.click();
-  showToast('✓ SVG exportado');
-}
-
-// ─── Utilidades ───────────────────────────────────────────────────────────────
-function fr(contour){try{for(const g of contour.coordinates)for(const r of g)if(r.length>5)return r;}catch(e){}return null;}
-function nSt(range,n){const raw=range/n,mag=Math.pow(10,Math.floor(Math.log10(raw)));const norm=raw/mag;return(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;}
-function dms(deg,type){
-  const sign=deg<0?(type==='lat'?'S':'O'):(type==='lat'?'N':'E');
-  const abs=Math.abs(deg),d=Math.floor(abs),mf=(abs-d)*60,m=Math.floor(mf),s=Math.round((mf-m)*60);
-  return `${d}°${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}"${sign}`;
-}
-function prog(p){document.getElementById('pb').style.transform=`scaleX(${p})`;}
-function sl(ms){return new Promise(r=>setTimeout(r,ms));}
-
-// ════════════════════════════════════════════════════════════════
-//  EXPORTAR DATOS — GPX / KML / KMZ / DXF / GeoJSON / GDB
-// ════════════════════════════════════════════════════════════════
-
-// Helper: nombre limpio para archivos
-function expFilename(ext){
-  const fecha=new Date().toISOString().substring(0,10);
-  return `batimetria_${fecha}.${ext}`;
-}
-
-// Helper: descargar blob
-function download(content, filename, mime){
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([content],{type:mime}));
-  a.download=filename; a.click();
-}
-
-// Helper: verificar datos
-function checkData(){
-  if(!allPoints||!allPoints.length){showToast('Cargá datos primero',true);return false;}
-  return true;
-}
-
-// ── GPX ────────────────────────────────────────────────────────
 function expGPX(){
   if(!checkData())return;
   const lat0=d3.mean(allPoints,p=>p.lat), lon0=d3.mean(allPoints,p=>p.lon);
