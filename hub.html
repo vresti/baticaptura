@@ -245,6 +245,20 @@
   .card.terreno .card-features li::before { color: var(--green); }
   .card.terreno .card-cta { background: rgba(0,229,160,0.1); border: 1px solid var(--green); color: var(--green); }
   .card.procesar .card-cta { background: rgba(244,114,182,0.1); border: 1px solid #f472b6; color: #f472b6; }
+  /* BATIMAPA */
+  .card.mapa::before { background: linear-gradient(90deg, #1a8fe8, #00e5a0); }
+  .card.mapa::after  { background: radial-gradient(circle at 50% 0%, rgba(26,143,232,0.06), transparent 70%); }
+  .card.mapa:hover   { border-color: #1a8fe8; box-shadow: 0 8px 30px rgba(26,143,232,0.12); }
+  .card.mapa .card-title { color: #1a8fe8; }
+  .card.mapa .card-features li::before { color: #1a8fe8; }
+  .card.mapa .card-cta { background: rgba(26,143,232,0.1); border: 1px solid #1a8fe8; color: #1a8fe8; }
+  /* BATINAV */
+  .card.nav::before { background: linear-gradient(90deg, #34d399, #1a8fe8); }
+  .card.nav::after  { background: radial-gradient(circle at 50% 0%, rgba(52,211,153,0.06), transparent 70%); }
+  .card.nav:hover   { border-color: #34d399; box-shadow: 0 8px 30px rgba(52,211,153,0.12); }
+  .card.nav .card-title { color: #34d399; }
+  .card.nav .card-features li::before { color: #34d399; }
+  .card.nav .card-cta { background: rgba(52,211,153,0.1); border: 1px solid #34d399; color: #34d399; }
 </style>
 </head>
 <body>
@@ -379,6 +393,41 @@
       <div class="card-cta">▶ ABRIR</div>
     </a>
 
+
+    <!-- BATIMAPA -->
+    <a class="card mapa" href="batimapa.html">
+      <span class="card-icon">🗺</span>
+      <div class="card-title">BATIMAPA</div>
+      <div class="card-desc">
+        Visualización batimétrica sobre mapa real OpenStreetMap o satélite.
+      </div>
+      <ul class="card-features">
+        <li>Mapa base OSM / Satélite / Topo</li>
+        <li>IDW sobre mapa georreferenciado</li>
+        <li>Sondajes coloreados por profundidad</li>
+        <li>Filtro de profundidad min/max</li>
+        <li>Opacidad del relleno ajustable</li>
+      </ul>
+      <div class="card-cta">▶ ABRIR</div>
+    </a>
+
+    <!-- BATINAV -->
+    <a class="card nav" href="batinav.html">
+      <span class="card-icon">📡</span>
+      <div class="card-title">BATINAV</div>
+      <div class="card-desc">
+        Captura desde el celular con mapa en tiempo real y posición GPS.
+      </div>
+      <ul class="card-features">
+        <li>Mapa OSM / Satélite en tiempo real</li>
+        <li>Tu posición GPS sobre el mapa</li>
+        <li>Puntos grabados visibles en el mapa</li>
+        <li>Toggle OSM / Satélite</li>
+        <li>Mismo sistema de captura que BatiMobile</li>
+      </ul>
+      <div class="card-cta">▶ ABRIR</div>
+    </a>
+
   </div>
 
   <div class="footer">
@@ -388,7 +437,7 @@
 
 </div>
 
-<div class="version-badge">v3.0 · 2026</div>
+<div class="version-badge">v3.2 · 2026</div>
 
 </body>
 </html>
