@@ -326,8 +326,10 @@ function resetFiltro() {
 function actualizarInfoFiltro() {
   const zs=allPoints.map(p=>p.z);
   const mn=d3.min(zs), mx=d3.max(zs);
-  const fMin=filtroMin!==null?filtroMin:mn;
-  const fMax=filtroMax!==null?filtroMax:mx;
+  const fMinEl=document.getElementById('f-min').value.trim();
+  const fMaxEl=document.getElementById('f-max').value.trim();
+  const fMin=fMinEl!==''?parseFloat(fMinEl):mn;
+  const fMax=fMaxEl!==''?parseFloat(fMaxEl):mx;
   const pctL=mn===mx?0:((fMin-mn)/(mx-mn))*100;
   const pctR=mn===mx?100:((fMax-mn)/(mx-mn))*100;
   const bar=document.getElementById('filter-bar');
@@ -335,22 +337,24 @@ function actualizarInfoFiltro() {
   document.getElementById('filter-info-min').textContent=mn?mn.toFixed(2)+'m':'—';
   document.getElementById('filter-info-max').textContent=mx?mx.toFixed(2)+'m':'—';
   // Contar puntos filtrados
-  const filtrados=allPoints.filter(p=>{
-    if(filtroMin!==null&&p.z<filtroMin)return false;
-    if(filtroMax!==null&&p.z>filtroMax)return false;
-    return true;
-  });
+  const filtrados=getPuntsFiltrados();
+  const fMinV=document.getElementById('f-min').value.trim();
+  const fMaxV=document.getElementById('f-max').value.trim();
   document.getElementById('filter-pts').textContent=
-    filtroMin!==null||filtroMax!==null
+    (fMinV!==''||fMaxV!=='')
     ?filtrados.length+' / '+allPoints.length+' puntos'
     :'todos los puntos';
 }
 
 function getPuntsFiltrados() {
-  if(filtroMin===null&&filtroMax===null)return allPoints;
+  const fMinEl=document.getElementById('f-min').value.trim();
+  const fMaxEl=document.getElementById('f-max').value.trim();
+  const fMin=fMinEl!==''?parseFloat(fMinEl):null;
+  const fMax=fMaxEl!==''?parseFloat(fMaxEl):null;
+  if(fMin===null&&fMax===null)return allPoints;
   return allPoints.filter(p=>{
-    if(filtroMin!==null&&p.z<filtroMin)return false;
-    if(filtroMax!==null&&p.z>filtroMax)return false;
+    if(fMin!==null&&p.z<fMin)return false;
+    if(fMax!==null&&p.z>fMax)return false;
     return true;
   });
 }
@@ -371,12 +375,6 @@ function rebuild(){
   if(allPoints.length){
     document.getElementById('filter-panel').style.display='';
     // Setear valores por defecto del filtro
-    const zs=allPoints.map(p=>p.z);
-    const mn=d3.min(zs), mx=d3.max(zs);
-    if(!document.getElementById('f-min').value)
-      document.getElementById('f-min').value=mn.toFixed(2);
-    if(!document.getElementById('f-max').value)
-      document.getElementById('f-max').value=mx.toFixed(2);
     actualizarInfoFiltro();
   }
   if(allPoints.length){
