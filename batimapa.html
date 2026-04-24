@@ -76,18 +76,21 @@ input[type=range]{width:100%;accent-color:var(--navy);cursor:pointer;margin-top:
   letter-spacing:1px;transition:all .2s;border:1px solid}
 .tbtn.on{background:var(--navy);color:white;border-color:var(--navy)}
 .tbtn.off{background:white;color:var(--dim);border-color:var(--border)}
-#map-svg-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
-#leaflet-bg{position:absolute;inset:0;z-index:0}
-#svg-overlay{position:absolute;inset:0;z-index:1;pointer-events:none;
-  display:flex;align-items:center;justify-content:center;padding:16px}
-#svg-overlay svg{pointer-events:all}
-.map-toggle{position:absolute;top:10px;right:10px;z-index:2;
-  display:flex;gap:4px;background:rgba(255,255,255,.9);
-  border:1px solid #ccc;border-radius:6px;padding:4px}
-.mtbtn{padding:4px 10px;border:none;background:transparent;
+#map-svg-wrap{flex:1;position:relative;overflow:hidden;min-height:400px}
+#leaflet-bg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0}
+#leaflet-bg .leaflet-container{background:#e8e0d8}
+#svg-overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;
+  pointer-events:none;display:flex;align-items:center;justify-content:center;padding:16px}
+#svg-overlay svg{pointer-events:all;filter:drop-shadow(0 2px 8px rgba(0,0,0,.15))}
+.map-toggle{position:absolute;top:10px;right:10px;z-index:20;
+  display:flex;gap:4px;background:rgba(255,255,255,.92);
+  border:1px solid #ccc;border-radius:6px;padding:4px;
+  box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.mtbtn{padding:5px 12px;border:none;background:transparent;
   font-size:10px;font-family:"Share Tech Mono",monospace;
-  cursor:pointer;border-radius:4px;color:#1a237e;transition:all .2s}
+  cursor:pointer;border-radius:4px;color:#1a237e;transition:all .2s;font-weight:600}
 .mtbtn.active{background:#1a237e;color:white}
+.mtbtn:hover:not(.active){background:rgba(26,35,126,.1)}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
   flex:1;gap:12px;color:var(--dim);text-align:center;padding:40px}
 .empty-icon{font-size:60px;opacity:.3}
@@ -272,19 +275,25 @@ const BASES={
 
 function initLeaflet(){
   if(lmap)return;
+  const el=document.getElementById('leaflet-bg');
+  if(!el)return;
   lmap=L.map('leaflet-bg',{
     center:[-34.40,-58.50],zoom:14,
     zoomControl:false,attributionControl:false,
     dragging:false,scrollWheelZoom:false,
-    doubleClickZoom:false,boxZoom:false,keyboard:false
+    doubleClickZoom:false,boxZoom:false,keyboard:false,
+    touchZoom:false
   });
   lbase=L.tileLayer(BASES.osm,{maxZoom:20}).addTo(lmap);
+  // Forzar tamaño correcto después de render
+  setTimeout(()=>lmap.invalidateSize(),300);
 }
 
 function setBase(tipo){
-  if(!lmap)return;
+  if(!lmap){initLeaflet();setTimeout(()=>setBase(tipo),400);return;}
   if(lbase)lmap.removeLayer(lbase);
   lbase=L.tileLayer(BASES[tipo],{maxZoom:20}).addTo(lmap);
+  lmap.invalidateSize();
   ['osm','sat','topo'].forEach(t=>{
     const b=document.getElementById('btn-'+t);
     if(b)b.className='mtbtn'+(t===tipo?' active':'');
@@ -485,8 +494,14 @@ async function generarMapa(){
     const cosL=Math.cos(lat0*Math.PI/180)*6371000*Math.PI/180;
     const lonMnL=lon0+d3.min(pts,p=>p.x)/cosL;
     const lonMxL=lon0+d3.max(pts,p=>p.x)/cosL;
-    lmap.fitBounds([[latMnL,lonMnL],[latMxL,lonMxL]],{padding:[80,80]});
-    setTimeout(()=>lmap.invalidateSize(),100);
+    lmap.invalidateSize();
+    setTimeout(()=>{
+      lmap.fitBounds([[latMnL,lonMnL],[latMxL,lonMxL]],{padding:[40,40]});
+    },200);
+  } else {
+    initLeaflet();
+    setTimeout(()=>{generarMapa();},600);
+    return;
   }
 
   // Bounding box
