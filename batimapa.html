@@ -76,15 +76,18 @@ input[type=range]{width:100%;accent-color:var(--navy);cursor:pointer;margin-top:
   letter-spacing:1px;transition:all .2s;border:1px solid}
 .tbtn.on{background:var(--navy);color:white;border-color:var(--navy)}
 .tbtn.off{background:white;color:var(--dim);border-color:var(--border)}
-#map-svg-wrap{flex:1;position:relative;min-height:0;overflow:hidden}
-#leaflet-map{width:100%;height:100%;min-height:400px}
-.map-layer-toggle{position:absolute;top:10px;right:10px;z-index:1000;
-  display:flex;gap:4px;background:rgba(255,255,255,.92);
+#map-svg-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
+#leaflet-bg{position:absolute;inset:0;z-index:0}
+#svg-overlay{position:absolute;inset:0;z-index:1;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;padding:16px}
+#svg-overlay svg{pointer-events:all}
+.map-toggle{position:absolute;top:10px;right:10px;z-index:2;
+  display:flex;gap:4px;background:rgba(255,255,255,.9);
   border:1px solid #ccc;border-radius:6px;padding:4px}
-.map-layer-btn{padding:4px 10px;border:none;background:transparent;
+.mtbtn{padding:4px 10px;border:none;background:transparent;
   font-size:10px;font-family:"Share Tech Mono",monospace;
-  cursor:pointer;border-radius:4px;color:var(--navy);transition:all .2s}
-.map-layer-btn.active{background:var(--navy);color:white}
+  cursor:pointer;border-radius:4px;color:#1a237e;transition:all .2s}
+.mtbtn.active{background:#1a237e;color:white}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
   flex:1;gap:12px;color:var(--dim);text-align:center;padding:40px}
 .empty-icon{font-size:60px;opacity:.3}
@@ -238,61 +241,59 @@ input[type=range]{width:100%;accent-color:var(--navy);cursor:pointer;margin-top:
       <button class="tbtn on" id="tbtn-contour" onclick="togL('contour')">Curvas</button>
       <button class="tbtn on" id="tbtn-points"  onclick="togL('points')">Sondajes</button>
       <button class="tbtn on" id="tbtn-labels"  onclick="togL('labels')">Etiquetas</button>
-      <span class="toolbar-label" style="margin-left:12px">OPACIDAD:</span>
-      <input type="range" id="opacity-slider" min="0.1" max="1" step="0.05" value="0.65"
-        style="width:80px;accent-color:var(--navy)" oninput="setOverlayOpacity(this.value)">
+      <button class="tbtn on" id="tbtn-grid"    onclick="togL('grid')">Grilla</button>
     </div>
     <div id="map-svg-wrap">
-      <div id="leaflet-map"></div>
-      <div class="map-layer-toggle">
-        <button class="map-layer-btn active" id="btn-osm" onclick="setBaseLayer('osm')">OSM</button>
-        <button class="map-layer-btn" id="btn-sat" onclick="setBaseLayer('sat')">SAT</button>
-        <button class="map-layer-btn" id="btn-topo" onclick="setBaseLayer('topo')">TOPO</button>
+      <div id="leaflet-bg"></div>
+      <div id="svg-overlay">
+        <div class="empty-state" id="es">
+          <div class="empty-icon">🌊</div>
+          <div class="empty-title">SIN DATOS</div>
+          <div>Cargá CSV y presioná GENERAR MAPA</div>
+        </div>
+      </div>
+      <div class="map-toggle">
+        <button class="mtbtn active" id="btn-osm" onclick="setBase('osm')">OSM</button>
+        <button class="mtbtn" id="btn-sat" onclick="setBase('sat')">SAT</button>
+        <button class="mtbtn" id="btn-topo" onclick="setBase('topo')">TOPO</button>
       </div>
     </div>
   </main>
 </div>
 
 <script>
-// ═══ LEAFLET ══════════════════════════════════════════════════════════════════
-let leafletMap = null, baseLayer = null;
-let overlayFill = null, overlayContour = null, overlayPoints = null;
-let currentBaseLayer = 'osm';
-
-const BASE_LAYERS = {
-  osm:  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  sat:  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  topo: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+// ═══ LEAFLET (fondo del mapa) ════════════════════════════════════════════════
+let lmap=null, lbase=null;
+const BASES={
+  osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  sat: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  topo:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
 };
 
-function initLeafletMap() {
-  if(leafletMap) return;
-  leafletMap = L.map('leaflet-map', {
-    center: [-34.40, -58.50], zoom: 14,
-    zoomControl: true, attributionControl: false
+function initLeaflet(){
+  if(lmap)return;
+  lmap=L.map('leaflet-bg',{
+    center:[-34.40,-58.50],zoom:14,
+    zoomControl:false,attributionControl:false,
+    dragging:false,scrollWheelZoom:false,
+    doubleClickZoom:false,boxZoom:false,keyboard:false
   });
-  baseLayer = L.tileLayer(BASE_LAYERS.osm, { maxZoom: 20 }).addTo(leafletMap);
-  leafletMap.on('zoom move', () => {});
+  lbase=L.tileLayer(BASES.osm,{maxZoom:20}).addTo(lmap);
 }
 
-function setBaseLayer(tipo) {
-  currentBaseLayer = tipo;
-  if(baseLayer) leafletMap.removeLayer(baseLayer);
-  baseLayer = L.tileLayer(BASE_LAYERS[tipo], { maxZoom: 20 }).addTo(leafletMap);
-  ['osm','sat','topo'].forEach(t => {
-    const btn = document.getElementById('btn-'+t);
-    if(btn) btn.className = 'map-layer-btn' + (t === tipo ? ' active' : '');
+function setBase(tipo){
+  if(!lmap)return;
+  if(lbase)lmap.removeLayer(lbase);
+  lbase=L.tileLayer(BASES[tipo],{maxZoom:20}).addTo(lmap);
+  ['osm','sat','topo'].forEach(t=>{
+    const b=document.getElementById('btn-'+t);
+    if(b)b.className='mtbtn'+(t===tipo?' active':'');
   });
 }
 
-function setOverlayOpacity(val) {
-  if(overlayFill) overlayFill.setOpacity(parseFloat(val));
-}
-
-function clearOverlays() {
-  if(overlayFill)    { leafletMap.removeLayer(overlayFill);    overlayFill=null; }
-  if(overlayContour) { leafletMap.removeLayer(overlayContour); overlayContour=null; }
-  if(overlayPoints)  { leafletMap.removeLayer(overlayPoints);  overlayPoints=null; }
+function fitLeafletToSVG(latMn,latMx,lonMn,lonMx){
+  if(!lmap)return;
+  lmap.fitBounds([[latMn,lonMn],[latMx,lonMx]],{padding:[60,60]});
 }
 
 // ═══ ESTADO ═══════════════════════════════════════════════════════════════════
@@ -477,6 +478,17 @@ async function generarMapa(){
 
   prog(0.10);
 
+  // Centrar el mapa Leaflet en el área del relevamiento
+  if(lmap){
+    const latMnL=lat0+d3.min(pts,p=>p.y)/(6371000*Math.PI/180);
+    const latMxL=lat0+d3.max(pts,p=>p.y)/(6371000*Math.PI/180);
+    const cosL=Math.cos(lat0*Math.PI/180)*6371000*Math.PI/180;
+    const lonMnL=lon0+d3.min(pts,p=>p.x)/cosL;
+    const lonMxL=lon0+d3.max(pts,p=>p.x)/cosL;
+    lmap.fitBounds([[latMnL,lonMnL],[latMxL,lonMxL]],{padding:[80,80]});
+    setTimeout(()=>lmap.invalidateSize(),100);
+  }
+
   // Bounding box
   const xMn=d3.min(pts,p=>p.x),xMx=d3.max(pts,p=>p.x);
   const yMn=d3.min(pts,p=>p.y),yMx=d3.max(pts,p=>p.y);
@@ -500,35 +512,42 @@ async function generarMapa(){
 
   const zMn=d3.min(vals), zMx=d3.max(vals), zR=zMx-zMn||1;
 
-  // ── Preparar Leaflet ─────────────────────────────────────────────────────
-  if(!leafletMap) initLeafletMap();
-  clearOverlays();
-
-  // Bounds geográficos del área con padding
-  // Convertir x0,x1,y0,y1 (metros desde centro) a lat/lon reales
-  const R = 6371000;
-  const bLatMn = lat0 + y0 / (R * Math.PI / 180);
-  const bLatMx = lat0 + y1 / (R * Math.PI / 180);
-  const bLonMn = lon0 + x0 / (Math.cos(lat0*Math.PI/180) * R * Math.PI / 180);
-  const bLonMx = lon0 + x1 / (Math.cos(lat0*Math.PI/180) * R * Math.PI / 180);
-  const leafletBounds = [[bLatMn, bLonMn], [bLatMx, bLonMx]];
-
-  // Variables dummy para que el resto del código no falle
-  const SVW=800, SVH=600, ML=0, MR=0, MT=0, MB=0;
-  const PW=SVW, PH=SVH, pW=SVW, pH=SVH, ox=0, oy=0;
+  // SVG responsivo — se adapta al contenedor disponible
+  const wrap=document.getElementById('svg-overlay');
+  const availW = Math.max(500, wrap.clientWidth  - 40);
+  const availH = Math.max(400, wrap.clientHeight - 40);
+  const SVW=availW, SVH=availH;
+  const ML=65,MR=20,MT=50,MB=50;
+  const PW=SVW-ML-MR, PH=SVH-MT-MB;
+  const aspect=W/H;
+  let pW=PW,pH=PH;
+  if(aspect>PW/PH)pH=Math.round(PW/aspect);else pW=Math.round(PH*aspect);
+  const ox=(PW-pW)/2, oy=(PH-pH)/2;
 
   // ── Canvas IDW → imagen ──────────────────────────────────────────────────
+  // ── Convex hull para recorte del relleno ────────────────────────────────
+  const hullPts=d3.polygonHull(pts.map(p=>[p.x,p.y]));
+  function inHull(px,py){
+    if(!hullPts)return true;
+    return d3.polygonContains(hullPts,[px,py]);
+  }
+
   const fc=document.createElement('canvas');fc.width=gW;fc.height=gH;
   const fctx=fc.getContext('2d');
   const imd=fctx.createImageData(gW,gH);
   for(let row=0;row<gH;row++){
     for(let col=0;col<gW;col++){
-      const z=vals[row*gW+col];
-      const t=(z-zMn)/zR;
-      const[r,g,b]=palRGB(t);
-      // flip Y: row 0 = sur = abajo del mapa
+      const gx=x0+(col/(gW-1))*W;
+      const gy=y0+(row/(gH-1))*H;
       const px=((gH-1-row)*gW+col)*4;
-      imd.data[px]=r;imd.data[px+1]=g;imd.data[px+2]=b;imd.data[px+3]=255;
+      if(!inHull(gx,gy)){
+        imd.data[px]=imd.data[px+1]=imd.data[px+2]=imd.data[px+3]=0;
+      } else {
+        const z=vals[row*gW+col];
+        const t=(z-zMn)/zR;
+        const[r,g,b]=palRGB(t);
+        imd.data[px]=r;imd.data[px+1]=g;imd.data[px+2]=b;imd.data[px+3]=255;
+      }
     }
   }
   fctx.putImageData(imd,0,0);
@@ -548,26 +567,33 @@ async function generarMapa(){
     point:function(px,py){this.stream.point(gx(px),gy(py));}
   }));
 
-  // ── Overlay raster IDW sobre Leaflet ─────────────────────────────────────
-  const opacidad = parseFloat(document.getElementById('opacity-slider').value) || 0.65;
-  overlayFill = L.imageOverlay(fillURL, leafletBounds, {
-    opacity: opacidad,
-    pane: 'overlayPane',  // pane estándar
-    interactive: false,
-    zIndex: 200           // por debajo de los markers (600)
-  }).addTo(leafletMap);
-  overlayFill.bringToBack();  // forzar al fondo
-  leafletMap.fitBounds(leafletBounds, { padding: [20, 20] });
+  // ── Construir SVG ─────────────────────────────────────────────────────────
+  wrap.innerHTML='';
 
-  // Variables dummy para compatibilidad con el resto del código
-  const svgDummy=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svgDummy.setAttribute('width',SVW);svgDummy.setAttribute('height',SVH);
-  svgEl=svgDummy;
-  const svg=d3.select(svgDummy);
-  svg.append('defs').append('clipPath').attr('id','pc').append('rect').attr('x',0).attr('y',0).attr('width',SVW).attr('height',SVH);
-  const g=svg.append('g');
-  // Imagen ya agregada como overlay
-  g.append('g').attr('id','layer-fill')
+  svgEl=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svgEl.setAttribute('width',  SVW);
+  svgEl.setAttribute('height', SVH);
+  svgEl.setAttribute('viewBox',`0 0 ${SVW} ${SVH}`);
+  svgEl.setAttribute('xmlns',  'http://www.w3.org/2000/svg');
+  svgEl.style.maxWidth  = '100%';
+  svgEl.style.maxHeight = '100%';
+  svgEl.style.background = 'transparent';
+  wrap.appendChild(svgEl);
+
+  const svg=d3.select(svgEl);
+
+  // Clip
+  svg.append('defs').append('clipPath').attr('id','pc')
+    .append('rect').attr('x',ML+ox).attr('y',MT+oy).attr('width',pW).attr('height',pH);
+
+  const g=svg.append('g').attr('transform',`translate(${ML},${MT})`);
+
+  // Fondo transparente — el mapa de Leaflet es el fondo
+  g.append('rect').attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH)
+    .attr('fill','transparent').attr('stroke','none');
+
+  // Capa fill (imagen canvas)
+  g.append('g').attr('id','layer-fill').attr('clip-path','url(#pc)')
     .append('image')
     .attr('x',ox).attr('y',oy).attr('width',pW).attr('height',pH)
     .attr('href',fillURL).attr('preserveAspectRatio','none');
@@ -727,16 +753,12 @@ function buildStats(pts,zMn,zMx,W,H){
 function togL(name){
   layers[name]=!layers[name];
   document.getElementById('tbtn-'+name).className='tbtn '+(layers[name]?'on':'off');
-  if(name==='fill'&&overlayFill){
-    if(layers[name])overlayFill.addTo(leafletMap);else leafletMap.removeLayer(overlayFill);
+  if(name==='labels'){
+    document.querySelectorAll('.pt-lbl').forEach(e=>e.style.display=layers[name]?'':'none');
+    const lel=document.getElementById('layer-labels');if(lel)lel.style.display=layers[name]?'':'none';
+    return;
   }
-  if(name==='points'&&overlayPoints){
-    if(layers[name])overlayPoints.addTo(leafletMap);else leafletMap.removeLayer(overlayPoints);
-  }
-  if(name==='contour'&&overlayContour){
-    if(layers[name])overlayContour.addTo(leafletMap);else leafletMap.removeLayer(overlayContour);
-  }
-  // Labels y grid siguen siendo SVG dummy — no hacen nada en modo mapa
+  const el=document.getElementById('layer-'+name);if(el)el.style.display=layers[name]?'':'none';
 }
 function expPNG(){
   if(!svgEl){showToast('Generá el mapa primero',true);return;}
