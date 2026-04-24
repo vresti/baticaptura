@@ -108,7 +108,7 @@
   <header>
     <div>
       <div class="logo-title">⚓ BatiGráfico v2</div>
-      <div class="logo-sub">VISUALIZACIÓN BATIMÉTRICA </div>
+      <div class="logo-sub">VISUALIZACIÓN BATIMÉTRICA — DELTA DEL TIGRE</div>
     </div>
     <div class="header-info" id="hinfo">Sin datos cargados</div>
   </header>
@@ -147,6 +147,45 @@
       </div>
     </div>
 
+
+    <!-- FILTRO DE PROFUNDIDAD -->
+    <div class="panel" id="filter-panel" style="display:none">
+      <div class="panel-title">▸ Filtro de Profundidad</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <div style="flex:1">
+          <div class="ctrl-label">DESDE (m)</div>
+          <input type="number" id="f-min" step="0.1" min="0"
+            style="width:100%;background:white;border:1px solid var(--border);
+            border-radius:4px;padding:5px 8px;font-size:13px;font-family:'Share Tech Mono',monospace;
+            color:var(--navy);font-weight:600;text-align:center"
+            oninput="actualizarFiltro()">
+        </div>
+        <div style="font-size:16px;color:var(--border);margin-top:14px">→</div>
+        <div style="flex:1">
+          <div class="ctrl-label">HASTA (m)</div>
+          <input type="number" id="f-max" step="0.1" min="0"
+            style="width:100%;background:white;border:1px solid var(--border);
+            border-radius:4px;padding:5px 8px;font-size:13px;font-family:'Share Tech Mono',monospace;
+            color:var(--navy);font-weight:600;text-align:center"
+            oninput="actualizarFiltro()">
+        </div>
+      </div>
+      <!-- Slider doble visual -->
+      <div style="position:relative;height:6px;background:var(--border);border-radius:3px;margin:8px 4px 4px">
+        <div id="filter-bar" style="position:absolute;height:100%;background:var(--navy);border-radius:3px;left:0;right:0;transition:all .2s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span id="filter-info-min" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim)">—</span>
+        <span id="filter-pts" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--navy);font-weight:600">todos los puntos</span>
+        <span id="filter-info-max" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim)">—</span>
+      </div>
+      <button onclick="resetFiltro()" 
+        style="width:100%;margin-top:8px;padding:5px;background:white;
+        border:1px solid var(--border);border-radius:4px;font-size:10px;
+        color:var(--dim);cursor:pointer;letter-spacing:1px">
+        ✕ QUITAR FILTRO
+      </button>
+    </div>
 
     <div class="panel" id="edp" style="display:none">
       <div class="panel-title">▸ Exportar datos</div>
@@ -261,6 +300,61 @@ function parseCSV(filename,text){
   }catch(e){showToast(`Error: ${e.message}`,true);}
 }
 
+// ─── FILTRO DE PROFUNDIDAD ───────────────────────────────────────────────────
+let filtroMin=null, filtroMax=null;
+
+function actualizarFiltro() {
+  filtroMin=parseFloat(document.getElementById('f-min').value);
+  filtroMax=parseFloat(document.getElementById('f-max').value);
+  if(isNaN(filtroMin))filtroMin=null;
+  if(isNaN(filtroMax))filtroMax=null;
+  actualizarInfoFiltro();
+  // Re-generar si ya hay mapa
+  if(document.getElementById('btn-gen')&&!document.getElementById('btn-gen').disabled){
+    generarMapa();
+  }
+}
+
+function resetFiltro() {
+  document.getElementById('f-min').value='';
+  document.getElementById('f-max').value='';
+  filtroMin=null;filtroMax=null;
+  actualizarInfoFiltro();
+  if(allPoints.length)generarMapa();
+}
+
+function actualizarInfoFiltro() {
+  const zs=allPoints.map(p=>p.z);
+  const mn=d3.min(zs), mx=d3.max(zs);
+  const fMin=filtroMin!==null?filtroMin:mn;
+  const fMax=filtroMax!==null?filtroMax:mx;
+  const pctL=mn===mx?0:((fMin-mn)/(mx-mn))*100;
+  const pctR=mn===mx?100:((fMax-mn)/(mx-mn))*100;
+  const bar=document.getElementById('filter-bar');
+  if(bar){bar.style.left=pctL+'%';bar.style.right=(100-pctR)+'%';}
+  document.getElementById('filter-info-min').textContent=mn?mn.toFixed(2)+'m':'—';
+  document.getElementById('filter-info-max').textContent=mx?mx.toFixed(2)+'m':'—';
+  // Contar puntos filtrados
+  const filtrados=allPoints.filter(p=>{
+    if(filtroMin!==null&&p.z<filtroMin)return false;
+    if(filtroMax!==null&&p.z>filtroMax)return false;
+    return true;
+  });
+  document.getElementById('filter-pts').textContent=
+    filtroMin!==null||filtroMax!==null
+    ?filtrados.length+' / '+allPoints.length+' puntos'
+    :'todos los puntos';
+}
+
+function getPuntsFiltrados() {
+  if(filtroMin===null&&filtroMax===null)return allPoints;
+  return allPoints.filter(p=>{
+    if(filtroMin!==null&&p.z<filtroMin)return false;
+    if(filtroMax!==null&&p.z>filtroMax)return false;
+    return true;
+  });
+}
+
 function rebuild(){
   allPoints=datasets.flatMap(d=>d.points);
   // File list
@@ -274,6 +368,17 @@ function rebuild(){
     fl.appendChild(div);
   });
   document.getElementById('btn-gen').disabled=allPoints.length<4;
+  if(allPoints.length){
+    document.getElementById('filter-panel').style.display='';
+    // Setear valores por defecto del filtro
+    const zs=allPoints.map(p=>p.z);
+    const mn=d3.min(zs), mx=d3.max(zs);
+    if(!document.getElementById('f-min').value)
+      document.getElementById('f-min').value=mn.toFixed(2);
+    if(!document.getElementById('f-max').value)
+      document.getElementById('f-max').value=mx.toFixed(2);
+    actualizarInfoFiltro();
+  }
   if(allPoints.length){
     const mn=d3.min(allPoints,p=>p.z).toFixed(2);
     const mx=d3.max(allPoints,p=>p.z).toFixed(2);
