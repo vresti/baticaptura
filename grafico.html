@@ -240,7 +240,7 @@ function parseCSV(filename,text){
     const latC=fc('LATITUD','LAT','LATITUDE');
     const lonC=fc('LONGITUD','LON','LONGITUDE');
     const prC =fc('FINAL_M','FINAL','PROF_M','PROF','PROFUNDIDAD','DEPTH','Z');
-    const seC =fc('SECTOR','NOMBRE','NAME');
+    const seC =fc('SECTOR','ZONA','NOMBRE','NAME');
     if(!latC||!lonC||!prC){showToast(`${filename}: no encuentro LAT/LON/PROF`,true);return;}
     const pts=[];
     rows.forEach(row=>{
@@ -330,7 +330,7 @@ async function generarMapa(){
   // Bounding box
   const xMn=d3.min(pts,p=>p.x),xMx=d3.max(pts,p=>p.x);
   const yMn=d3.min(pts,p=>p.y),yMx=d3.max(pts,p=>p.y);
-  const xP=(xMx-xMn)*0.10+5, yP=(yMx-yMn)*0.10+5;
+  const xP=(xMx-xMn)*0.15+10, yP=(yMx-yMn)*0.15+10;
   const x0=xMn-xP,x1=xMx+xP,y0=yMn-yP,y1=yMx+yP;
   const W=x1-x0, H=y1-y0;
 
