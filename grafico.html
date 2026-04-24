@@ -407,12 +407,17 @@ async function generarMapa(){
   const idwP=parseFloat(document.getElementById('ip').value);
   const title=document.getElementById('mt').value.trim()||'RELEVAMIENTO BATIMÉTRICO';
 
-  // Separar postes de sondajes
-  const soloSondajes=allPoints.filter(p=>!p.esPoste);
-  const soloPostes=allPoints.filter(p=>p.esPoste);
+  // Aplicar filtro de profundidad y separar postes
+  const puntosActivos=getPuntsFiltrados();
+  if(puntosActivos.length<4){showToast('El filtro deja menos de 4 puntos — ajustá el rango',true);document.getElementById('btn-gen').disabled=false;return;}
 
-  const lat0=d3.mean(soloSondajes.length?soloSondajes:allPoints,p=>p.lat);
-  const lon0=d3.mean(soloSondajes.length?soloSondajes:allPoints,p=>p.lon);
+  const soloSondajes=puntosActivos.filter(p=>!p.esPoste);
+  const soloPostes=allPoints.filter(p=>p.esPoste);  // postes siempre visibles
+
+  if(soloSondajes.length<4){showToast('Menos de 4 sondajes con el filtro aplicado',true);document.getElementById('btn-gen').disabled=false;return;}
+
+  const lat0=d3.mean(soloSondajes,p=>p.lat);
+  const lon0=d3.mean(soloSondajes,p=>p.lon);
 
   const pts=soloSondajes.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,z:p.z,lat:p.lat,lon:p.lon,sector:p.sector};});
   const ptsPostes=soloPostes.map(p=>{const m=toM(p.lat,p.lon,lat0,lon0);return{x:m.x,y:m.y,lat:p.lat,lon:p.lon};});
