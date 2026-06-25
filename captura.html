@@ -30,6 +30,10 @@ header{display:flex;align-items:center;justify-content:space-between;
   font-family:'Share Tech Mono',monospace;font-size:11px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);transition:all .3s}
 .dot.on{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+.mode-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;
+  font-size:10px;font-weight:700;letter-spacing:1px;white-space:nowrap;cursor:pointer}
+.mode-badge.test{background:rgba(255,34,51,.2);border:1px solid var(--red);color:var(--red)}
+.mode-badge.prod{background:rgba(0,255,136,.2);border:1px solid var(--green);color:var(--green)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
 /* SECTOR BAR */
@@ -281,9 +285,12 @@ td.sector-cell{color:var(--amber);font-size:10px}
       <div class="logo-title">⚓ BatiCaptura v4</div>
       <div class="logo-sub">RELEVAMIENTO BATIMÉTRICO — BATISISTEMA</div>
     </div>
-    <div class="status-pill">
-      <div class="dot" id="gps-dot"></div>
-      <span id="gps-status-txt">SIN GPS</span>
+    <div style="display:flex;gap:12px;align-items:center">
+      <span class="mode-badge test" id="mode-badge" onclick="toggleProductionMode()">🔴 TEST</span>
+      <div class="status-pill">
+        <div class="dot" id="gps-dot"></div>
+        <span id="gps-status-txt">SIN GPS</span>
+      </div>
     </div>
   </header>
 
@@ -318,6 +325,20 @@ td.sector-cell{color:var(--amber);font-size:10px}
       background:rgba(42,74,106,.3);border-color:var(--dim);color:var(--textdim)"
       onclick="demoGPS()">DEMO</button>
   </div>
+  
+  <!-- UMBRAL DE METRAJE (PRODUCCIÓN) -->
+  <div class="serial-config">
+    <label>METRAJE PROD.</label>
+    <input type="number" id="metraje-umbral" min="1" max="100" step="1" value="3"
+      style="width:50px;background:#0a1520;border:1px solid var(--border);color:var(--amber2);
+      border-radius:4px;padding:5px 8px;font-size:11px;text-align:center;outline:none"
+      oninput="updateMetrajeUmbral()"/>
+    <label style="margin-left:8px">metros</label>
+    <button class="btn" style="flex:none;padding:5px 12px;font-size:10px;margin-left:auto;
+      background:rgba(0,255,136,.15);border-color:var(--green);color:var(--green);font-weight:700"
+      onclick="toggleProductionMode()">🔴 MODO TEST</button>
+  </div>
+  
   <div class="nmea-debug" id="nmea-raw">— sin datos NMEA —</div>
 
   <!-- GPS INSTRUMENTOS -->
@@ -476,10 +497,12 @@ let lastGrabbedLat=null, lastGrabbedLon=null;
 let hasGPS=false, firstPoint=true, canGrab=false;
 let puntos=[], mareaLog=[];
 let threshold=10;
+let metraje_umbral=3;
 let ecoSign=+1, mareaSign=+1;
 let freshTimer=null, demoInterval=null;
 let autoDepth=true, autoGrab=false;
 let depthFlashTimer=null;
+let isProduction=false;
 const LS_KEY='baticaptura_v4';
 
 // ─── FORMATO SEXAGESIMAL ──────────────────────────────────────────────────────
@@ -648,6 +671,15 @@ function updateCoords(lat,lon,hdop,sats) {
     clearTimeout(freshTimer);freshTimer=setTimeout(()=>el.classList.remove('fresh'),800);
   });
   const bp=document.getElementById('btn-poste');if(bp)bp.disabled=false;
+  
+  // GRABACIÓN AUTOMÁTICA CADA X METROS (PRODUCCIÓN)
+  if(isProduction&&!firstPoint&&lastGrabbedLat){
+    const dist=getCurrentDist();
+    if(dist>=metraje_umbral){
+      grabarPunto();
+    }
+  }
+  
   updateOdometro();
 }
 
@@ -684,6 +716,35 @@ function getCurrentDist() {
   return haversine(lastGrabbedLat,lastGrabbedLon,currentLat,currentLon);
 }
 function updateThreshold(){threshold=parseInt(document.getElementById('threshold').value)||10;autoSave();updateOdometro();}
+
+function updateMetrajeUmbral() {
+  metraje_umbral=parseInt(document.getElementById('metraje-umbral').value)||3;
+  autoSave();
+}
+
+function toggleProductionMode() {
+  isProduction=!isProduction;
+  const badge=document.getElementById('mode-badge');
+  const btn=document.querySelector('[onclick="toggleProductionMode()"]');
+  if(isProduction){
+    badge.className='mode-badge prod';
+    badge.textContent='🟢 PRODUCCIÓN';
+    btn.textContent='🟢 PRODUCCIÓN';
+    btn.style.background='rgba(0,255,136,.15)';
+    btn.style.borderColor='var(--green)';
+    btn.style.color='var(--green)';
+    showToast('✓ MODO PRODUCCIÓN — Grabación cada '+metraje_umbral+'m',false,'sector');
+  }else{
+    badge.className='mode-badge test';
+    badge.textContent='🔴 TEST';
+    btn.textContent='🔴 MODO TEST';
+    btn.style.background='rgba(255,34,51,.15)';
+    btn.style.borderColor='var(--red)';
+    btn.style.color='var(--red)';
+    showToast('Volviste a TEST — Sin grabación automática',false);
+  }
+  autoSave();
+}
 
 function updateOdometro() {
   if(!hasGPS)return;
@@ -732,6 +793,21 @@ function setGrabarState(state) {
   }
 }
 
+// ─── WAKE LOCK (PANTALLA NO SE APAGUE) ────────────────────────────────────────
+let wakeLock=null;
+async function requestWakeLock() {
+  try{
+    if('wakeLock' in navigator){
+      wakeLock=await navigator.wakeLock.request('screen');
+      console.log('✓ Wake Lock activado — pantalla no se apagará');
+      wakeLock.addEventListener('release',()=>{console.log('Wake Lock liberado');wakeLock=null;});
+    }
+  }catch(e){console.log('Wake Lock no disponible: '+e.message);}
+}
+async function releaseWakeLock() {
+  if(wakeLock){try{await wakeLock.release();wakeLock=null;}catch(e){}}
+}
+
 // ─── WEB SERIAL ───────────────────────────────────────────────────────────────
 async function connectGPS() {
   if(!('serial' in navigator)){showToast('Usá Chrome o Edge',true);return;}
@@ -741,10 +817,12 @@ async function connectGPS() {
     setGPSStatus('Conectado',true);
     document.getElementById('btn-connect').disabled=true;
     document.getElementById('btn-disconnect').disabled=false;
+    await requestWakeLock();
     readSerial();
   }catch(e){showToast('Error: '+e.message,true);}
 }
 async function disconnectGPS() {
+  await releaseWakeLock();
   try{if(reader){await reader.cancel();reader=null;}}catch(e){}
   try{if(port){await port.close();port=null;}}catch(e){}
   hasGPS=false;setGPSStatus('Desconectado',false);setGrabarState('no-gps');
@@ -903,9 +981,41 @@ async function sendToGAS(punto) {
   try{await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sondaje',...punto})});}catch(e){}
 }
 async function testGAS() {
-  const url=document.getElementById('gas-url').value.trim();if(!url){showToast('Ingresá URL',true);return;}
-  try{await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'ping'})});showToast('✓ GAS alcanzado');}
-  catch(e){showToast('Error: '+e.message,true);}
+  const url=document.getElementById('gas-url').value.trim();
+  if(!url){showToast('⚠ Ingresá URL de GAS',true);return;}
+  if(!isProduction){showToast('⚠ Activa MODO PRODUCCIÓN primero',true);return;}
+  
+  const testBtn=document.querySelector('[onclick="testGAS()"]');
+  testBtn.disabled=true;
+  testBtn.textContent='⏳ TESTEANDO...';
+  
+  try{
+    const response=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'test_ping',timestamp:new Date().toISOString()})
+    });
+    
+    if(response.ok||response.status===200){
+      showToast('✓ GAS CONECTADO — Sistema en PRODUCCIÓN',false,'sector');
+      testBtn.textContent='✓ TEST OK';
+      testBtn.style.background='rgba(0,255,136,.2)';
+      testBtn.style.borderColor='var(--green)';
+      testBtn.style.color='var(--green)';
+      setTimeout(()=>{
+        testBtn.textContent='TEST';testBtn.style.background='';testBtn.style.borderColor='';testBtn.style.color='';
+        testBtn.disabled=false;
+      },2500);
+    }else{
+      showToast('⚠ GAS respondió con error '+response.status,true);
+      testBtn.disabled=false;
+      testBtn.textContent='TEST';
+    }
+  }catch(e){
+    showToast('✗ ERROR: No hay conexión a GAS — '+e.message,true);
+    testBtn.disabled=false;
+    testBtn.textContent='TEST';
+  }
 }
 
 // ─── DEMO GPS ─────────────────────────────────────────────────────────────────
@@ -953,7 +1063,8 @@ window.addEventListener('load',()=>{
   autoLoad();
   window.scrollTo({top:0,behavior:'instant'});
 });
-window.addEventListener('beforeunload',autoSave);
+window.addEventListener('beforeunload',async ()=>{await releaseWakeLock();autoSave();});
+window.addEventListener('pagehide',async ()=>{await releaseWakeLock();});
 </script>
 </body>
 </html>
