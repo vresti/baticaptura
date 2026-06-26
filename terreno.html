@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Puntos Terreno</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@400;600&display=swap');
+:root {
+  --bg:#060e18; --panel:#0b1e30; --bord:#0f3d60;
+  --amb:#ffd060; --grn:#00e5a0; --red:#ff4455;
+  --blu:#1a8fe8; --dim:#2a4a6a; --txt:#c8dcea;
+  --dtxt:#4a7a9a; --mar:#c084fc; --kbd:#0d2540; --kbd2:#122d4a;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:'Exo 2',sans-serif;}
+
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:480px;margin:0 auto;}
+
+/* HEADER */
+.hdr{background:var(--panel);border-bottom:2px solid var(--bord);padding:5px 10px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.zona-lbl{font-size:7px;letter-spacing:2px;color:var(--dtxt);}
+.zona-val{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--amb);
+  cursor:pointer;border-bottom:1px dashed var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gps-pill{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.3);
+  border:1px solid var(--bord);border-radius:10px;padding:3px 8px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dim);transition:all 0.3s;}
+.dot.on{background:var(--grn);box-shadow:0 0 6px var(--grn);animation:pulse 2s infinite;}
+.dot.err{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.gps-txt{font-family:'Share Tech Mono',monospace;font-size:10px;}
+
+.instrum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px 8px;flex-shrink:0;}
+.ins{background:var(--panel);border:1px solid var(--bord);border-radius:5px;padding:4px 6px;}
+.ins-lbl{font-size:6px;letter-spacing:2px;color:var(--dtxt);margin-bottom:1px;}
+.ins-val{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--amb);transition:color 0.3s;}
+.ins-val.fresh{color:var(--grn);}
+
+/* NOMBRE PUNTO */
+.punto-wrap{padding:6px 10px;flex-shrink:0;}
+.punto-lbl{font-size:7px;letter-spacing:2px;color:var(--dtxt);margin-bottom:3px;display:block;}
+.punto-input{width:100%;background:#020a12;border:1px solid var(--bord);border-radius:5px;
+  color:var(--amb);font-size:13px;font-family:'Exo 2',sans-serif;padding:6px 8px;
+  outline:none;transition:border-color 0.2s;}
+.punto-input:focus{border-color:var(--amb);}
+
+/* BOTÓN GRABAR */
+.btn-grabar{margin:4px 8px 3px;padding:11px;border-radius:8px;
+  font-family:'Orbitron',monospace;font-size:14px;font-weight:700;
+  letter-spacing:3px;text-transform:uppercase;border:2px solid;cursor:pointer;
+  transition:all 0.2s;flex-shrink:0;}
+.btn-grabar.locked{background:rgba(42,74,106,0.2);border-color:var(--dim);color:var(--dim);cursor:not-allowed;}
+.btn-grabar.unlocked{background:linear-gradient(135deg,rgba(0,229,160,0.15),rgba(26,143,232,0.15));
+  border-color:var(--grn);color:var(--grn);animation:bp 1.5s ease infinite;}
+@keyframes bp{0%,100%{box-shadow:0 0 14px rgba(0,229,160,0.2)}50%{box-shadow:0 0 28px rgba(0,229,160,0.45)}}
+.btn-grabar.unlocked:active{transform:scale(0.97);}
+.btn-grabar.no-gps{background:rgba(42,74,106,0.1);border-color:var(--dim);color:var(--dim);cursor:not-allowed;}
+
+/* LISTA PUNTOS */
+.points-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+  background:var(--panel);border-top:1px solid var(--bord);}
+.points-header{padding:4px 8px;border-bottom:1px solid var(--bord);flex-shrink:0;
+  display:flex;gap:4px;align-items:center;font-size:8px;letter-spacing:1px;color:var(--dtxt);}
+.points-list{flex:1;overflow-y:auto;padding:4px 8px;}
+.point-row{background:#010810;border:1px solid var(--bord);border-radius:4px;padding:4px 6px;
+  margin-bottom:4px;font-size:10px;font-family:'Share Tech Mono',monospace;
+  display:grid;grid-template-columns:30px 1fr;gap:6px;align-items:start;}
+.pr-n{color:var(--dtxt);font-weight:700;}
+.pr-data{display:grid;gap:2px;}
+.pr-line{display:flex;justify-content:space-between;gap:4px;flex-wrap:wrap;}
+.pr-label{color:var(--dtxt);font-size:9px;}
+.pr-value{color:var(--amb);}
+
+/* EXPORT */
+.export-row{display:flex;gap:4px;padding:4px 8px;flex-shrink:0;border-top:1px solid var(--bord);}
+.btn-export{flex:1;padding:6px;background:rgba(255,208,96,0.1);border:1px solid var(--amb);
+  border-radius:4px;color:var(--amb);font-size:11px;font-weight:600;cursor:pointer;
+  letter-spacing:1px;transition:all 0.2s;}
+.btn-export:active{background:rgba(255,208,96,0.2);transform:scale(0.98);}
+
+/* TOAST */
+.flash{position:fixed;inset:0;background:rgba(255,255,255,0.3);display:none;z-index:999;}
+.flash.show{display:block;animation:f 0.12s;}
+@keyframes f{0%{opacity:0}50%{opacity:1}100%{opacity:0}}
+
+.toast{position:fixed;bottom:-80px;left:0;right:0;max-width:460px;margin:0 auto;
+  padding:10px 16px;background:var(--panel);border:1px solid var(--bord);
+  border-radius:8px;font-size:12px;text-align:center;z-index:998;
+  transition:bottom 0.3s;font-family:'Share Tech Mono',monospace;}
+.toast.show{bottom:8px;}
+.toast.err{border-color:var(--red);color:var(--red);}
+
+/* AUTOSAVE IND */
+.as-ind{position:fixed;bottom:8px;right:8px;display:flex;align-items:center;gap:4px;
+  font-size:9px;color:var(--dtxt);font-family:'Share Tech Mono',monospace;z-index:997;}
+.as-dot{width:5px;height:5px;border-radius:50%;background:var(--dim);transition:all 0.3s;}
+.as-dot.saved{background:var(--grn);box-shadow:0 0 6px var(--grn);}
+</style>
+</head>
+<body>
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast"></div>
+<div class="as-ind">
+  <div class="as-dot" id="asdot"></div>
+  <span id="astxt">sin datos</span>
+</div>
+
+<div class="app">
+  <!-- HEADER -->
+  <div class="hdr">
+    <div>
+      <div class="zona-lbl">SECTOR ACTIVO</div>
+      <div class="zona-val" id="zona-disp" onclick="editSector()">sin sector</div>
+    </div>
+    <div class="gps-pill">
+      <div class="dot" id="gps-dot"></div>
+      <div class="gps-txt" id="gps-txt">sin GPS</div>
+    </div>
+  </div>
+
+  <!-- INSTRUMENTOS -->
+  <div class="instrum">
+    <div class="ins">
+      <div class="ins-lbl">LATITUD</div>
+      <div class="ins-val" id="lat-val">—</div>
+    </div>
+    <div class="ins">
+      <div class="ins-lbl">LONGITUD</div>
+      <div class="ins-val" id="lon-val">—</div>
+    </div>
+    <div class="ins">
+      <div class="ins-lbl">PRECISIÓN</div>
+      <div class="ins-val" id="acc-val">—</div>
+    </div>
+  </div>
+
+  <!-- NOMBRE PUNTO -->
+  <div class="punto-wrap">
+    <label class="punto-lbl">NOMBRE PUNTO</label>
+    <input type="text" class="punto-input" id="punto-nombre" 
+           placeholder="Ej: Esquina Norte, Línea 1..." maxlength="60">
+  </div>
+
+  <!-- BOTÓN GRABAR -->
+  <button class="btn-grabar no-gps" id="btn-grabar" onclick="grabarPunto()">
+    📍 GRABAR PUNTO
+  </button>
+
+  <!-- LISTA PUNTOS -->
+  <div class="points-wrap">
+    <div class="points-header">
+      <span>Nº</span>
+      <span id="ptcount">0</span>
+      <span style="flex:1"></span>
+      <span id="pts-lbl">PUNTOS</span>
+    </div>
+    <div class="points-list" id="puntos-list"></div>
+  </div>
+
+  <!-- EXPORT -->
+  <div class="export-row">
+    <button class="btn-export" onclick="exportCSV()">📥 CSV</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxxirQPVVJyk3Dz3VUFhas0fMTZXdonbyU55Wkrrfdc0y68sHmP85cBbdAOqFIqRHwQ/exec';
+const LS_KEY = 'terreno_v1';
+
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+let puntos = [];
+let zona = '';
+let gpsLat = null, gpsLon = null, gpsAlt = null, gpsAcc = null;
+let hasGPS = false;
+let watchId = null;
+
+// ════════════════════════════════════════════════
+//  GPS (Geolocation API)
+// ════════════════════════════════════════════════
+function startGPS() {
+  if (!navigator.geolocation) {
+    showToast('Geolocation no disponible', true);
+    return;
+  }
+  
+  watchId = navigator.geolocation.watchPosition(
+    pos => {
+      const c = pos.coords;
+      gpsLat = c.latitude;
+      gpsLon = c.longitude;
+      gpsAlt = c.altitude;
+      gpsAcc = c.accuracy;
+      hasGPS = true;
+      updateGPS();
+    },
+    err => {
+      hasGPS = false;
+      document.getElementById('gps-dot').className = 'dot err';
+      document.getElementById('gps-txt').textContent = 'ERROR GPS';
+      console.error(err);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+  
+  showToast('🔍 Buscando GPS...');
+  setTimeout(() => {
+    if (!hasGPS) {
+      showToast('⚠ Sin señal GPS', true);
+    }
+  }, 3000);
+}
+
+function stopGPS() {
+  if (watchId) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  hasGPS = false;
+  document.getElementById('gps-dot').className = 'dot';
+  document.getElementById('gps-txt').textContent = 'sin GPS';
+  showToast('GPS detenido');
+}
+
+function updateGPS() {
+  document.getElementById('gps-dot').className = 'dot on';
+  document.getElementById('gps-txt').textContent = 'GPS OK';
+  
+  // Sexagesimal
+  const latSex = toSex(gpsLat, 'lat');
+  const lonSex = toSex(gpsLon, 'lon');
+  document.getElementById('lat-val').textContent = latSex;
+  document.getElementById('lon-val').textContent = lonSex;
+  document.getElementById('lon-val').classList.add('fresh');
+  
+  // Precisión
+  if (gpsAcc !== null) {
+    const accTxt = '±' + Math.round(gpsAcc) + 'm';
+    document.getElementById('acc-val').textContent = accTxt;
+  }
+  
+  refreshBtnState();
+}
+
+function toSex(dec, tipo) {
+  const neg = dec < 0, abs = Math.abs(dec);
+  const deg = Math.floor(abs);
+  const min = (abs - deg) * 60;
+  const dir = tipo === 'lat' ? (neg ? 'S' : 'N') : (neg ? 'O' : 'E');
+  return deg + '°' + min.toFixed(4) + '\'' + dir;
+}
+
+// ════════════════════════════════════════════════
+//  UI
+// ════════════════════════════════════════════════
+function editSector() {
+  const nuevo = prompt('Sector:', zona);
+  if (nuevo !== null) {
+    zona = nuevo.trim();
+    document.getElementById('zona-disp').textContent = zona || 'sin sector';
+    autoSave();
+  }
+}
+
+function refreshBtnState() {
+  const btn = document.getElementById('btn-grabar');
+  if (hasGPS && zona) {
+    btn.className = 'btn-grabar unlocked';
+    btn.disabled = false;
+  } else {
+    btn.className = 'btn-grabar no-gps';
+    btn.disabled = true;
+  }
+}
+
+// ════════════════════════════════════════════════
+//  GRABAR PUNTO
+// ════════════════════════════════════════════════
+function grabarPunto() {
+  if (!hasGPS || !zona) return;
+  
+  const nombre = document.getElementById('punto-nombre').value.trim();
+  if (!nombre) {
+    showToast('Ingresá nombre del punto', true);
+    return;
+  }
+  
+  const n = puntos.length + 1;
+  const hora = new Date().toTimeString().substring(0, 8);
+  
+  const p = {
+    n,
+    zona,
+    punto: nombre,
+    lat: gpsLat,
+    lon: gpsLon,
+    alt: 0.01,  // fijo
+    acc: gpsAcc ? '±' + Math.round(gpsAcc) + 'm' : '—',
+    hora
+  };
+  
+  puntos.push(p);
+  document.getElementById('punto-nombre').value = '';
+  document.getElementById('ptcount').textContent = puntos.length;
+  
+  sendGAS(p);
+  autoSave();
+  
+  // Flash
+  document.getElementById('flash').classList.add('show');
+  setTimeout(() => document.getElementById('flash').classList.remove('show'), 120);
+  
+  refreshPointsList();
+  showToast(`✓ #${n} ${nombre} grabado`);
+}
+
+function refreshPointsList() {
+  const list = document.getElementById('puntos-list');
+  list.innerHTML = puntos.map(p => `
+    <div class="point-row">
+      <div class="pr-n">${p.n}</div>
+      <div class="pr-data">
+        <div class="pr-line">
+          <span class="pr-label">${p.punto}</span>
+          <span class="pr-value">${p.hora}</span>
+        </div>
+        <div class="pr-line">
+          <span class="pr-value">${toSex(p.lat,'lat')} ${toSex(p.lon,'lon')}</span>
+        </div>
+        <div class="pr-line">
+          <span class="pr-label">${p.acc}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════
+//  GAS
+// ════════════════════════════════════════════════
+async function sendGAS(p) {
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'sondaje',
+        lat: p.lat,
+        lon: p.lon,
+        alt_gps: p.alt,
+        zona: p.zona,
+        nota_marea: p.punto,
+        acc: p.acc,
+        hora: p.hora
+      })
+    });
+  } catch(e) {
+    console.error('GAS error:', e);
+  }
+}
+
+// ════════════════════════════════════════════════
+//  EXPORT CSV
+// ════════════════════════════════════════════════
+function exportCSV() {
+  if (!puntos.length) {
+    showToast('Sin puntos', true);
+    return;
+  }
+  
+  const fecha = new Date().toISOString().substring(0, 10);
+  const nom = (zona || 'terreno').replace(/[^a-zA-Z0-9 áéíóúñ]/gi, '').replace(/ /g, '_');
+  const hdr = 'N,SECTOR,PUNTO,LATITUD,LONGITUD,PRECISION,HORA\n';
+  const rows = puntos.map(p =>
+    `${p.n},"${p.zona}","${p.punto}",${p.lat},${p.lon},"${p.acc}",${p.hora}`
+  ).join('\n');
+  
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([hdr + rows], { type: 'text/csv;charset=utf-8' }));
+  a.download = `terreno_${nom}_${fecha}.csv`;
+  a.click();
+  
+  showToast(`✓ CSV — ${puntos.length} puntos`);
+}
+
+// ════════════════════════════════════════════════
+//  STORAGE
+// ════════════════════════════════════════════════
+function autoSave() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ puntos, zona }));
+    document.getElementById('asdot').className = 'as-dot saved';
+    document.getElementById('astxt').textContent = 'guardado ' + new Date().toTimeString().substring(0, 5);
+    setTimeout(() => document.getElementById('asdot').className = 'as-dot', 2000);
+  } catch(e) {}
+}
+
+function autoLoad() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s.puntos && s.puntos.length > 0) {
+      const ok = confirm(`Hay ${s.puntos.length} puntos de "${s.zona || 'sesión anterior'}" guardados.\n¿Continuar?`);
+      if (ok) {
+        puntos = s.puntos;
+        zona = s.zona || '';
+        document.getElementById('zona-disp').textContent = zona || 'sin sector';
+        document.getElementById('ptcount').textContent = puntos.length;
+        refreshPointsList();
+        showToast(`✓ ${puntos.length} puntos restaurados`);
+      } else {
+        localStorage.removeItem(LS_KEY);
+      }
+    }
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, err = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', 3200);
+}
+
+// ════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  autoLoad();
+  startGPS();
+  refreshBtnState();
+});
+
+window.addEventListener('beforeunload', () => {
+  stopGPS();
+});
+</script>
+</body>
+</html>
